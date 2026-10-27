@@ -105,6 +105,14 @@
             <li><b>A browser</b><span>Engine, sandbox, security, web compatibility</span><i class="era-dot is-no" aria-hidden="true"></i></li>
             <li><b>Your layer on a browser</b><span>One prompt again</span><i class="era-dot is-ok" aria-hidden="true"></i></li>
           </ol>
+          <details class="more how" data-reveal>
+            <summary>Why not build your own?<span>3 facts</span></summary>
+            <ol class="how-steps facts">
+              <li><b>3 engines</b><span>Blink, Gecko and WebKit keep up with the web.<a class="cite" href="https://en.wikipedia.org/wiki/Comparison_of_browser_engines" data-tip="Wikipedia: Blink, Gecko and WebKit are the maintained engines" aria-label="Source: Wikipedia: Blink, Gecko and WebKit are the maintained engines">↗</a> Ladybird is writing a fourth from scratch.<a class="cite" href="https://www.w3.org/events/meetings/8e1ca708-fdbf-4264-a79b-4c953fa85248" data-tip="W3C: Ladybird, a new engine written from scratch" aria-label="Source: W3C: Ladybird, a new engine written from scratch">↗</a></span></li>
+              <li><b>174 vs 15</b><span>Web features only Chromium ships today, against Firefox. New standards usually land there first.<a class="cite" href="https://web-platform-dx.github.io/web-features-explorer/only-in/chromium/" data-tip="web-features explorer: 174 features only in Chromium, 15 only in Firefox, 21 only in Safari (October 2026)" aria-label="Source: web-features explorer: 174 features only in Chromium, 15 only in Firefox, 21 only in Safari (October 2026)">↗</a></span></li>
+              <li><b>100 GB</b><span>Disk to build Chromium; Firefox needs 30 GB. Hours of compiling for every change.<a class="cite" href="https://firefox-source-docs.mozilla.org/setup/linux_build.html" data-tip="Firefox build docs: 30 GB of disk; Chromium's ask for 100 GB" aria-label="Source: Firefox build docs: 30 GB of disk; Chromium's ask for 100 GB">↗</a></span></li>
+            </ol>
+          </details>
         </div>
       </section>
 
@@ -181,7 +189,7 @@
           <div class="section-head center" data-reveal>
             <p class="kicker"><span>05</span> The way in</p>
             <h2>Firefox still lets you in.</h2>
-            <p>Its interface is markup, CSS and JS. A small loader runs your files inside it<a class="cite" href="https://github.com/MrOtherGuy/fx-autoconfig" data-tip="fx-autoconfig: Firefox's AutoConfig loads JS into the browser context" aria-label="Source: fx-autoconfig: Firefox's AutoConfig loads JS into the browser context">↗</a>, in any Firefox-based browser<a class="cite" href="https://github.com/CosmoCreeper/Sine" data-tip="Sine: a mod manager for all Firefox-based browsers" aria-label="Source: Sine: a mod manager for all Firefox-based browsers">↗</a>, while its updates keep coming.</p>
+            <p>Its interface is markup, CSS and JS. A startup hook runs your JS and CSS inside it, without patching the browser,<a class="cite" href="https://github.com/MrOtherGuy/fx-autoconfig" data-tip="fx-autoconfig: Firefox's AutoConfig loads JS into the browser context" aria-label="Source: fx-autoconfig: Firefox's AutoConfig loads JS into the browser context">↗</a>, in any Firefox-based browser<a class="cite" href="https://github.com/CosmoCreeper/Sine" data-tip="Sine: a mod manager for all Firefox-based browsers" aria-label="Source: Sine: a mod manager for all Firefox-based browsers">↗</a>, while its updates keep coming.</p>
           </div>
           <div class="pin">
             <figure class="scene" data-scene="firefox" aria-label="A loader in Firefox's install folder runs your script and stylesheet from your profile inside the browser window, where a command palette appears. Firefox-based browsers still update with their security fixes.">
@@ -200,10 +208,36 @@
         </div>
       </section>
 
+      <section class="section" id="looks">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>06</span> Looks</p>
+            <h2>One CSS file. Any look.</h2>
+            <p>The same Zen window, restyled by one stylesheet each, all written from a prompt.</p>
+          </div>
+          <div class="demo" data-demo data-reveal>
+            <figure class="screen">
+              <picture data-shot="stock"><img src="/looks/default.webp" alt="Stock Zen showing a Wikipedia page" width="1000" height="759" loading="lazy" decoding="async" /></picture>
+              <picture data-shot="candy" hidden><img src="/looks/candy.webp" alt="Candy: a pastel gradient browser with rounded tabs" width="1000" height="759" loading="lazy" decoding="async" /></picture>
+              <picture data-shot="pink" hidden><img src="/looks/pink.webp" alt="Pink: sidebar, tabs and pages all in pink" width="1000" height="759" loading="lazy" decoding="async" /></picture>
+              <picture data-shot="terminal" hidden><img src="/looks/terminal.webp" alt="Terminal: black, phosphor green and monospace" width="1000" height="759" loading="lazy" decoding="async" /></picture>
+              <picture data-shot="paper" hidden><img src="/looks/paper.webp" alt="Paper: cream pages, ink outlines and a serif face" width="1000" height="759" loading="lazy" decoding="async" /></picture>
+            </figure>
+            <div class="demo-tabs" role="tablist" aria-label="Looks">
+              <button type="button" role="tab" data-show="stock" aria-selected="true"><b>Stock</b><span>Zen as it ships</span></button>
+              <button type="button" role="tab" data-show="candy" aria-selected="false"><b>Candy</b><span>Pastel gradient, soft tabs</span></button>
+              <button type="button" role="tab" data-show="pink" aria-selected="false"><b>Pink</b><span>Every surface pink</span></button>
+              <button type="button" role="tab" data-show="terminal" aria-selected="false"><b>Terminal</b><span>Phosphor green, monospace</span></button>
+              <button type="button" role="tab" data-show="paper" aria-selected="false"><b>Paper</b><span>Cream, ink and serif</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="section" id="mods" data-pin-section>
         <div class="wrap">
           <div class="section-head center" data-reveal>
-            <p class="kicker"><span>06</span> Mod formats</p>
+            <p class="kicker"><span>07</span> Mod formats</p>
             <h2>Only one format hands over the whole browser.</h2>
             <p>Extensions get pages. Zen mods get CSS.<a class="cite" href="https://github.com/zen-browser/desktop/tree/dev/src/zen/mods" data-tip="Zen's mod loader reads chrome.css and preferences, never JS" aria-label="Source: Zen's mod loader reads chrome.css and preferences, never JS">↗</a> Sine mods get the browser.<a class="cite" href="https://github.com/CosmoCreeper/Sine" data-tip="Sine loads each mod's scripts into every browser window" aria-label="Source: Sine loads each mod's scripts into every browser window">↗</a></p>
           </div>
@@ -222,7 +256,7 @@
               <li><b>Every window</b><span>Each mod's JS and CSS load into every browser window.</span></li>
               <li><b>Updates</b><span>Mods update from their GitHub repo.</span></li>
             </ol>
-            <p class="aside">Scripts from outside Sine's store run only after you allow them.</p>
+            <p class="aside">Nothing is patched: most forks change a browser's source and rebuild it, while Sine only loads your files at startup. Scripts from outside Sine's store run only after you allow them.</p>
           </details>
 
           <div class="routes" data-reveal>
@@ -244,6 +278,9 @@
                 <li><a href="https://github.com/zen-browser/desktop/tree/dev/src/zen/mods">Zen, its mod loader: CSS and preferences</a></li>
                 <li><a href="https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette">VS Code, the Command Palette</a> and <a href="https://www.raycast.com/">Raycast</a></li>
                 <li><a href="https://docs.zen-browser.app/guides/live-editing">Zen docs, live editing</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Comparison_of_browser_engines">Wikipedia, comparison of browser engines</a> and <a href="https://www.w3.org/events/meetings/8e1ca708-fdbf-4264-a79b-4c953fa85248">W3C, Ladybird</a></li>
+                <li><a href="https://web-platform-dx.github.io/web-features-explorer/only-in/chromium/">web-features explorer, features only in Chromium</a></li>
+                <li><a href="https://firefox-source-docs.mozilla.org/setup/linux_build.html">Firefox, building on Linux</a></li>
               </ol>
             </details>
           </div>
@@ -253,7 +290,7 @@
       <section class="section" id="trust">
         <div class="wrap">
           <div class="section-head center" data-reveal>
-            <p class="kicker"><span>07</span> Trust</p>
+            <p class="kicker"><span>08</span> Trust</p>
             <h2>Code in your browser sees every session.</h2>
             <p>Any mod with this reach can take your cookies and sessions.<a class="cite" href="https://expel.com/blog/security-alert-christmas-day-chrome-extension-compromise/" data-tip="Expel: a hijacked Chrome extension update exposed sessions and cookies (2024)" aria-label="Source: Expel: a hijacked Chrome extension update exposed sessions and cookies (2024)">↗</a> Trust only code you've read<a class="cite" href="https://github.com/MrOtherGuy/fx-autoconfig" data-tip="fx-autoconfig warns that anything editing its loader can inject code into Firefox" aria-label="Source: fx-autoconfig warns that anything editing its loader can inject code into Firefox">↗</a>: that's why Zencast is a template, not a product.</p>
           </div>
@@ -269,7 +306,7 @@
       <section class="section" id="zencast">
         <div class="wrap">
           <div class="section-head center" data-reveal>
-            <p class="kicker"><span>08</span> My way</p>
+            <p class="kicker"><span>09</span> My way</p>
             <h2>Zencast is how I use my browser.</h2>
             <p>Inspired by VS Code's command palette<a class="cite" href="https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette" data-tip="VS Code: the Command Palette, Ctrl+Shift+P" aria-label="Source: VS Code: the Command Palette, Ctrl+Shift+P">↗</a> and Raycast<a class="cite" href="https://www.raycast.com/" data-tip="Raycast: a keyboard launcher for the whole desktop" aria-label="Source: Raycast">↗</a>: one box, type anything, all from the keyboard.</p>
           </div>
@@ -321,7 +358,7 @@
       <section class="section" id="template">
         <div class="wrap">
           <div class="section-head center" data-reveal>
-            <p class="kicker"><span>09</span> The template</p>
+            <p class="kicker"><span>10</span> The template</p>
             <h2>Your way: point your agent at it.</h2>
             <p>Fork it and say how you work. Here's what your agent finds.</p>
           </div>

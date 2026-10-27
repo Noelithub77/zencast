@@ -227,6 +227,10 @@ svg:not(.is-live) .ambient { visibility: hidden; }
 .center-aside { max-width: 880px; margin: 16px auto 0; text-align: center; }
 .more.how { margin-top: 28px; }
 .more.how .how-steps { margin-top: 16px; }
+.how-steps.facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.how-steps.facts li::before { content: none; }
+.how-steps.facts b { color: var(--accent); font-size: 22px; }
+@media (max-width: 720px) { .how-steps.facts { grid-template-columns: 1fr; } }
 .mykeys .more { margin: 6px 0 0; }
 .mykeys .more > summary { margin: 0; }
 .stats { position: relative; }

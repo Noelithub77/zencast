@@ -1,0 +1,21 @@
+{
+  "id": "zencast",
+  "name": "Zencast",
+  "description": "A keyboard-first command palette for Zen: commands, tabs, settings, containers, folders and custom keybindings.",
+  "author": "Noel",
+  "version": "0.1.0",
+  "fork": [
+    "zen"
+  ],
+  "style": {
+    "chrome": "document.css"
+  },
+  "scripts": {
+    "zencast.uc.mjs": {
+      "include": [
+        "chrome://browser/content/browser.xhtml"
+      ]
+    }
+  },
+  "supportsUnload": true
+}

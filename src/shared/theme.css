@@ -1,0 +1,115 @@
+/* Shared design tokens: Vesper base with pastel accents. Dark only; imported after Tailwind by the palette and settings sheets. */
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Zencast is dark-only, so shadcn's `dark:` variants always apply. */
+@custom-variant dark (&:is(*));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", "Inter", system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-faint: var(--faint);
+  --color-peach: var(--peach);
+  --color-mint: var(--mint);
+  --color-rose: var(--rose);
+  --color-lilac: var(--lilac);
+  --color-butter: var(--butter);
+  --color-sage: var(--sage);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root,
+:host {
+  color-scheme: dark;
+
+  /* Vesper neutrals */
+  --background: #101010;
+  --foreground: #ededed;
+  --card: #161616;
+  --card-foreground: #ededed;
+  --popover: #141414;
+  --popover-foreground: #ededed;
+  --secondary: #1c1c1c;
+  --secondary-foreground: #ededed;
+  --muted: #232323;
+  --muted-foreground: #a0a0a0;
+  --faint: #6b6b6b;
+  --accent: #232323;
+  --accent-foreground: #ffffff;
+  --border: #ffffff14;
+  --input: #ffffff1a;
+  --ring: #ffc79966;
+
+  /* Pastel accents, no blues */
+  --peach: #ffc799;
+  --mint: #99ffe4;
+  --rose: #ff8080;
+  --lilac: #c8b6ff;
+  --butter: #f5e6a8;
+  --sage: #b5d8a6;
+
+  --primary: var(--peach);
+  --primary-foreground: #101010;
+  --destructive: var(--rose);
+
+  --chart-1: var(--peach);
+  --chart-2: var(--mint);
+  --chart-3: var(--lilac);
+  --chart-4: var(--butter);
+  --chart-5: var(--rose);
+
+  --sidebar: #121212;
+  --sidebar-foreground: #ededed;
+  --sidebar-primary: var(--peach);
+  --sidebar-primary-foreground: #101010;
+  --sidebar-accent: #1c1c1c;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #ffffff12;
+  --sidebar-ring: #ffc79966;
+
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}

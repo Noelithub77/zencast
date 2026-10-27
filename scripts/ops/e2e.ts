@@ -89,18 +89,60 @@ const SCENARIOS: Scenario[] = [
       return { ok: isRoot && nested, detail: (isRoot ? "root folder" : "not root") + ", then " + (nested ? "subfolder inside it" : "folder outside it") }`,
   },
   {
-    name: "ctrl+shift+2 moves the tab to space 2 with a Zen toast",
+    name: "ctrl+shift+2 moves the tab to space 2, follows it, and shows a Zen toast",
     body: String.raw`${READY}
       if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
-      const target = gZenWorkspaces.getWorkspaces()[1]
+      const [first, target] = gZenWorkspaces.getWorkspaces()
       const tab = newTab()
       await sleep(50)
       press("ctrl+shift+2", document.documentElement)
       await until(() => tab.getAttribute("zen-workspace-id") === target.uuid)
+      await until(() => gZenWorkspaces.activeWorkspace === target.uuid && gBrowser.selectedTab === tab, 4000)
       const text = await until(() => toastText().includes("Moved to") && toastText(), 4000)
       const ok = text.includes("Moved to " + target.name)
       gBrowser.removeTab(tab)
-      return { ok, detail: "toast: " + text }`,
+      await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
+      return { ok, detail: "followed to " + target.name + "; toast: " + text }`,
+  },
+  {
+    name: "ctrl+shift+, opens the extensions page",
+    body: String.raw`${READY}
+      press("ctrl+shift+,", document.documentElement)
+      const url = await until(() => gBrowser.selectedBrowser.currentURI.spec.startsWith("about:addons") && gBrowser.selectedBrowser.currentURI.spec)
+      gBrowser.removeTab(gBrowser.selectedTab)
+      return { ok: true, detail: url }`,
+  },
+  {
+    name: "a host from the DNS cache completes inline",
+    body: String.raw`${READY}
+      // Resolving puts the host in Firefox's DNS cache, as visiting the site would.
+      await new Promise((resolve) => Services.dns.asyncResolve("allpyq.in", Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT, 0, null,
+        { QueryInterface: ChromeUtils.generateQI(["nsIDNSListener"]), onLookupComplete: resolve }, Services.tm.mainThread, {}))
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      await sleep(100)
+      typeQuery("allpyq")
+      const input = shadow().querySelector("[cmdk-input]")
+      const value = await until(() => input.value !== "allpyq" && input.value, 3000).catch(() => input.value)
+      const selected = input.value.slice(input.selectionStart, input.selectionEnd)
+      const first = resultTitles()[0] ?? ""
+      await dismiss()
+      return { ok: value === "allpyq.in" && selected === ".in" && first.startsWith("allpyq.in"), detail: value + " (selected " + JSON.stringify(selected) + "), first row " + first }`,
+  },
+  {
+    name: "holding ctrl labels visible rows with letters",
+    body: String.raw`${READY}
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      const init = { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }
+      document.documentElement.dispatchEvent(new KeyboardEvent("keydown", init))
+      const hints = () => [...shadow().querySelectorAll("[cmdk-item] kbd.text-peach")].map((kbd) => kbd.textContent)
+      const shown = await until(() => hints().length && hints(), 2000)
+      document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...init, ctrlKey: false }))
+      await until(() => hints().length === 0, 2000)
+      await dismiss()
+      const unique = new Set(shown).size === shown.length && !shown.some((l) => "acvxzkqw".includes(l))
+      return { ok: shown.length > 3 && unique, detail: shown.join(" ") + "; cleared on release" }`,
   },
   {
     name: "ctrl+, opens the settings page",
@@ -110,9 +152,12 @@ const SCENARIOS: Scenario[] = [
       const doc = await until(() => browser.contentDocument?.querySelector("nav a") && browser.contentDocument)
       const nav = [...doc.querySelectorAll("nav a")].map((a) => a.textContent.trim())
       browser.contentWindow.location.hash = "#folders"
-      const tree = await until(() => doc.querySelector("[role=tree]"))
-      const rows = tree.querySelectorAll("[role=treeitem]").length
-      return { ok: nav.length === 4 && rows > 0, detail: nav.join(", ") + "; " + rows + " folder rows" }`,
+      const tree = await until(() => doc.querySelector("[role=tree] [role=treeitem]") && doc.querySelector("[role=tree]"))
+      const columns = tree.querySelectorAll(":scope > [role=group]").length
+      const spaces = gZenWorkspaces.getWorkspaces().length
+      const icon = await until(() => gBrowser.selectedTab.getAttribute("image"), 3000).catch(() => "")
+      const ok = nav.length === 4 && columns === spaces && icon.includes("logo")
+      return { ok, detail: nav.join(", ") + "; " + columns + " space columns; favicon " + (icon.split("/").pop() || "missing") }`,
   },
 ]
 

@@ -15,6 +15,7 @@ import {
   Link01Icon,
   PencilEdit01Icon,
   PinIcon,
+  PuzzleIcon,
   RefreshIcon,
   Settings02Icon,
   StarIcon,
@@ -33,7 +34,7 @@ import {
 } from "@/browser/folders"
 import { editPinnedUrl, replacePinnedUrl, resetPinnedTab, toggleEssential, togglePin } from "@/browser/pins"
 import { transferSession, wipeTab } from "@/browser/session"
-import { activeWorkspaceId, listWorkspaces, moveTabToWorkspace, switchWorkspace } from "@/browser/workspaces"
+import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import type { Command, CommandContext, ListView, PaletteItem } from "./types"
 
 export const SETTINGS_URL = "chrome://sine/content/zencast/settings/index.html"
@@ -104,9 +105,9 @@ const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   hidden: true,
   defaultKeys: [`ctrl+shift+${i + 1}`],
   when: (ctx) => listWorkspaces(ctx.win).length > i,
-  run: (ctx) => {
+  run: async (ctx) => {
     const ws = listWorkspaces(ctx.win)[i]
-    moveTabToWorkspace(ctx.win, ctx.tab, ws.uuid)
+    await moveTabAndFollow(ctx.win, ctx.tab, ws.uuid)
     ctx.ui.toast(`Moved to ${ws.name}`)
   },
 }))
@@ -129,6 +130,16 @@ export const COMMANDS: Command[] = [
     keywords: "preferences keybindings shortcuts config",
     defaultKeys: ["ctrl+,"],
     run: ({ win }) => openSettings(win),
+  },
+  {
+    id: "zencast.extensions",
+    title: "Extensions",
+    section: "Palette",
+    icon: PuzzleIcon,
+    keywords: "addons add-ons manager themes plugins",
+    defaultKeys: ["ctrl+shift+,"],
+    // Reuses an open add-ons tab instead of opening another.
+    run: ({ win }) => void win.BrowserAddonUI.openAddonsMgr("addons://list/extension"),
   },
   {
     id: "zencast.folderManager",
@@ -302,7 +313,7 @@ export const COMMANDS: Command[] = [
     icon: Layers01Icon,
     keywords: "workspace send",
     defaultKeys: ["ctrl+space w"],
-    run: (ctx) => workspacePicker(ctx, "Move here", (id) => moveTabToWorkspace(ctx.win, ctx.tab, id)),
+    run: (ctx) => workspacePicker(ctx, "Move here", (id) => moveTabAndFollow(ctx.win, ctx.tab, id)),
   },
   ...moveToSpaceN,
 

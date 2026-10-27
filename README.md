@@ -1,3 +1,5 @@
+<img src="src/shared/logo.svg" alt="" width="72" />
+
 # Zencast
 
 A keyboard-first command palette for [Zen browser](https://zen-browser.app), built as a [Sine](https://github.com/CosmoCreeper/Sine) mod.
@@ -6,12 +8,15 @@ A keyboard-first command palette for [Zen browser](https://zen-browser.app), bui
 | --- | --- |
 | `Ctrl+K`, `Ctrl+T` | Open the palette |
 | `Ctrl+,` | Zencast settings: shortcuts, Zen settings, folders, general |
+| `Ctrl+Shift+,` | Extensions |
 | `Ctrl+Shift+N` | New folder, or a subfolder inside the current tab's folder |
 | `Alt+P` | Pin or unpin the tab |
 | `Alt+Shift+P` | Set the pinned URL to the current URL |
 | `Ctrl+Shift+1…9` | Move the tab to space 1…9 |
 
 Every binding can be changed or recorded as a chord in settings.
+
+In the palette, hold `Ctrl` to label the visible results with letters (`Ctrl+letter` runs one) and the options panel with numbers. Typing the start of a site you've visited, or one still in the browser's DNS cache, completes it inline: `allpyq` becomes `allpyq.in`, and `Tab` or `→` accepts it.
 
 ## Install
 

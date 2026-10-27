@@ -13,6 +13,8 @@ export interface WebResult {
   engine?: string
   source: "bookmark" | "history" | "tab" | "search" | "suggestion" | "url"
   heuristic: boolean
+  /** What the URL bar would complete the typed text to, e.g. "github.com". */
+  autofill?: string
 }
 
 let manager: UrlbarProvidersManagerInstance | null = null
@@ -58,6 +60,7 @@ function toWebResult(result: UrlbarResult): WebResult | null {
               ? "history"
               : "url",
       heuristic: result.heuristic,
+      autofill: result.autofill?.value.replace(/\/$/, ""),
     }
   }
   return null
@@ -67,7 +70,7 @@ function toWebResult(result: UrlbarResult): WebResult | null {
 export async function queryWeb(win: Window, searchString: string, signal: AbortSignal, maxResults = 8): Promise<WebResult[]> {
   const { manager, QueryContext } = load()
   const context = new QueryContext({
-    allowAutofill: false,
+    allowAutofill: true,
     isPrivate: false,
     maxResults,
     sapName: "urlbar",

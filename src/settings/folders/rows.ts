@@ -7,14 +7,14 @@ export type TreeRow =
   | { kind: "loose"; key: string; depth: number; label: string; tabs: TabNode[] }
   | { kind: "tab"; key: string; depth: number; node: TabNode; path?: string }
 
-/** Loose tab groups start closed; spaces and folders start open. */
+/** Spaces are column headers and always open; folders and loose tab groups start closed. */
 export function isOpen(row: TreeRow, toggled: ReadonlySet<string>): boolean {
-  const byDefault = row.kind !== "loose"
+  const byDefault = row.kind === "space"
   return toggled.has(row.key) ? !byDefault : byDefault
 }
 
 export function isExpandable(row: TreeRow): boolean {
-  return row.kind !== "tab"
+  return row.kind === "folder" || row.kind === "loose"
 }
 
 function pushFolder(rows: TreeRow[], node: FolderNode, depth: number, toggled: ReadonlySet<string>) {
@@ -27,14 +27,11 @@ function pushFolder(rows: TreeRow[], node: FolderNode, depth: number, toggled: R
   }
 }
 
-/** The visible rows of the tree, honouring which nodes the user opened or closed. */
-export function treeRows(trees: SpaceTree[], toggled: ReadonlySet<string>): TreeRow[] {
-  const rows: TreeRow[] = []
-  for (const tree of trees) {
+/** One column per space: its header, then the rows the user has opened below its root folders. */
+export function spaceColumns(trees: SpaceTree[], toggled: ReadonlySet<string>): TreeRow[][] {
+  return trees.map((tree) => {
     const count = tree.folders.reduce((sum, folder) => sum + countNodeTabs(folder), 0) + tree.pinned.length + tree.tabs.length
-    const space: TreeRow = { kind: "space", key: `space-${tree.workspace.uuid}`, depth: 0, tree, count }
-    rows.push(space)
-    if (!isOpen(space, toggled)) continue
+    const rows: TreeRow[] = [{ kind: "space", key: `space-${tree.workspace.uuid}`, depth: 0, tree, count }]
     for (const folder of tree.folders) pushFolder(rows, folder, 1, toggled)
     for (const [label, tabs] of [["Pinned", tree.pinned], ["Tabs", tree.tabs]] as const) {
       if (!tabs.length) continue
@@ -42,8 +39,8 @@ export function treeRows(trees: SpaceTree[], toggled: ReadonlySet<string>): Tree
       rows.push(loose)
       if (isOpen(loose, toggled)) for (const tab of tabs) rows.push({ kind: "tab", key: tab.key, depth: 2, node: tab })
     }
-  }
-  return rows
+    return rows
+  })
 }
 
 /** A flat list of matching folders and tabs, each labelled with where it lives. */

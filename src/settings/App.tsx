@@ -4,6 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import type { Icon } from "@/commands/types"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import logo from "@/shared/logo.svg"
 import { useRoute, type SectionId } from "./hooks"
 import { FoldersSection } from "./folders/FoldersSection"
 import { GeneralSection } from "./sections/GeneralSection"
@@ -23,8 +24,8 @@ export function App() {
     <TooltipProvider delayDuration={300}>
       <div className="flex h-screen">
         <nav className="flex w-52 shrink-0 flex-col gap-0.5 border-r p-3">
-          <div className="flex items-center gap-2 px-2.5 pt-1 pb-4 text-sm font-medium">
-            <span className="size-2 rounded-full bg-peach" />
+          <div className="flex items-center gap-2 px-2 pt-1 pb-4 text-sm font-medium">
+            <img src={logo} alt="" className="size-6" />
             Zencast
           </div>
           {NAV.map((item) => (

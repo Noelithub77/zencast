@@ -4,17 +4,20 @@ import type { ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
 import { comboFromEvent } from "@/shared/keys"
 import { Keys } from "@/components/keys"
+import { Kbd } from "@/components/ui/kbd"
 import { holdBrowserShortcut } from "./parts"
 
 interface ActionPanelProps {
   item: PaletteItem
+  /** Ctrl is held: show 1–9, which Ctrl+digit runs. */
+  numbered: boolean
   onRun: (action: ItemAction) => void
   onClose: () => void
 }
 
-export function ActionPanel({ item, onRun, onClose }: ActionPanelProps) {
+export function ActionPanel({ item, numbered, onRun, onClose }: ActionPanelProps) {
   return (
-    <div className="absolute right-2 bottom-12 z-10 w-72 rounded-xl border bg-popover shadow-2xl shadow-black/60">
+    <div className="absolute right-2 bottom-13 z-10 w-80 rounded-xl border bg-popover shadow-2xl shadow-black/60">
       <Command
         vimBindings={false}
         loop
@@ -23,9 +26,14 @@ export function ActionPanel({ item, onRun, onClose }: ActionPanelProps) {
           // The palette underneath handles its own keys; keep these to the panel.
           event.stopPropagation()
           const combo = comboFromEvent(event.nativeEvent)
+          const digit = /^ctrl\+([1-9])$/.exec(combo ?? "")
+          const numberedAction = digit ? item.actions[Number(digit[1]) - 1] : undefined
           if (combo === "escape" || combo === "ctrl+k") {
             event.preventDefault()
             onClose()
+          } else if (numberedAction) {
+            event.preventDefault()
+            onRun(numberedAction)
           } else if (combo) holdBrowserShortcut(event.nativeEvent, combo)
         }}
       >
@@ -36,11 +44,15 @@ export function ActionPanel({ item, onRun, onClose }: ActionPanelProps) {
               key={action.id}
               value={action.title}
               onSelect={() => onRun(action)}
-              className={`rounded-lg px-2.5 py-1.5 ${action.danger ? "text-rose data-selected:text-rose" : ""}`}
+              className={`rounded-lg px-3 py-2 ${action.danger ? "text-rose data-selected:text-rose" : ""}`}
             >
               <span className="truncate">{action.title}</span>
               <span data-slot="command-shortcut" className="ml-auto">
-                <Keys sequence={index === 0 ? "enter" : (action.keys ?? "")} />
+                {numbered && index < 9 ? (
+                  <Kbd className="bg-peach/15 text-peach">{index + 1}</Kbd>
+                ) : (
+                  <Keys sequence={index === 0 ? "enter" : (action.keys ?? "")} />
+                )}
               </span>
             </CommandItem>
           ))}

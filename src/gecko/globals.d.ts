@@ -233,7 +233,7 @@ declare global {
       notifyObservers(subject: unknown, topic: string, data?: string): void
     }
     io: { newURI(spec: string): nsIURI }
-    eTLD: { getBaseDomain(uri: nsIURI): string; getSchemelessSite(uri: nsIURI): string }
+    eTLD: { getBaseDomain(uri: nsIURI): string; getBaseDomainFromHost(host: string): string; getSchemelessSite(uri: nsIURI): string }
     scriptSecurityManager: {
       getSystemPrincipal(): nsIPrincipal
       createContentPrincipal(uri: nsIURI, attrs: OriginAttributes): nsIPrincipal
@@ -283,6 +283,22 @@ declare global {
     nsIClearDataService: Record<string, number>
     nsICookieValidation: { eOK: number }
     nsIWebNavigation: { LOAD_FLAGS_BYPASS_CACHE: number; LOAD_FLAGS_BYPASS_PROXY: number }
+    nsIDashboard: object
+    nsIDNSService: { RESOLVE_TYPE_DEFAULT: number }
+  }
+
+  interface DnsCacheEntry {
+    readonly hostname: string
+    readonly type: number
+    readonly originAttributesSuffix: string
+  }
+
+  interface NetDashboard {
+    requestDNSInfo(callback: (data: { entries: DnsCacheEntry[] }) => void): void
+  }
+
+  interface GeckoComponentsClasses {
+    "@mozilla.org/network/dashboard;1": { getService(iface: GeckoComponentsInterfaces["nsIDashboard"]): NetDashboard }
   }
 
   interface ContainerIdentity {
@@ -308,6 +324,8 @@ declare global {
     readonly source: number
     readonly heuristic: boolean
     readonly payload: UrlbarResultPayload
+    /** Set on the heuristic result when the URL bar would complete the typed text inline. */
+    readonly autofill?: { readonly value: string }
   }
 
   interface UrlbarQueryOptions {
@@ -374,6 +392,7 @@ declare global {
     gZenKeyboardShortcutsManager: ZenKeyboardShortcutsManager
     gZenUIManager: ZenUIManager
     openPreferences(pane?: string): void
+    readonly BrowserAddonUI: { openAddonsMgr(view?: string): Promise<unknown> }
     openTrustedLinkIn(url: string, where: "current" | "tab" | "window", params?: Record<string, unknown>): void
     addUnloadListener?(callback: () => void): void
     /** Resolves once the window's delayed startup (gBrowser, Zen managers) has finished. */
@@ -421,4 +440,5 @@ declare global {
   var Services: GeckoServices
   var ChromeUtils: GeckoChromeUtils
   var Ci: GeckoComponentsInterfaces
+  var Cc: GeckoComponentsClasses
 }

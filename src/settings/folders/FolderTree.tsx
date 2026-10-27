@@ -38,7 +38,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useTabSnapshot } from "../hooks"
 import { MoveDialog, type MoveTarget } from "./MoveDialog"
-import { isExpandable, isOpen, searchRows, treeRows, type TreeRow } from "./rows"
+import { isExpandable, isOpen, searchRows, spaceColumns, type TreeRow } from "./rows"
 
 interface Action {
   id: "open" | "move" | "rename" | "archive" | "newFolder" | "remove"
@@ -80,9 +80,13 @@ export function FolderTree({ win, query }: { win: Window; query: string }) {
   const [deleting, setDeleting] = useState<FolderNode | null>(null)
   const treeRef = useRef<HTMLDivElement>(null)
 
-  const rows = useMemo(() => (query.trim() ? searchRows(trees, query) : treeRows(trees, toggled)), [trees, toggled, query])
-  const focusedIndex = Math.max(0, rows.findIndex((row) => row.key === focusedKey))
-  const focused = rows[focusedIndex] ?? null
+  // Spaces sit side by side as columns; a filter shows one flat list of matches instead.
+  const columns = useMemo(() => (query.trim() ? [searchRows(trees, query)] : spaceColumns(trees, toggled)), [trees, toggled, query])
+  const rows = useMemo(() => columns.flat(), [columns])
+  const focusedColumn = Math.max(0, columns.findIndex((column) => column.some((row) => row.key === focusedKey)))
+  const column = columns[focusedColumn] ?? []
+  const focusedIndex = Math.max(0, column.findIndex((row) => row.key === focusedKey))
+  const focused = column[focusedIndex] ?? null
 
   useEffect(() => {
     if (focused) treeRef.current?.querySelector(`[data-key="${CSS.escape(focused.key)}"]`)?.scrollIntoView({ block: "nearest" })
@@ -131,8 +135,13 @@ export function FolderTree({ win, query }: { win: Window; query: string }) {
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.target !== event.currentTarget || event.ctrlKey || event.altKey || event.metaKey || !focused) return
     const move = (index: number) => {
-      const row = rows[Math.min(rows.length - 1, Math.max(0, index))]
+      const row = column[Math.min(column.length - 1, Math.max(0, index))]
       if (row) setFocusedKey(row.key)
+    }
+    // ← and → on a space header step between columns.
+    const moveColumn = (step: number) => {
+      const header = columns[focusedColumn + step]?.[0]
+      if (header) setFocusedKey(header.key)
     }
     const open = isExpandable(focused) && isOpen(focused, toggled)
     let handled = true
@@ -147,18 +156,20 @@ export function FolderTree({ win, query }: { win: Window; query: string }) {
         move(0)
         break
       case "End":
-        move(rows.length - 1)
+        move(column.length - 1)
         break
       case "ArrowRight":
-        if (isExpandable(focused) && !open && !query) toggle(focused)
+        if (focused.kind === "space") moveColumn(1)
+        else if (isExpandable(focused) && !open && !query) toggle(focused)
         else move(focusedIndex + 1)
         break
       case "ArrowLeft":
-        if (open && !query) toggle(focused)
+        if (focused.kind === "space") moveColumn(-1)
+        else if (open && !query) toggle(focused)
         else {
           // Parent: the nearest row above with a smaller depth.
           for (let i = focusedIndex - 1; i >= 0; i--)
-            if (rows[i].depth < focused.depth) {
+            if (column[i].depth < focused.depth) {
               move(i)
               break
             }
@@ -185,26 +196,33 @@ export function FolderTree({ win, query }: { win: Window; query: string }) {
         tabIndex={0}
         aria-activedescendant={focused ? `row-${focused.key}` : undefined}
         onKeyDown={onKeyDown}
-        className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+        className={cn(
+          "rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
+          !query.trim() && "grid auto-cols-[minmax(13rem,1fr)] grid-flow-col items-start gap-3 overflow-x-auto pb-2",
+        )}
       >
         {rows.length === 0 && <p className="py-10 text-center text-sm text-faint">{query ? "No matches" : "No folders yet"}</p>}
-        {rows.map((row) => (
-          <TreeItem
-            key={row.key}
-            row={row}
-            open={isExpandable(row) && isOpen(row, toggled)}
-            focused={row === focused}
-            renaming={renaming === row.key}
-            onFocus={() => setFocusedKey(row.key)}
-            onToggle={() => toggle(row)}
-            onRun={(id) => run(row, id)}
-            onRenamed={(label) => {
-              if (label && row.kind === "folder") renameFolder(row.node.folder, label)
-              setRenaming(null)
-              refresh()
-              treeRef.current?.focus()
-            }}
-          />
+        {columns.map((list, index) => (
+          <div key={list[0]?.key ?? index} role="group" className={cn(!query.trim() && "rounded-xl border bg-card/40 p-1.5")}>
+            {list.map((row) => (
+              <TreeItem
+                key={row.key}
+                row={row}
+                open={isExpandable(row) && isOpen(row, toggled)}
+                focused={row === focused}
+                renaming={renaming === row.key}
+                onFocus={() => setFocusedKey(row.key)}
+                onToggle={() => toggle(row)}
+                onRun={(id) => run(row, id)}
+                onRenamed={(label) => {
+                  if (label && row.kind === "folder") renameFolder(row.node.folder, label)
+                  setRenaming(null)
+                  refresh()
+                  treeRef.current?.focus()
+                }}
+              />
+            ))}
+          </div>
         ))}
       </div>
 
@@ -291,11 +309,11 @@ function TreeItem({ row, open, focused, renaming, onFocus, onToggle, onRun, onRe
       aria-selected={focused}
       onClick={onFocus}
       onDoubleClick={() => onRun("open")}
-      style={{ paddingLeft: 8 + row.depth * 18 }}
+      style={{ paddingLeft: 8 + Math.max(0, row.depth - 1) * 16 }}
       className={cn(
         "group flex h-9 items-center gap-2 rounded-lg pr-2 text-sm hover:bg-muted/40",
         focused && "bg-muted",
-        row.kind === "space" && "mt-2 font-medium",
+        row.kind === "space" && "font-medium",
       )}
     >
       {isExpandable(row) ? (
@@ -312,7 +330,7 @@ function TreeItem({ row, open, focused, renaming, onFocus, onToggle, onRun, onRe
           <HugeiconsIcon icon={open ? ArrowDown01Icon : ArrowRight01Icon} strokeWidth={2} className="size-3.5" />
         </button>
       ) : (
-        <span className="size-4" />
+        row.kind !== "space" && <span className="size-4" />
       )}
       <RowIcon row={row} open={open} />
 

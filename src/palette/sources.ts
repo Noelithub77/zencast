@@ -20,7 +20,7 @@ import {
 import { closeTab, duplicateTab, listTabs, selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
 import { openUrl } from "@/browser/window"
-import { activeWorkspaceId, listWorkspaces, moveTabToWorkspace, switchWorkspace } from "@/browser/workspaces"
+import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { chooseContainer, COMMANDS, containerItems, openSettings } from "@/commands/catalog"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
 import { buildIndex, type SearchIndex } from "./search"
@@ -104,7 +104,7 @@ function spaceItems(ctx: CommandContext): PaletteItem[] {
       keywords: `space workspace ${index + 1}`,
       actions: [
         { id: "switch", title: "Switch to space", run: () => switchWorkspace(ctx.win, ws.uuid) },
-        { id: "move", title: "Move tab here", keys: "ctrl+enter", run: () => moveTabToWorkspace(ctx.win, ctx.tab, ws.uuid) },
+        { id: "move", title: "Move tab here", keys: "ctrl+enter", run: () => moveTabAndFollow(ctx.win, ctx.tab, ws.uuid) },
       ],
     }))
 }

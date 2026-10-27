@@ -1,10 +1,14 @@
 // Searchable index of browser settings: Zen's preference panes, every boolean zen.* pref
 // (toggleable inline), and a fallback that runs about:preferences' own search.
+import { describePref, groupRank, PREF_CATEGORIES, type PrefCategory } from "./zen-prefs"
 
 export interface PrefSetting {
   kind: "pref"
   name: string
   title: string
+  category: PrefCategory
+  group: string
+  /** "Tabs · Glance", or just the category when it has a single group. */
   section: string
 }
 
@@ -29,19 +33,6 @@ const PANES: PaneSetting[] = [
 
 let prefIndex: PrefSetting[] | null = null
 
-function humanizePref(name: string): { title: string; section: string } {
-  const parts = name.replace(/^zen\./, "").split(".")
-  const leaf = parts.pop() ?? name
-  const words = leaf
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[-_]+/g, " ")
-    .toLowerCase()
-  return {
-    title: words.charAt(0).toUpperCase() + words.slice(1),
-    section: parts.join(" › ") || "zen",
-  }
-}
-
 /** Built once per window on first use; reads only default-branch names, which is cheap. */
 export function prefSettings(): PrefSetting[] {
   if (prefIndex) return prefIndex
@@ -49,8 +40,16 @@ export function prefSettings(): PrefSetting[] {
   prefIndex = defaults
     .getChildList("zen.")
     .filter((name) => defaults.getPrefType(name) === Services.prefs.PREF_BOOL)
-    .sort()
-    .map((name) => ({ kind: "pref", name, ...humanizePref(name) }))
+    .map((name): PrefSetting => {
+      const { title, category, group } = describePref(name)
+      return { kind: "pref", name, title, category, group, section: group === category ? category : `${category} · ${group}` }
+    })
+    .sort(
+      (a, b) =>
+        PREF_CATEGORIES.indexOf(a.category) - PREF_CATEGORIES.indexOf(b.category) ||
+        groupRank(a.group) - groupRank(b.group) ||
+        a.title.localeCompare(b.title),
+    )
   return prefIndex
 }
 

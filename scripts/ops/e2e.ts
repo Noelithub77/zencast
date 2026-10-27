@@ -158,8 +158,13 @@ const SCENARIOS: Scenario[] = [
       const columns = tree.querySelectorAll(":scope > [role=group]").length
       const spaces = gZenWorkspaces.getWorkspaces().length
       const icon = await until(() => gBrowser.selectedTab.getAttribute("image"), 3000).catch(() => "")
-      const ok = nav.length === 4 && columns === spaces && icon.includes("logo")
-      return { ok, detail: nav.join(", ") + "; " + columns + " space columns; favicon " + (icon.split("/").pop() || "missing") }`,
+      browser.contentWindow.location.hash = "#settings"
+      const tabs = await until(() => [...doc.querySelectorAll("[role=tab]")].some((tab) => tab.textContent.trim() === "Pages") && [...doc.querySelectorAll("[role=tab]")])
+      const tabsTab = tabs.find((tab) => tab.textContent.trim() === "Tabs")
+      tabsTab.focus()
+      const vertical = await until(() => [...doc.querySelectorAll("[role=tabpanel] [role=switch]")].some((s) => s.getAttribute("aria-label") === "Vertical tabs"), 2000).catch(() => false)
+      const ok = nav.length === 4 && columns === spaces && icon.includes("logo") && tabs.length === 8 && vertical
+      return { ok, detail: nav.join(", ") + "; " + columns + " space columns; favicon " + (icon.split("/").pop() || "missing") + "; settings tabs " + tabs.map((t) => t.textContent.trim()).join(" ") + (vertical ? "; Vertical tabs under Tabs" : "") }`,
   },
 ]
 
@@ -192,6 +197,8 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   }
   await zen.run(String.raw`${READY}
     gBrowser.selectedTab = gBrowser.tabs[0]
+    // Zen focuses the address bar shortly after selecting an empty tab; let that settle first.
+    await sleep(300)
     press("ctrl+k", document.documentElement)
     await until(paletteOpen)
     await sleep(300)`)
@@ -209,6 +216,12 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("settings-shortcuts")
   await zen.run(String.raw`gBrowser.selectedBrowser.contentWindow.location.hash = "#folders"; await sleep(400)`)
   await shot("settings-folders")
+  await zen.run(String.raw`gBrowser.selectedBrowser.contentWindow.location.hash = "#settings"; await sleep(400)`)
+  await shot("settings-zen")
+  await zen.run(String.raw`const doc = gBrowser.selectedBrowser.contentDocument
+    ;[...doc.querySelectorAll("[role=tab]")].find((tab) => tab.textContent.trim() === "Tabs").focus()
+    await sleep(300)`)
+  await shot("settings-zen-tabs")
   return files
 }
 

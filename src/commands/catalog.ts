@@ -133,7 +133,7 @@ export const COMMANDS: Command[] = [
     section: "Palette",
     icon: CommandIcon,
     hidden: true,
-    defaultKeys: ["ctrl+k", "ctrl+t"],
+    defaultKeys: ["ctrl+k"],
     run: () => {},
   },
   {

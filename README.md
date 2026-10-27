@@ -6,7 +6,7 @@ A keyboard-first command palette for [Zen browser](https://zen-browser.app), bui
 
 | Key | Action |
 | --- | --- |
-| `Ctrl+K`, `Ctrl+T` | Open the palette |
+| `Ctrl+K` | Open the palette (turn on "Open with Ctrl+T" in General to use `Ctrl+T` too) |
 | `Ctrl+,` | Zencast settings: shortcuts, Zen settings, folders, general |
 | `Ctrl+Shift+,` | Extensions |
 | `Ctrl+Shift+N` | New folder, or a subfolder inside the current tab's folder |

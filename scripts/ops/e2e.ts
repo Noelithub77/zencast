@@ -36,13 +36,41 @@ const SCENARIOS: Scenario[] = [
       return { ok: focused, detail: focused ? "input focused on open" : "input not focused" }`,
   },
   {
-    name: "ctrl+t opens the palette instead of a new tab",
+    name: "ctrl+t stays Zen's new tab unless the palette is set to take it",
     body: String.raw`${READY}
-      const tabs = gBrowser.tabs.length
-      press("ctrl+t", document.documentElement)
-      await until(paletteOpen)
-      await dismiss()
-      return { ok: gBrowser.tabs.length === tabs, detail: (gBrowser.tabs.length - tabs) + " tabs opened" }`,
+      const CONFIG = "zencast.config"
+      const setPaletteKeys = (keys) => Services.prefs.setStringPref(CONFIG, JSON.stringify({ version: 1, bindings: { "zencast.palette": keys } }))
+      // Zen's new tab either adds a tab or, with zen.urlbar.replace-newtab, opens the URL bar.
+      const nativeNewTab = async () => {
+        const tabs = gBrowser.tabs.length
+        gBrowser.selectedBrowser.focus()
+        pressTrusted("ctrl+t")
+        await sleep(300)
+        const native = !paletteOpen() && (gBrowser.tabs.length > tabs || gURLBar.focused)
+        gURLBar.view.close()
+        gURLBar.handleRevert()
+        gBrowser.selectedBrowser.focus()
+        await sleep(100)
+        return native
+      }
+      try {
+        const byDefault = await nativeNewTab()
+        setPaletteKeys(["ctrl+k", "ctrl+t"])
+        const tabs = gBrowser.tabs.length
+        gBrowser.selectedBrowser.focus()
+        pressTrusted("ctrl+t")
+        const opened = await until(paletteOpen, 2000).catch(() => false)
+        await dismiss()
+        const palette = opened && gBrowser.tabs.length === tabs
+        setPaletteKeys(["ctrl+k"])
+        const afterOff = await nativeNewTab()
+        return {
+          ok: byDefault && palette && afterOff,
+          detail: "default: " + (byDefault ? "zen" : "blocked") + "; turned on: " + (palette ? "palette" : "not palette") + "; turned off: " + (afterOff ? "zen" : "blocked"),
+        }
+      } finally {
+        Services.prefs.clearUserPref(CONFIG)
+      }`,
   },
   {
     name: "fuzzy search tolerates a typo",

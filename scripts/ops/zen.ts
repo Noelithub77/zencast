@@ -145,6 +145,20 @@ const press = (combo, target) => {
   el.dispatchEvent(new KeyboardEvent("keydown", init))
   el.dispatchEvent(new KeyboardEvent("keyup", init))
 }
+// Trusted key events, which Zen's own <key> shortcuts need; synthetic ones never trigger them.
+const pressTrusted = (combo) => {
+  const tip = Cc["@mozilla.org/text-input-processor;1"].createInstance(Ci.nsITextInputProcessor)
+  tip.beginInputTransactionForTests(window)
+  const parts = combo.split("+")
+  const key = parts.pop()
+  const MODS = { ctrl: ["Control", "ControlLeft", 17], alt: ["Alt", "AltLeft", 18], shift: ["Shift", "ShiftLeft", 16] }
+  const mods = parts.map((m) => new KeyboardEvent("", { key: MODS[m][0], code: MODS[m][1], keyCode: MODS[m][2] }))
+  const main = new KeyboardEvent("", { key, code: "Key" + key.toUpperCase(), keyCode: key.toUpperCase().charCodeAt(0) })
+  for (const mod of mods) tip.keydown(mod)
+  tip.keydown(main)
+  tip.keyup(main)
+  for (const mod of mods.reverse()) tip.keyup(mod)
+}
 const typeQuery = (text) => {
   const input = shadow().querySelector("[cmdk-input]")
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, text)

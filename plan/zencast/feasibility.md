@@ -38,7 +38,7 @@ Legend: ✅ direct internal API exists · 🟡 doable with our own logic · 🔴
 
 | Feature | Status | Mechanism |
 | --- | --- | --- |
-| `Ctrl+K` and `Ctrl+T` both open the palette by default | ✅ | Our keybinding engine overrides Firefox's `Ctrl+K` web-search key and intercepts `key_newNavigatorTab` plus Zen's floating new-tab URL bar (`zen.urlbar.replace-newtab`) |
+| `Ctrl+K` opens the palette; `Ctrl+T` can too, off by default | ✅ | Our keybinding engine overrides Firefox's `Ctrl+K` web-search key. With the General toggle on it also takes `Ctrl+T` before `key_newNavigatorTab` and Zen's floating new-tab URL bar (`zen.urlbar.replace-newtab`) |
 | `Ctrl+,` opens the Zencast settings page | ✅ | Opens `chrome://sine/content/zencast/settings/index.html`; Zen's own preferences stay reachable from it. The installed Zen Command Palette mod currently binds `Ctrl+,` to Zen settings, so the two conflict |
 | URL, history, bookmarks, search suggestions inside the palette | ✅ | Query Firefox's `UrlbarProvidersManager` so results match the real URL bar |
 | Search open tabs, all workspaces, folders, essentials | ✅ | `gBrowser.tabs`, `gZenWorkspaces`, `gZenFolders` |
@@ -128,7 +128,7 @@ Interaction rules adopted from Raycast:
 Tracked in the conversation; marked **[chosen]** here once answered.
 
 1. UI framework: React 19 **[chosen]**.
-2. Palette surface: own overlay, opened by both `Ctrl+K` and `Ctrl+T`; `Ctrl+,` opens settings **[chosen]**.
+2. Palette surface: own overlay, opened by `Ctrl+K`, and by `Ctrl+T` when turned on in General; `Ctrl+,` opens settings **[chosen]**.
 3. Session move: ask each time; `Enter` copies, `Ctrl+Enter` moves and clears the source **[chosen]**.
 4. First milestone: palette core, keybinding engine, containers and wipe, settings page **[chosen]**.
 5. Dependencies beyond React: `cmdk`, `@leeoniya/ufuzzy`, `zod`, shadcn **[chosen]**.

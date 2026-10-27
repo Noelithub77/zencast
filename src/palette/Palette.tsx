@@ -1,19 +1,23 @@
-import { ArrowLeft01Icon, Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
+import { ArrowLeft01Icon, Cancel01Icon, Layers01Icon, Search01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Command as CommandPrimitive } from "cmdk"
 import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react"
 
+import { listContainers } from "@/browser/containers"
 import { completeDomain, readDnsDomains } from "@/browser/hosts"
 import { queryWeb, type WebResult } from "@/browser/urlbar"
+import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
 import { Kbd } from "@/components/ui/kbd"
+import { CHORD_WAIT_MS, recordKey } from "@/keys/record"
+import { cn } from "@/lib/utils"
 import { readConfig, readUsage } from "@/shared/config"
 import { comboFromEvent } from "@/shared/keys"
 import { ActionPanel } from "./ActionPanel"
-import { closePalette, popView, runAction } from "./controller"
+import { closePalette, popView, runAction, saveRecording, toggleContainerTarget, toggleSpaceTarget } from "./controller"
 import { Keys } from "@/components/keys"
-import { assignHints, useCtrlHold } from "./hints"
+import { assignHints, useModifierHold, type Hint, type Modifier } from "./hints"
 import { isBrowserShortcut, ItemGlyph } from "./parts"
 import { markOpenPainted, record, timed } from "./perf"
 import { buildIndex, isStrongMatch, search } from "./search"
@@ -58,7 +62,7 @@ interface RowProps {
   item: PaletteItem
   heading: string | undefined
   /** Letter shown while Ctrl is held; Ctrl+letter runs the row. */
-  hint: string | undefined
+  hint: Hint | undefined
   onRun: (item: PaletteItem, action: ItemAction | undefined) => void
 }
 
@@ -72,9 +76,19 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
       </div>
       <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-12 gap-3.5 rounded-xl px-3.5 text-base font-normal">
         <span className="flex w-6 shrink-0 justify-center [&>img]:size-[18px] [&>svg]:size-[18px]">
-          {hint ? <Kbd className="bg-peach/15 text-peach">{hint}</Kbd> : <ItemGlyph icon={item.icon} />}
+          {hint ? <Kbd className="bg-peach/15 text-peach animate-in fade-in-0 duration-150">{hint.letter}</Kbd> : <ItemGlyph icon={item.icon} />}
         </span>
-        <span className="shrink-0 truncate">{item.title}</span>
+        <span className="shrink-0 truncate">
+          {hint ? (
+            <>
+              {item.title.slice(0, hint.index)}
+              <span className="text-peach underline decoration-2 underline-offset-4">{item.title[hint.index]}</span>
+              {item.title.slice(hint.index + 1)}
+            </>
+          ) : (
+            item.title
+          )}
+        </span>
         <span className="min-w-0 truncate text-[13px] text-faint">{item.subtitle}</span>
         <span data-slot="command-shortcut" className="ml-auto flex shrink-0 items-center gap-2 pl-3">
           <span className="text-[13px] empty:hidden" style={{ color: item.accessoryColor ?? "var(--muted-foreground)" }}>
@@ -86,6 +100,82 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
     </>
   )
 })
+
+/** Keeps the last non-null value, so a target can fade out still showing its name and colour. */
+function useLast<T>(value: T | null): T | null {
+  const [last, setLast] = useState(value)
+  if (value !== null && value !== last) setLast(value)
+  return value ?? last
+}
+
+interface Target {
+  name: string
+  color: string
+}
+
+/** A soft wash of the target's colour from one top corner, behind the palette's content. */
+function TargetWash({ target, corner }: { target: Target | null; corner: "left" | "right" }) {
+  const shown = useLast(target)
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit] transition-[opacity,color] duration-300 ease-out"
+      style={{
+        color: shown?.color,
+        opacity: target ? 1 : 0,
+        backgroundImage: `radial-gradient(110% 85% at ${corner === "left" ? "0%" : "100%"} 0%, color-mix(in srgb, currentColor 17%, transparent), transparent 62%)`,
+      }}
+    />
+  )
+}
+
+function TargetChip({ target, kind, onClear }: { target: Target | null; kind: "space" | "container"; onClear: () => void }) {
+  const shown = useLast(target)
+  if (!shown) return null
+  return (
+    <span
+      aria-hidden={!target}
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 overflow-hidden rounded-full text-xs whitespace-nowrap transition-all duration-300 ease-out",
+        target ? "max-w-52 py-0.5 pr-1 pl-2 opacity-100" : "max-w-0 p-0 opacity-0",
+      )}
+      style={{ backgroundColor: `color-mix(in srgb, ${shown.color} 16%, transparent)`, color: `color-mix(in srgb, ${shown.color} 65%, var(--foreground))` }}
+    >
+      {kind === "space" ? (
+        <HugeiconsIcon icon={Layers01Icon} strokeWidth={2} className="size-3" />
+      ) : (
+        <span className="size-2 rounded-full" style={{ backgroundColor: shown.color }} />
+      )}
+      <span className="max-w-36 truncate">{shown.name}</span>
+      <button
+        type="button"
+        tabIndex={target ? 0 : -1}
+        aria-label={kind === "space" ? "Clear space" : "Clear container"}
+        onClick={onClear}
+        className="flex size-4 items-center justify-center rounded-full hover:bg-foreground/10"
+      >
+        <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3" />
+      </button>
+    </span>
+  )
+}
+
+interface StripEntry {
+  key: string
+  name: string
+  color: string
+  active: boolean
+}
+
+/** Held Ctrl numbers the containers, held Alt the spaces; the number toggles that target. */
+function useStrip(held: Modifier | null, win: Window | null, space: string | undefined, container: number | undefined): StripEntry[] | null {
+  return useMemo(() => {
+    if (!win || !held) return null
+    if (held === "alt")
+      return listWorkspaces(win).slice(0, 9).map((ws, index) => ({ key: ws.uuid, name: ws.name, color: workspaceColor(ws, index), active: ws.uuid === space }))
+    return listContainers().slice(0, 9).map((c) => ({ key: String(c.id), name: c.name, color: c.color, active: c.id === container }))
+  }, [held, win, space, container])
+}
 
 function useWebResults(context: CommandContext | null, query: string, enabled: boolean): WebResult[] {
   const [web, setWeb] = useState<{ query: string; results: WebResult[] }>({ query: "", results: [] })
@@ -126,12 +216,15 @@ function useDnsDomains(open: boolean): string[] {
   return domains
 }
 
-/** History autofill from the URL bar first, then the DNS cache. */
-function completion(typed: string, web: WebResult[], domains: string[]): string | null {
-  const lower = typed.toLowerCase()
+/**
+ * A host from the DNS cache wins, even over a command whose name starts with the query. The URL
+ * bar's history autofill comes after, and yields to such a command.
+ */
+function completion(typed: string, web: WebResult[], domains: string[], strong: boolean): string | null {
+  const dns = completeDomain(typed, domains)
+  if (dns || strong) return dns
   const history = web.find((result) => result.heuristic && result.autofill)?.autofill
-  if (history && history.length > typed.length && history.toLowerCase().startsWith(lower)) return history
-  return completeDomain(typed, domains)
+  return history && history.length > typed.length && history.toLowerCase().startsWith(typed.toLowerCase()) ? history : null
 }
 
 function caretAtEnd(target: EventTarget | undefined): boolean {
@@ -145,6 +238,8 @@ export function Palette() {
   const root = usePalette((s) => s.root)
   const stack = usePalette((s) => s.stack)
   const openIn = usePalette((s) => s.openIn)
+  const space = usePalette((s) => s.space)
+  const recording = usePalette((s) => s.recording)
   const view = stack.at(-1) ?? null
 
   // Reset local state whenever a new session or view starts (the component stays mounted).
@@ -157,7 +252,7 @@ export function Palette() {
   const [fill, setFill] = useState(false)
   if (seenKey !== viewKey) {
     setSeenKey(viewKey)
-    setQuery("")
+    setQuery(view?.prompt?.initial ?? "")
     setSelected("")
     setPanel(false)
     setFill(false)
@@ -185,13 +280,24 @@ export function Palette() {
   const domains = useDnsDomains(open)
 
   const { groups, suffix } = useMemo(() => timed("search", () => {
+    if (view?.prompt) {
+      const submit = view.prompt.submit
+      const item: PaletteItem = {
+        id: "prompt",
+        transient: true,
+        title: query ? `Set to “${query}”` : "Set to empty",
+        section: view.title,
+        icon: { kind: "icon", icon: Tick02Icon },
+        actions: [{ id: "save", title: "Save", run: () => submit(query) }],
+      }
+      return { groups: [{ section: view.title, items: [item] }], suffix: "" }
+    }
     const ranked = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
     if (view || !context || !q) return { groups: groupBySection(ranked), suffix: "" }
 
     const out: Group[] = []
     const strong = ranked.some((item) => isStrongMatch(item, q))
-    // A command whose name starts with the query keeps Enter; otherwise the completed host takes it.
-    const host = fill && !strong && query === q ? completion(q, web, domains) : null
+    const host = fill && query === q ? completion(q, web, domains, strong) : null
     const suffix = host ? host.slice(q.length) : ""
     const { url, search: searchItem } = queryItems(context, q + suffix)
     if (url) out.push({ section: "Open", items: [url] })
@@ -219,16 +325,18 @@ export function Palette() {
   useLayoutEffect(() => {
     if (!open || !context) return
     inputRef.current?.focus()
+    // A prompt starts with its current value selected, so typing replaces it.
+    if (view?.prompt) inputRef.current?.select()
     markOpenPainted(context.win)
-  }, [open, context, viewKey])
+  }, [open, context, viewKey, view])
 
   // Hints label only the rows in view when Ctrl goes down; the options panel numbers its actions instead.
-  const [held, setHeld] = useState(false)
-  const [hints, setHints] = useState<Map<string, string> | null>(null)
-  useCtrlHold(open && context ? context.win : null, (down) => {
-    setHeld(down)
+  const [held, setHeld] = useState<Modifier | null>(null)
+  const [hints, setHints] = useState<Map<string, Hint> | null>(null)
+  useModifierHold(open && context ? context.win : null, (modifier) => {
+    setHeld(modifier)
     const list = listRef.current
-    if (!down || panel || !list) return setHints(null)
+    if (modifier !== "ctrl" || panel || recording || view?.prompt || !list) return setHints(null)
     const bounds = list.getBoundingClientRect()
     const visible = [...list.querySelectorAll("[cmdk-item]")].flatMap((element, index) => {
       const rect = element.getBoundingClientRect()
@@ -237,9 +345,21 @@ export function Palette() {
       return entry && middle > bounds.top && middle < bounds.bottom ? [entry.item] : []
     })
     const taken = (active?.actions ?? []).flatMap((action) => /^ctrl\+([a-z])$/.exec(action.keys ?? "")?.[1] ?? [])
-    const letters = assignHints(visible.map((item) => item.title), taken)
-    setHints(new Map(visible.flatMap((item, i) => (letters[i] ? [[item.id, letters[i]]] : []))))
+    const assigned = assignHints(visible.map((item) => item.title), taken)
+    setHints(new Map(visible.flatMap((item, i) => {
+      const hint = assigned[i]
+      return hint ? [[item.id, hint]] : []
+    })))
   })
+  const strip = useStrip(panel || recording ? null : held, context?.win ?? null, space?.id, openIn?.id)
+
+  // A recorded sequence ends after a pause, as in the settings page.
+  const recorded = recording?.combos
+  useEffect(() => {
+    if (!recorded?.length) return
+    const timer = setTimeout(saveRecording, CHORD_WAIT_MS)
+    return () => clearTimeout(timer)
+  }, [recorded])
 
   const run = useCallback((item: PaletteItem, action: ItemAction | undefined) => {
     if (!action) return
@@ -258,6 +378,19 @@ export function Palette() {
       event.preventDefault()
       event.stopImmediatePropagation()
       event.stopCrossProcessForwarding?.()
+    }
+
+    if (recording) {
+      consume()
+      const step = recordKey(recording.combos, combo)
+      if (step.kind === "cancel") setState({ recording: null })
+      else if (step.kind === "save") saveRecording()
+      else if (step.kind === "hint") setState({ recording: { ...recording, hint: step.text } })
+      else {
+        setState({ recording: { ...recording, combos: step.combos, hint: null } })
+        if (step.done) saveRecording()
+      }
+      return
     }
 
     if (panel) {
@@ -289,10 +422,10 @@ export function Palette() {
       else closePalette(true)
       return
     }
-    if (combo === "backspace" && !query && (stack.length || openIn)) {
+    if (combo === "backspace" && !query && (stack.length || openIn || space)) {
       consume()
       if (stack.length) popView()
-      else setState({ openIn: null })
+      else setState(openIn ? { openIn: null } : { space: null })
       return
     }
     if (combo === "ctrl+k" || (combo === "right" && caretAtEnd(event.composedPath()[0]) && (active?.actions.length ?? 0) > 1)) {
@@ -300,11 +433,12 @@ export function Palette() {
       if (active) setPanel(true)
       return
     }
-    const digit = /^alt\+([1-9])$/.exec(combo)
-    if (digit) {
+    // Alt+N and Ctrl+N pick the space and container that results open in; again clears them.
+    const target = /^(alt|ctrl)\+([1-9])$/.exec(combo)
+    if (target && !view) {
       consume()
-      const item = rows[Number(digit[1]) - 1]
-      if (item) run(item, item.actions[0])
+      if (target[1] === "alt") toggleSpaceTarget(Number(target[2]) - 1)
+      else toggleContainerTarget(Number(target[2]) - 1)
       return
     }
     if (combo === "enter") {
@@ -313,7 +447,7 @@ export function Palette() {
       return
     }
     const letter = /^ctrl\+([a-z])$/.exec(combo)?.[1]
-    const hinted = letter && hints ? rows.find((item) => hints.get(item.id) === letter) : undefined
+    const hinted = letter && hints ? rows.find((item) => hints.get(item.id)?.letter === letter) : undefined
     if (hinted) {
       consume()
       run(hinted, hinted.actions[0])
@@ -331,8 +465,16 @@ export function Palette() {
     if (!open || !context) return
     const win = context.win
     const listener = (event: KeyboardEvent) => onKeyDown(event)
+    // Releasing a held Alt would otherwise show the menu bar.
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Alt") event.preventDefault()
+    }
     win.addEventListener("keydown", listener, true)
-    return () => win.removeEventListener("keydown", listener, true)
+    win.addEventListener("keyup", onKeyUp, true)
+    return () => {
+      win.removeEventListener("keydown", listener, true)
+      win.removeEventListener("keyup", onKeyUp, true)
+    }
   }, [open, context])
 
   // Zen moves focus on its own, such as to the address bar after a tab closes. The palette is modal,
@@ -355,8 +497,10 @@ export function Palette() {
     return () => doc.removeEventListener("focusin", onFocus, true)
   }, [open, context])
 
-  const placeholder = view?.placeholder ?? (openIn ? `Open in ${openIn.name}` : "Search or type a URL")
+  const targets = [space?.name, openIn?.name].filter(Boolean).join(" · ")
+  const placeholder = view?.placeholder ?? (targets ? `Open in ${targets}` : "Search or type a URL")
   const primary = active?.actions[0]
+  const accent = space?.color ?? openIn?.color
 
   return (
     <div
@@ -374,8 +518,11 @@ export function Palette() {
           loop
           value={active?.id ?? ""}
           onValueChange={setSelected}
-          className="flex h-[min(680px,82vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60"
+          className="relative isolate flex h-[min(680px,82vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60 transition-[border-color] duration-300 ease-out"
+          style={{ borderColor: accent ? `color-mix(in srgb, ${accent} 45%, var(--border))` : undefined }}
         >
+          <TargetWash target={space} corner="left" />
+          <TargetWash target={openIn} corner="right" />
           <div className="flex h-16 shrink-0 items-center gap-3.5 border-b px-6">
             {view ? (
               <button
@@ -400,20 +547,8 @@ export function Palette() {
               placeholder={placeholder}
               className="h-full min-w-0 flex-1 bg-transparent text-lg outline-hidden placeholder:text-faint"
             />
-            {openIn && (
-              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-muted py-0.5 pr-1 pl-2 text-xs text-muted-foreground">
-                <span className="size-2 rounded-full" style={{ backgroundColor: openIn.color }} />
-                {openIn.name}
-                <button
-                  type="button"
-                  aria-label="Clear container"
-                  onClick={() => setState({ openIn: null })}
-                  className="flex size-4 items-center justify-center rounded-full hover:bg-secondary hover:text-foreground"
-                >
-                  <HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} className="size-3" />
-                </button>
-              </span>
-            )}
+            <TargetChip target={space} kind="space" onClear={() => setState({ space: null })} />
+            <TargetChip target={openIn} kind="container" onClear={() => setState({ openIn: null })} />
           </div>
 
           <CommandList ref={listRef} className="max-h-none min-h-0 flex-1 scroll-py-2.5 p-2.5">
@@ -431,18 +566,52 @@ export function Palette() {
           </CommandList>
 
           <div className="flex h-12 shrink-0 items-center gap-3 border-t px-5 text-[13px] text-muted-foreground">
-            <span className="min-w-0 truncate text-faint">{view?.title}</span>
-            {primary && (
-              <span className={`ml-auto flex items-center gap-1.5 ${primary.danger ? "text-rose" : "text-foreground"}`}>
-                {primary.title}
-                <Kbd>↵</Kbd>
-              </span>
-            )}
-            {active && active.actions.length > 1 && (
-              <span className="flex items-center gap-1.5 border-l pl-3">
-                Actions
-                <Keys sequence="ctrl+k" />
-              </span>
+            {recording ? (
+              <div key="recording" className="flex min-w-0 flex-1 items-center gap-3 animate-in fade-in-0 duration-150">
+                <span className="size-2 shrink-0 rounded-full bg-rose" />
+                <span className="truncate text-foreground">{recording.title}</span>
+                <span className="ml-auto flex items-center gap-2">
+                  {recording.combos.length ? <Keys sequence={recording.combos.join(" ")} /> : <span className="text-faint">{recording.hint ?? "Press keys"}</span>}
+                </span>
+                <span className="flex items-center gap-1.5 border-l pl-3">
+                  Cancel
+                  <Kbd>Esc</Kbd>
+                </span>
+              </div>
+            ) : strip ? (
+              <div key={held} className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden animate-in fade-in-0 duration-150">
+                <span className="mr-2 shrink-0 text-faint">{held === "alt" ? "Space" : "Container"}</span>
+                {strip.length ? (
+                  strip.map((entry, index) => (
+                    <span
+                      key={entry.key}
+                      className={cn("flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 transition-colors duration-200", entry.active && "bg-muted text-foreground")}
+                    >
+                      <Kbd>{index + 1}</Kbd>
+                      <span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                      <span className="max-w-32 truncate">{entry.name}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-faint">None</span>
+                )}
+              </div>
+            ) : (
+              <div key="footer" className="flex min-w-0 flex-1 items-center gap-3 animate-in fade-in-0 duration-150">
+                <span className="min-w-0 truncate text-faint">{view?.title}</span>
+                {primary && (
+                  <span className={`ml-auto flex items-center gap-1.5 ${primary.danger ? "text-rose" : "text-foreground"}`}>
+                    {primary.title}
+                    <Kbd>↵</Kbd>
+                  </span>
+                )}
+                {active && active.actions.length > 1 && (
+                  <span className="flex items-center gap-1.5 border-l pl-3">
+                    Actions
+                    <Keys sequence="ctrl+k" />
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </Command>
@@ -450,7 +619,7 @@ export function Palette() {
         {panel && active && (
           <ActionPanel
             item={active}
-            numbered={held}
+            numbered={held === "ctrl"}
             onRun={(action) => run(active, action)}
           />
         )}

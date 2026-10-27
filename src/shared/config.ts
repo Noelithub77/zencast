@@ -8,15 +8,27 @@ z.config({ jitless: true })
 const CONFIG_PREF = "zencast.config"
 const USAGE_PREF = "zencast.usage"
 
+// A key bound to a place rather than a command: a site (switched to if open, else opened) or a folder.
+const jumpSchema = z.object({
+  kind: z.enum(["url", "folder"]),
+  target: z.string(),
+  title: z.string(),
+})
+
+export type Jump = z.infer<typeof jumpSchema>
+
 const configSchema = z.object({
   version: z.literal(1).default(1),
   // Overrides of default bindings: command id -> key sequences. An empty list unbinds the command.
   bindings: z.record(z.string(), z.array(z.string())).default({}),
   urlResults: z.boolean().default(true),
   maxResults: z.number().int().min(10).max(200).default(60),
+  jumps: z.array(jumpSchema).default([]),
 })
 
 export type Config = z.infer<typeof configSchema>
+
+export const RESULT_LIMITS = [30, 60, 100, 200]
 
 const usageSchema = z.record(z.string(), z.tuple([z.number(), z.number()]))
 // command id -> [run count, last run epoch ms]

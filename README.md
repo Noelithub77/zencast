@@ -19,7 +19,20 @@ Every binding can be changed or recorded as a chord in settings.
 
 The palette searches every tab in every space and folder, including pinned, essential and unloaded ones, and folders by name. Loaded and recently used tabs come first. While it is open, its keys take priority over Zen's.
 
-In the palette, hold `Ctrl` to label the visible results with letters (`Ctrl+letter` runs one) and the options panel with numbers. Typing the start of a site you've visited, or one still in the browser's DNS cache, completes it inline: `allpyq` becomes `allpyq.in`, and `Tab` or `→` accepts it.
+In the palette:
+
+| Key | Action |
+| --- | --- |
+| Hold `Ctrl` | Mark a letter in each visible result (`Ctrl+letter` runs it) and number the containers |
+| Hold `Alt` | Number the spaces |
+| `Alt+1…9` | Open results in that space; Enter on a tab moves it there. Press again to clear |
+| `Ctrl+1…9` | Open results in that container; Enter on a tab reopens it there. Press again to clear |
+| `Ctrl+.` | Record a shortcut for a command, or assign one to a tab, folder or site |
+| `Ctrl+K` | More actions for the selected result |
+
+Typing the start of a site still in the browser's DNS cache completes it inline and takes Enter, even when a command starts the same way: `allpyq` becomes `allpyq.in`. History autofill comes next. `Tab` or `→` accepts the completion.
+
+Search also covers every Zen setting and Zencast's own: toggles switch in place, and number or text values open a prompt.
 
 ## Install
 

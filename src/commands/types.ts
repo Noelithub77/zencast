@@ -1,6 +1,7 @@
 import type { ComponentProps } from "react"
 import type { HugeiconsIcon } from "@hugeicons/react"
 import type { ToastAction } from "@/browser/toast"
+import type { Jump } from "@/shared/config"
 
 export type Icon = ComponentProps<typeof HugeiconsIcon>["icon"]
 
@@ -17,6 +18,8 @@ export interface ListView {
   title: string
   placeholder?: string
   items: PaletteItem[]
+  /** Turns the view into a text prompt: the input starts with `initial` and Enter submits it. */
+  prompt?: { initial: string; submit: (value: string) => RunResult }
 }
 
 export type RunResult = void | ListView | Promise<void | ListView>
@@ -60,6 +63,8 @@ export interface PaletteControls {
   show(view: ListView): void
   /** Sets the container that the next opened URL or search uses. */
   setOpenIn(container: { id: number; name: string; color: string } | null): void
+  /** Records a shortcut in the palette for a command, or for a new jump when one is given. */
+  record(id: string, title: string, jump?: Jump): void
 }
 
 export interface CommandContext {
@@ -77,6 +82,7 @@ export type Section =
   | "Containers"
   | "Privacy"
   | "Zen"
+  | "Jumps"
 
 export interface Command {
   id: string

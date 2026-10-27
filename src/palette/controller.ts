@@ -1,8 +1,12 @@
+import { listContainers } from "@/browser/containers"
 import { notify } from "@/browser/toast"
+import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
+import { allCommands, jumpId } from "@/commands/jumps"
 import { nativeItems } from "@/commands/native"
 import type { Command, CommandContext, ItemAction, ListView, PaletteControls, PaletteItem, RunResult } from "@/commands/types"
-import { effectiveBindings } from "@/keys/bindings"
-import { readConfig, recordUsage } from "@/shared/config"
+import { bindSequence, buildIndex, effectiveBindings } from "@/keys/bindings"
+import { readConfig, recordUsage, updateConfig, writeConfig } from "@/shared/config"
+import { displaySequence } from "@/shared/keys"
 import { markOpenStart } from "./perf"
 import { keybindingsItem, loadEngineName, rootItems } from "./sources"
 import { getState, HOST_ID, setState } from "./store"
@@ -17,6 +21,7 @@ const ui: PaletteControls = {
   show: (view) => openPalette(view),
   // Choosing a container returns to the root list so the next query opens in it.
   setOpenIn: (openIn) => setState({ openIn, stack: [] }),
+  record: (id, title, jump) => setState({ recording: { id, title, jump, combos: [], hint: null } }),
 }
 
 function currentWindow(): Window {
@@ -68,6 +73,8 @@ export function openPalette(view?: ListView) {
     root: buildRoot(ctx),
     stack: view ? [view] : [],
     openIn: current.open ? current.openIn : null,
+    space: current.open ? current.space : null,
+    recording: null,
   })
 }
 
@@ -79,7 +86,7 @@ function canFocus(element: Element | null): element is Element & { focus(): void
 export function closePalette(restoreFocus: boolean) {
   if (!getState().open) return
   // The root list stays so the hidden rows are reused, and only patched, on the next open.
-  setState({ open: false, stack: [], context: null })
+  setState({ open: false, stack: [], context: null, recording: null })
   const target = currentWindow()
   if (restoreFocus && canFocus(previousFocus)) previousFocus.focus()
   else if (target.document.activeElement?.id === HOST_ID) target.gBrowser.selectedBrowser.focus()
@@ -141,4 +148,49 @@ export async function runCommand(command: Command) {
   } catch (error) {
     reportError(error)
   }
+}
+
+/** Alt+N in the palette: targets space N, or clears it when it is already the target. */
+export function toggleSpaceTarget(index: number) {
+  const workspace = listWorkspaces(currentWindow())[index]
+  if (!workspace) return
+  setState((current) => ({
+    space: current.space?.id === workspace.uuid ? null : { id: workspace.uuid, name: workspace.name, color: workspaceColor(workspace, index) },
+  }))
+}
+
+/** Ctrl+N in the palette: targets container N, or clears it when it is already the target. */
+export function toggleContainerTarget(index: number) {
+  const container = listContainers()[index]
+  if (!container) return
+  setState((current) => ({
+    openIn: current.openIn?.id === container.id ? null : { id: container.id, name: container.name, color: container.color },
+  }))
+}
+
+const showSequence = (sequence: string) => displaySequence(sequence).map((combo) => combo.join("+")).join(" ")
+
+/** Saves the recorded shortcut, adding its jump if new, and offers Undo in the toast. */
+export function saveRecording() {
+  const { recording } = getState()
+  setState({ recording: null })
+  if (!recording?.combos.length) return
+  const sequence = recording.combos.join(" ")
+  const before = readConfig()
+  const jump = recording.jump
+  if (jump && !before.jumps.some((existing) => jumpId(existing) === recording.id))
+    updateConfig((config) => ({ ...config, jumps: [...config.jumps, jump] }))
+  bindSequence(recording.id, sequence)
+
+  const config = readConfig()
+  const index = buildIndex(config)
+  const titles = new Map(allCommands(config).map((command) => [command.id, command.title]))
+  const others = (index.exact.get(sequence) ?? []).filter((command) => command.id !== recording.id)
+  const clash = others.length
+    ? ` · also ${others.map((command) => titles.get(command.id)).join(", ")}`
+    : index.prefixes.has(sequence)
+      ? " · blocks a longer chord"
+      : ""
+  notify(currentWindow(), `${recording.title}: ${showSequence(sequence)}${clash}`, { label: "Undo", run: () => writeConfig(before) })
+  refresh()
 }

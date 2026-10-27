@@ -1,5 +1,6 @@
 // Searchable index of browser settings: Zen's preference panes, every boolean zen.* pref
-// (toggleable inline), and a fallback that runs about:preferences' own search.
+// (toggleable inline), number and text zen.* prefs (edited by typing), and a fallback that runs
+// about:preferences' own search.
 import { describePref, groupRank, PREF_CATEGORIES, type PrefCategory } from "./zen-prefs"
 
 export interface PrefSetting {
@@ -51,6 +52,45 @@ export function prefSettings(): PrefSetting[] {
         a.title.localeCompare(b.title),
     )
   return prefIndex
+}
+
+export interface ValuePref {
+  name: string
+  title: string
+  section: string
+  type: "int" | "string"
+}
+
+let valueIndex: ValuePref[] | null = null
+
+export function valuePrefs(): ValuePref[] {
+  if (valueIndex) return valueIndex
+  const defaults = Services.prefs.getDefaultBranch("")
+  valueIndex = defaults.getChildList("zen.").flatMap((name): ValuePref[] => {
+    const type = defaults.getPrefType(name)
+    if (type !== Services.prefs.PREF_INT && type !== Services.prefs.PREF_STRING) return []
+    const { title, category, group } = describePref(name)
+    // Bookkeeping values that Zen writes itself; editing them only breaks its migrations.
+    if (group === "Internal" || /migration|\.version$/.test(name)) return []
+    return [{ name, title, section: group === category ? category : `${category} · ${group}`, type: type === Services.prefs.PREF_INT ? "int" : "string" }]
+  })
+  return valueIndex
+}
+
+export function readValuePref(pref: ValuePref): string {
+  return pref.type === "int" ? String(Services.prefs.getIntPref(pref.name, 0)) : Services.prefs.getStringPref(pref.name, "")
+}
+
+/** Sets the pref from typed text; returns why it was refused, if it was. */
+export function writeValuePref(pref: ValuePref, text: string): string | null {
+  if (pref.type === "string") {
+    Services.prefs.setStringPref(pref.name, text)
+    return null
+  }
+  const value = Number(text.trim())
+  if (!Number.isInteger(value) || Math.abs(value) > 2 ** 31 - 1) return `${pref.title} needs a whole number`
+  Services.prefs.setIntPref(pref.name, value)
+  return null
 }
 
 export function paneSettings(): PaneSetting[] {

@@ -126,6 +126,7 @@ declare global {
     readonly name: string
     readonly icon?: string
     readonly containerTabId?: number
+    readonly theme?: { readonly gradientColors: ReadonlyArray<{ readonly c?: readonly number[]; readonly isPrimary?: boolean }> }
   }
 
   interface ZenWorkspaces {

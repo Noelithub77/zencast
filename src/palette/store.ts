@@ -2,11 +2,28 @@ import { useSyncExternalStore } from "react"
 
 import type { CommandContext, ListView, PaletteItem } from "@/commands/types"
 import type { ChordHint } from "@/keys/engine"
+import type { Jump } from "@/shared/config"
 
 export interface OpenIn {
   id: number
   name: string
   color: string
+}
+
+/** The space that the next opened URL, search or tab goes to. */
+export interface SpaceTarget {
+  id: string
+  name: string
+  color: string
+}
+
+/** A shortcut being recorded in the palette, for a command or for a new jump. */
+export interface Recording {
+  id: string
+  title: string
+  jump?: Jump
+  combos: string[]
+  hint: string | null
 }
 
 export interface PaletteState {
@@ -19,6 +36,8 @@ export interface PaletteState {
   /** Pushed pickers; empty means the root list. */
   stack: ListView[]
   openIn: OpenIn | null
+  space: SpaceTarget | null
+  recording: Recording | null
   chord: ChordHint | null
 }
 
@@ -34,6 +53,8 @@ let state: PaletteState = {
   root: [],
   stack: [],
   openIn: null,
+  space: null,
+  recording: null,
   chord: null,
 }
 const listeners = new Set<Listener>()

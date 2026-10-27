@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { openPane } from "@/browser/settings-index"
 import { nativeShortcuts } from "@/browser/zen-shortcuts"
-import { COMMANDS } from "@/commands/catalog"
+import { allCommands, jumpId } from "@/commands/jumps"
 import { Keys } from "@/components/keys"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { buildIndex, effectiveBindings } from "@/keys/bindings"
+import { bindSequence, buildIndex, effectiveBindings } from "@/keys/bindings"
 import { fuzzyFilter } from "@/palette/search"
 import { updateConfig, type Config } from "@/shared/config"
 import { displaySequence } from "@/shared/keys"
@@ -51,10 +51,15 @@ function resetBinding(config: Config, id: string): Config {
 }
 
 function commitSequence(id: string, mode: Recording["mode"], sequence: string) {
-  updateConfig((config) => {
-    const current = (effectiveBindings(config).get(id) ?? []).filter((s) => s !== sequence)
-    return withBinding(config, id, mode === "add" ? [...current, sequence] : [sequence, ...current.slice(1)])
-  })
+  bindSequence(id, sequence, mode)
+}
+
+/** Unbinds a command; a jump has no other use, so it goes too. */
+function removeBinding(config: Config, id: string): Config {
+  const jumps = config.jumps.filter((jump) => jumpId(jump) !== id)
+  return jumps.length === config.jumps.length
+    ? withBinding(config, id, [])
+    : { ...resetBinding(config, id), jumps }
 }
 
 function useRows(win: Window, config: Config): Row[] {
@@ -65,7 +70,7 @@ function useRows(win: Window, config: Config): Row[] {
     const nativeByCombo = new Map(native.map((shortcut) => [shortcut.combo, shortcut.title]))
     const ownerOfCombo = new Map<string, string>()
 
-    const rows: Row[] = COMMANDS.map((command) => {
+    const rows: Row[] = allCommands(config).map((command) => {
       const sequences = bindings.get(command.id) ?? []
       const issues: Issue[] = []
       for (const sequence of sequences) {
@@ -247,7 +252,7 @@ function KeyRow({ row, focused, recording, onRecord }: KeyRowProps) {
               <DropdownMenuItem
                 variant="destructive"
                 disabled={!row.sequences.length}
-                onSelect={() => updateConfig((c) => withBinding(c, row.id, []))}
+                onSelect={() => updateConfig((c) => removeBinding(c, row.id))}
               >
                 Remove
               </DropdownMenuItem>

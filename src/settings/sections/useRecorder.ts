@@ -1,9 +1,7 @@
 import { useEffect, useEffectEvent, useState } from "react"
 
-import { comboFromEvent, hasModifier } from "@/shared/keys"
-
-const CHORD_WAIT_MS = 1000
-const MAX_COMBOS = 3
+import { CHORD_WAIT_MS, recordKey } from "@/keys/record"
+import { comboFromEvent } from "@/shared/keys"
 
 export interface Recording {
   id: string
@@ -39,17 +37,14 @@ export function useRecorder(win: Window, onCommit: (id: string, mode: Recording[
       if (!combo) return
       event.preventDefault()
       event.stopPropagation()
-      if (combo === "escape") return finish(false)
-      if (combo === "enter" && combos.length) return finish(true)
-      // A bare first key would fire while typing in pages, so sequences start with a modifier.
-      if (!combos.length && !hasModifier(combo) && !/^f\d/.test(combo)) {
-        setRecording((current) => current && { ...current, hint: "Start with Ctrl, Alt or Super" })
-        return
-      }
-      combos = [...combos, combo]
+      const step = recordKey(combos, combo)
+      if (step.kind === "cancel") return finish(false)
+      if (step.kind === "save") return finish(true)
+      if (step.kind === "hint") return setRecording((current) => current && { ...current, hint: step.text })
+      combos = step.combos
       setRecording((current) => current && { ...current, combos, hint: null })
       if (timer) clearTimeout(timer)
-      if (combos.length >= MAX_COMBOS) return finish(true)
+      if (step.done) return finish(true)
       timer = setTimeout(() => finish(true), CHORD_WAIT_MS)
     }
 

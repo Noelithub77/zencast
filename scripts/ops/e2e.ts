@@ -224,6 +224,8 @@ const SCENARIOS: Scenario[] = [
       // Resolving puts the host in Firefox's DNS cache, as visiting the site would.
       await new Promise((resolve) => Services.dns.asyncResolve("allpyq.in", Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT, 0, null,
         { QueryInterface: ChromeUtils.generateQI(["nsIDNSListener"]), onLookupComplete: resolve }, Services.tm.mainThread, {}))
+      await new Promise((resolve) => Services.dns.asyncResolve("pinterest.com", Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT, 0, null,
+        { QueryInterface: ChromeUtils.generateQI(["nsIDNSListener"]), onLookupComplete: resolve }, Services.tm.mainThread, {}))
       press("ctrl+k", document.documentElement)
       await until(paletteOpen)
       await sleep(100)
@@ -232,8 +234,15 @@ const SCENARIOS: Scenario[] = [
       const value = await until(() => input.value !== "allpyq" && input.value, 3000).catch(() => input.value)
       const selected = input.value.slice(input.selectionStart, input.selectionEnd)
       const first = resultTitles()[0] ?? ""
+      // A DNS host wins Enter even when a command's name starts with the query ("Pin or unpin tab").
+      typeQuery("")
+      await sleep(50)
+      typeQuery("pin")
+      const pin = await until(() => input.value !== "pin" && input.value, 3000).catch(() => input.value)
+      const pinFirst = resultTitles()[0] ?? ""
       await dismiss()
-      return { ok: value === "allpyq.in" && selected === ".in" && first.startsWith("allpyq.in"), detail: value + " (selected " + JSON.stringify(selected) + "), first row " + first }`,
+      const ok = value === "allpyq.in" && selected === ".in" && first.startsWith("allpyq.in") && pin === "pinterest.com" && pinFirst.startsWith("pinterest.com")
+      return { ok, detail: value + " (selected " + JSON.stringify(selected) + "), first row " + first + "; pin → " + pin + ", first row " + pinFirst }`,
   },
   {
     name: "holding ctrl labels visible rows with letters",
@@ -244,11 +253,116 @@ const SCENARIOS: Scenario[] = [
       document.documentElement.dispatchEvent(new KeyboardEvent("keydown", init))
       const hints = () => [...shadow().querySelectorAll("[cmdk-item] kbd.text-peach")].map((kbd) => kbd.textContent)
       const shown = await until(() => hints().length && hints(), 2000)
+      // Each row marks its letter inside the title.
+      const marked = [...shadow().querySelectorAll("[cmdk-item]")].filter((item) => item.querySelector("kbd.text-peach"))
+        .every((item) => item.querySelector("span.underline")?.textContent.toLowerCase() === item.querySelector("kbd.text-peach").textContent)
       document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...init, ctrlKey: false }))
       await until(() => hints().length === 0, 2000)
       await dismiss()
       const unique = new Set(shown).size === shown.length && !shown.some((l) => "acvxzkqw".includes(l))
-      return { ok: shown.length > 3 && unique, detail: shown.join(" ") + "; cleared on release" }`,
+      return { ok: shown.length > 3 && unique && marked, detail: shown.join(" ") + (marked ? "; marked in titles" : "; titles not marked") + "; cleared on release" }`,
+  },
+  {
+    name: "alt+n and ctrl+n target a space and a container, and pressing again clears them",
+    body: String.raw`${READY}
+      if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second")
+      const [first, second] = gZenWorkspaces.getWorkspaces()
+      await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
+      const home = newTab("data:text/html,<title>Home base</title>x")
+      const mango = newTab("data:text/html,<title>Mango notes</title>x")
+      gBrowser.selectedTab = home
+      await sleep(100)
+      const chips = () => [...shadow().querySelectorAll("[cmdk-input] ~ span:not([aria-hidden=true])")].map((chip) => chip.textContent)
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      press("alt+2")
+      const spaceChip = await until(() => chips().find((text) => text.includes(second.name)), 2000).catch(() => "")
+      press("alt+2")
+      const cleared = await until(() => !chips().length, 2000).catch(() => false)
+      press("ctrl+1")
+      const containerChip = await until(() => chips()[0], 2000).catch(() => "")
+      press("ctrl+1")
+      const containerCleared = await until(() => !chips().length, 2000).catch(() => false)
+      // With space 2 targeted, Enter on a tab moves it there and follows it.
+      press("alt+2")
+      typeQuery("Mango notes")
+      await sleep(80)
+      press("enter")
+      await until(() => !paletteOpen(), 2000)
+      await sleep(400)
+      const moved = mango.getAttribute("zen-workspace-id") === second.uuid && gBrowser.selectedTab === mango && gZenWorkspaces.activeWorkspace === second.uuid
+      gBrowser.removeTab(mango)
+      gBrowser.removeTab(home)
+      await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
+      return {
+        ok: !!spaceChip && cleared && !!containerChip && containerCleared && moved,
+        detail: "space chip " + JSON.stringify(spaceChip) + (cleared ? ", cleared" : ", stuck") + "; container chip " + JSON.stringify(containerChip) + (containerCleared ? ", cleared" : ", stuck") + "; tab " + (moved ? "moved to " + second.name : "not moved"),
+      }`,
+  },
+  {
+    name: "ctrl+. records a shortcut in the palette, and a tab gets a jump key",
+    body: String.raw`${READY}
+      const binding = (id) => JSON.parse(Services.prefs.getStringPref("zencast.config", "{}")).bindings?.[id] ?? []
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("Pin or unpin tab")
+        await sleep(80)
+        press("ctrl+.")
+        await until(() => shadow().textContent.includes("Press keys"), 2000)
+        press("ctrl+shift+y")
+        const recorded = await until(() => binding("pin.toggle")[0] === "ctrl+shift+y", 3000).catch(() => false)
+        await dismiss()
+
+        const kiwi = newTab("data:text/html,<title>Kiwi page</title>x")
+        const other = newTab("data:text/html,<title>Other</title>x")
+        await sleep(100)
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("Kiwi page")
+        await sleep(80)
+        press("ctrl+.")
+        await until(() => shadow().textContent.includes("Press keys"), 2000)
+        press("ctrl+shift+u")
+        const jumpId = "jump:url:" + kiwi.linkedBrowser.currentURI.spec
+        const bound = await until(() => binding(jumpId)[0] === "ctrl+shift+u", 3000).catch(() => false)
+        await dismiss()
+        gBrowser.selectedTab = other
+        await sleep(100)
+        press("ctrl+shift+u", document.documentElement)
+        const jumped = await until(() => gBrowser.selectedTab === kiwi, 2000).catch(() => false)
+        gBrowser.removeTab(kiwi)
+        gBrowser.removeTab(other)
+        return {
+          ok: recorded && bound && jumped,
+          detail: "pin: " + (recorded ? "ctrl+shift+y" : JSON.stringify(binding("pin.toggle"))) + "; jump " + (bound ? "bound" : "not bound") + (jumped ? ", switched to Kiwi page" : ", did not switch"),
+        }
+      } finally {
+        Services.prefs.clearUserPref("zencast.config")
+      }`,
+  },
+  {
+    name: "number prefs are edited in the palette through a prompt",
+    body: String.raw`${READY}
+      const defaults = Services.prefs.getDefaultBranch("")
+      const name = defaults.getChildList("zen.").find((pref) => defaults.getPrefType(pref) === Services.prefs.PREF_INT && !/migration|\.version$/.test(pref))
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery(name)
+        const row = await until(() => shadow().querySelector('[cmdk-item][data-value="pref:' + name + '"]'), 3000)
+        row.click()
+        const input = shadow().querySelector("[cmdk-input]")
+        const initial = await until(() => input.value === String(Services.prefs.getIntPref(name)) && input.value, 2000).catch(() => input.value)
+        typeQuery("4242")
+        await sleep(50)
+        press("enter")
+        await until(() => !paletteOpen(), 2000)
+        const value = Services.prefs.getIntPref(name)
+        return { ok: value === 4242 && initial !== "", detail: name + ": prompt started at " + initial + ", saved " + value }
+      } finally {
+        if (name) Services.prefs.clearUserPref(name)
+      }`,
   },
   {
     name: "ctrl+, opens the settings page",
@@ -311,7 +425,15 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette-search")
   await zen.run(String.raw`press("ctrl+k"); await sleep(300)`)
   await shot("palette-actions")
-  await zen.run(String.raw`await dismiss()
+  await zen.run(String.raw`press("escape"); typeQuery(""); await sleep(100)
+    if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second")
+    press("alt+2"); press("ctrl+2"); await sleep(400)`)
+  await shot("palette-targets")
+  await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Alt", code: "AltLeft", altKey: true, bubbles: true, composed: true }))
+    await sleep(400)`)
+  await shot("palette-spaces")
+  await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Alt", code: "AltLeft", bubbles: true, composed: true }))
+    await dismiss()
     press("ctrl+,", document.documentElement)
     const browser = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings") && gBrowser.selectedBrowser)
     await until(() => browser.contentDocument?.querySelector("nav a"))

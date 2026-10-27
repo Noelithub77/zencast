@@ -1,4 +1,4 @@
-import { tabKey } from "./tabs"
+import { selectTab, tabKey } from "./tabs"
 import { listWorkspaces } from "./workspaces"
 
 export interface TabNode {
@@ -75,6 +75,13 @@ export function rootFolders(win: Window, workspaceId: string): ZenFolder[] {
 
 export function allFolders(win: Window): ZenFolder[] {
   return win.gBrowser.tabGroups.filter((group) => isFolder(group) && !group.isLiveFolder)
+}
+
+/** Expands the folder and switches to its first tab. */
+export async function openFolder(win: Window, folder: ZenFolder) {
+  folder.collapsed = false
+  const first = folder.tabs.find((tab) => !tab.hasAttribute("zen-empty-tab"))
+  if (first) await selectTab(win, first)
 }
 
 export function spaceTrees(win: Window): SpaceTree[] {

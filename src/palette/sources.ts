@@ -8,36 +8,69 @@ import {
   SlidersHorizontalIcon,
 } from "@hugeicons/core-free-icons"
 
-import { containerName, openInContainer } from "@/browser/containers"
+import { containerName, openInContainer, reopenInContainer } from "@/browser/containers"
 import {
   openAboutConfig,
   openPane,
   paneSettings,
   prefSettings,
   prefValue,
+  readValuePref,
   searchPreferences,
   togglePref,
+  valuePrefs,
+  writeValuePref,
+  type ValuePref,
 } from "@/browser/settings-index"
-import { allFolders, folderPath, isFolder } from "@/browser/folders"
+import { allFolders, folderPath, isFolder, openFolder } from "@/browser/folders"
 import { closeTab, duplicateTab, listTabs, selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
 import { openUrl } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { chooseContainer, COMMANDS, containerItems, openSettings } from "@/commands/catalog"
-import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
+import { jumpId } from "@/commands/jumps"
+import type { CommandContext, ItemAction, ListView, PaletteItem } from "@/commands/types"
+import { paletteOnCtrlT, setPaletteOnCtrlT } from "@/keys/bindings"
+import { readConfig, RESULT_LIMITS, updateConfig, type Jump } from "@/shared/config"
 import { buildIndex, type SearchIndex } from "./search"
 import { getState } from "./store"
 
-/** Opens a URL in a new tab, or the current one, honouring the chosen container. */
-export function openTarget(ctx: CommandContext, url: string, where: "tab" | "current") {
-  const openIn = getState().openIn
-  if (openIn && where === "tab") openInContainer(ctx.win, openIn.id, url)
-  else if (openIn) {
+/** Moves a tab into the targeted space, if there is one, and follows it. */
+async function placeInSpace(ctx: CommandContext, tab: XULTab) {
+  const space = getState().space
+  if (space && tab.getAttribute("zen-workspace-id") !== space.id) await moveTabAndFollow(ctx.win, tab, space.id)
+}
+
+/** Opens a URL in a new tab, or the current one, honouring the targeted container and space. */
+export async function openTarget(ctx: CommandContext, url: string, where: "tab" | "current") {
+  const { openIn, space } = getState()
+  if (openIn) {
     // A tab cannot change container in place, so "current" replaces it with a container tab.
     const old = ctx.tab
-    openInContainer(ctx.win, openIn.id, url)
-    ctx.win.gBrowser.removeTab(old)
-  } else openUrl(ctx.win, url, where)
+    const tab = openInContainer(ctx.win, openIn.id, url)
+    if (where === "current") ctx.win.gBrowser.removeTab(old)
+    return placeInSpace(ctx, tab)
+  }
+  if (where === "current") {
+    openUrl(ctx.win, url, "current")
+    return placeInSpace(ctx, ctx.tab)
+  }
+  // Container 0 is no container; this path returns the tab so it can move to the space.
+  if (space) return placeInSpace(ctx, openInContainer(ctx.win, 0, url))
+  openUrl(ctx.win, url, "tab")
+}
+
+/** Switches to a tab, first reopening it in the targeted container and moving it to the targeted space. */
+async function switchToTab(ctx: CommandContext, tab: XULTab) {
+  const { openIn, space } = getState()
+  const target = openIn && tab.userContextId !== openIn.id ? reopenInContainer(ctx.win, tab, openIn.id) : tab
+  if (space) await placeInSpace(ctx, target)
+  else await selectTab(ctx.win, target)
+}
+
+/** Records a key that jumps to a site or folder from anywhere. */
+function assignAction(ctx: CommandContext, jump: Jump): ItemAction {
+  return { id: "assign", title: "Assign shortcut", keys: "ctrl+.", keepOpen: true, run: () => ctx.ui.record(jumpId(jump), jump.title, jump) }
 }
 
 function openActions(ctx: CommandContext, url: () => string | Promise<string>): ItemAction[] {
@@ -61,7 +94,7 @@ function commandItems(ctx: CommandContext, bindings: Map<string, string[]>): Pal
       boost: 1,
       actions: [
         { id: "run", title: "Run", run: () => command.run(ctx) },
-        { id: "shortcut", title: "Change shortcut", keys: "ctrl+.", run: () => openSettings(ctx.win, `keys/${command.id}`) },
+        { id: "shortcut", title: "Record shortcut", keys: "ctrl+.", keepOpen: true, run: () => ctx.ui.record(command.id, command.title) },
       ],
     })
   }
@@ -74,7 +107,7 @@ const HOUR_MS = 3_600_000
  * Every tab in every space and folder, including pinned, essential and unloaded ones. Loaded tabs
  * rank above unloaded ones, and recently used tabs above both, without outranking commands.
  */
-function tabItems(ctx: CommandContext): PaletteItem[] {
+function tabItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {
   const spaces = new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
   const now = Date.now()
   return listTabs(ctx.win)
@@ -86,6 +119,7 @@ function tabItems(ctx: CommandContext): PaletteItem[] {
       const folder = isFolder(tab.group) ? folderPath(tab.group) : ""
       const loaded = !tab.hasAttribute("pending")
       const recency = 0.3 / (1 + Math.max(0, now - tab.lastAccessed) / HOUR_MS)
+      const jump: Jump = { kind: "url", target: url, title: tab.label }
       return {
         id: tabKey(tab),
         transient: true,
@@ -95,6 +129,7 @@ function tabItems(ctx: CommandContext): PaletteItem[] {
         icon: { kind: "favicon", url: tab.getAttribute("image") || `page-icon:${url}` },
         accessory: container ? containerName(container) : folder || space || undefined,
         accessoryColor: container ? undefined : "var(--faint)",
+        keys: bindings.get(jumpId(jump))?.[0],
         keywords: [
           folder,
           space,
@@ -106,8 +141,9 @@ function tabItems(ctx: CommandContext): PaletteItem[] {
           .join(" "),
         boost: (loaded ? 0.6 : 0) + recency,
         actions: [
-          { id: "switch", title: "Switch to tab", run: () => selectTab(ctx.win, tab) },
+          { id: "switch", title: "Switch to tab", run: () => switchToTab(ctx, tab) },
           { id: "close", title: "Close tab", keys: "ctrl+w", danger: true, keepOpen: true, run: () => closeTab(ctx.win, tab) },
+          assignAction(ctx, jump),
           { id: "duplicate", title: "Duplicate", run: () => duplicateTab(ctx.win, tab) },
         ],
       }
@@ -115,11 +151,11 @@ function tabItems(ctx: CommandContext): PaletteItem[] {
 }
 
 /** Folders by name and path; opening one expands it and switches to its first tab. */
-function folderItems(ctx: CommandContext): PaletteItem[] {
+function folderItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {
   const spaces = new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
   return allFolders(ctx.win).map((folder) => {
     const path = folderPath(folder)
-    const first = folder.tabs.find((tab) => !tab.hasAttribute("zen-empty-tab"))
+    const jump: Jump = { kind: "folder", target: folder.id, title: folder.label }
     return {
       id: `folder:${folder.id}`,
       title: folder.label,
@@ -128,18 +164,13 @@ function folderItems(ctx: CommandContext): PaletteItem[] {
       icon: { kind: "icon", icon: Folder01Icon },
       accessory: spaces.get(folder.getAttribute("zen-workspace-id") ?? ""),
       accessoryColor: "var(--faint)",
+      keys: bindings.get(jumpId(jump))?.[0],
       keywords: `folder ${folder.tabs.length} tabs`,
       transient: true,
       actions: [
-        {
-          id: "open",
-          title: "Open folder",
-          run: async () => {
-            folder.collapsed = false
-            if (first) await selectTab(ctx.win, first)
-          },
-        },
+        { id: "open", title: "Open folder", run: () => openFolder(ctx.win, folder) },
         { id: "manage", title: "Show in folder manager", keys: "ctrl+enter", run: () => openSettings(ctx.win, "folders") },
+        assignAction(ctx, jump),
       ],
     }
   })
@@ -167,13 +198,13 @@ export function rootItems(ctx: CommandContext, bindings: Map<string, string[]>, 
   return [
     ...commandItems(ctx, bindings),
     ...native,
-    ...tabItems(ctx),
-    ...folderItems(ctx),
+    ...tabItems(ctx, bindings),
+    ...folderItems(ctx, bindings),
     ...spaceItems(ctx),
     ...containerItems(
       ctx,
       { title: "Open next in container", keepOpen: true, run: (id) => chooseContainer(ctx, id) },
-      { title: "Open blank tab", run: (id) => void openInContainer(ctx.win, id) },
+      { title: "Open blank tab", run: (id) => placeInSpace(ctx, openInContainer(ctx.win, id)) },
     ).map((item) => ({ ...item, keywords: "container" })),
   ]
 }
@@ -228,7 +259,101 @@ export function settingsItems(ctx: CommandContext): PaletteItem[] {
       ],
     }
   })
-  return [...panes, ...prefs]
+  return [...panes, ...prefs, ...valueItems(ctx), ...zencastItems(ctx)]
+}
+
+function promptView(title: string, initial: string, submit: (value: string) => void): ListView {
+  return { id: `prompt:${title}`, title, placeholder: "Value", items: [], prompt: { initial, submit } }
+}
+
+/** Number and text prefs: Enter opens a prompt with the current value. */
+function valueItems(ctx: CommandContext): PaletteItem[] {
+  return valuePrefs().map((pref: ValuePref) => {
+    const value = readValuePref(pref)
+    return {
+      id: `pref:${pref.name}`,
+      title: pref.title,
+      subtitle: pref.section,
+      section: "Settings",
+      icon: { kind: "icon", icon: SlidersHorizontalIcon },
+      keywords: pref.name,
+      accessory: value.length > 24 ? `${value.slice(0, 23)}…` : value || "Empty",
+      accessoryColor: "var(--faint)",
+      boost: -1,
+      actions: [
+        {
+          id: "edit",
+          title: "Edit value",
+          run: () =>
+            promptView(pref.title, value, (text) => {
+              const error = writeValuePref(pref, text)
+              ctx.ui.toast(error ?? `${pref.title}: ${text || "empty"}`)
+            }),
+        },
+        { id: "config", title: "Open in about:config", keys: "ctrl+enter", run: () => openAboutConfig(ctx.win, pref.name) },
+      ],
+    }
+  })
+}
+
+function zencastToggle(id: string, title: string, on: boolean, set: (on: boolean) => void, ctx: CommandContext): PaletteItem {
+  return {
+    id,
+    title,
+    subtitle: "Zencast",
+    section: "Settings",
+    icon: { kind: "icon", icon: SlidersHorizontalIcon },
+    keywords: "zencast",
+    accessory: on ? "On" : "Off",
+    accessoryColor: on ? "var(--mint)" : "var(--faint)",
+    actions: [
+      {
+        id: "toggle",
+        title: on ? "Turn off" : "Turn on",
+        keepOpen: true,
+        run: () => {
+          set(!on)
+          ctx.ui.toast(`${title} ${on ? "off" : "on"}`)
+        },
+      },
+    ],
+  }
+}
+
+/** Zencast's own settings, the same ones as the General page. */
+function zencastItems(ctx: CommandContext): PaletteItem[] {
+  const config = readConfig()
+  return [
+    zencastToggle("zencast:ctrl-t", "Open with Ctrl+T", paletteOnCtrlT(config), setPaletteOnCtrlT, ctx),
+    zencastToggle("zencast:url-results", "History, bookmarks and suggestions", config.urlResults, (urlResults) => updateConfig((c) => ({ ...c, urlResults })), ctx),
+    {
+      id: "zencast:max-results",
+      title: "Result limit",
+      subtitle: "Zencast",
+      section: "Settings",
+      icon: { kind: "icon", icon: SlidersHorizontalIcon },
+      keywords: "zencast maximum results",
+      accessory: String(config.maxResults),
+      accessoryColor: "var(--faint)",
+      actions: [
+        {
+          id: "pick",
+          title: "Change",
+          run: (): ListView => ({
+            id: "result-limit",
+            title: "Result limit",
+            items: RESULT_LIMITS.map((limit) => ({
+              id: `limit:${limit}`,
+              title: String(limit),
+              section: "Result limit",
+              accessory: limit === config.maxResults ? "Current" : undefined,
+              actions: [{ id: "set", title: "Set", run: () => updateConfig((c) => ({ ...c, maxResults: limit })) }],
+            })),
+          }),
+        },
+      ],
+    },
+  ]
 }
 
 export function settingsSearchItem(ctx: CommandContext, query: string): PaletteItem {
@@ -270,7 +395,7 @@ export function queryItems(ctx: CommandContext, query: string): { url: PaletteIt
           title: url.replace(/^https?:\/\//, ""),
           section: "Open",
           icon: { kind: "icon", icon: Globe02Icon },
-          actions: openActions(ctx, () => url),
+          actions: [...openActions(ctx, () => url), assignAction(ctx, { kind: "url", target: url, title: url.replace(/^https?:\/\//, "") })],
         }
       : null,
     search: {
@@ -310,7 +435,7 @@ export function webItems(ctx: CommandContext, results: WebResult[], query: strin
         icon: { kind: "favicon", url: `page-icon:${result.url}` },
         accessory: result.source === "bookmark" ? "Bookmark" : undefined,
         accessoryColor: "var(--butter)",
-        actions: openActions(ctx, () => result.url),
+        actions: [...openActions(ctx, () => result.url), assignAction(ctx, { kind: "url", target: result.url, title: result.title })],
       })
     }
   }

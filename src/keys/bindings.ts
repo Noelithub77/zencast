@@ -1,12 +1,12 @@
-import { COMMANDS } from "@/commands/catalog"
+import { allCommands } from "@/commands/jumps"
 import type { Command } from "@/commands/types"
-import type { Config } from "@/shared/config"
+import { updateConfig, type Config } from "@/shared/config"
 import { normalizeSequence } from "@/shared/keys"
 
 /** Key sequences per command: defaults, replaced wholesale by any user override. */
 export function effectiveBindings(config: Config): Map<string, string[]> {
   const out = new Map<string, string[]>()
-  for (const command of COMMANDS) {
+  for (const command of allCommands(config)) {
     const keys = config.bindings[command.id] ?? command.defaultKeys ?? []
     out.set(command.id, keys.map(normalizeSequence).filter(Boolean))
   }
@@ -23,7 +23,7 @@ export interface BindingIndex {
 export function buildIndex(config: Config): BindingIndex {
   const exact = new Map<string, Command[]>()
   const prefixes = new Map<string, Array<{ next: string; command: Command }>>()
-  const byId = new Map(COMMANDS.map((command) => [command.id, command]))
+  const byId = new Map(allCommands(config).map((command) => [command.id, command]))
   for (const [id, sequences] of effectiveBindings(config)) {
     const command = byId.get(id)
     if (!command) continue
@@ -62,4 +62,30 @@ export function findConflicts(index: BindingIndex): Conflict[] {
       })
   }
   return out
+}
+
+/**
+ * Makes the sequence the command's first binding ("replace") or adds it ("add"). It is removed from
+ * the command's other bindings first, so recording a key twice never duplicates it.
+ */
+export function bindSequence(id: string, sequence: string, mode: "replace" | "add" = "replace") {
+  updateConfig((config) => {
+    const current = (effectiveBindings(config).get(id) ?? []).filter((s) => s !== sequence)
+    const next = mode === "add" ? [...current, sequence] : [sequence, ...current.slice(1)]
+    return { ...config, bindings: { ...config.bindings, [id]: next } }
+  })
+}
+
+const PALETTE = "zencast.palette"
+
+export function paletteOnCtrlT(config: Config): boolean {
+  return (effectiveBindings(config).get(PALETTE) ?? []).includes("ctrl+t")
+}
+
+/** Gives Ctrl+T to the palette, or back to Zen's new tab. */
+export function setPaletteOnCtrlT(on: boolean) {
+  updateConfig((config) => {
+    const keys = (effectiveBindings(config).get(PALETTE) ?? []).filter((sequence) => sequence !== "ctrl+t")
+    return { ...config, bindings: { ...config.bindings, [PALETTE]: on ? [...keys, "ctrl+t"] : keys } }
+  })
 }

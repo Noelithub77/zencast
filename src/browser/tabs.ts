@@ -22,8 +22,14 @@ export function tabKey(tab: XULTab): string {
   return key
 }
 
+/** The tab's browser; actions on a tab that was never loaded fail with a readable message. */
+export function loadedBrowser(tab: XULTab): XULBrowser {
+  if (!tab.linkedBrowser) throw new Error("The tab has not loaded yet")
+  return tab.linkedBrowser
+}
+
 export function tabUrl(tab: XULTab): string {
-  return tab.linkedBrowser.currentURI?.spec ?? ""
+  return tab.linkedBrowser?.currentURI?.spec ?? ""
 }
 
 export function describeTab(tab: XULTab): TabInfo {

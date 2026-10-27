@@ -211,6 +211,20 @@ const SCENARIOS: Scenario[] = [
       return { ok, detail: "followed to " + target.name + "; toast: " + text + "; overrides native " + shadowed }`,
   },
   {
+    name: "ctrl+2 switches to space 2, and ctrl+n passes through when space n does not exist",
+    body: String.raw`${READY}
+      if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
+      const spaces = gZenWorkspaces.getWorkspaces()
+      await gZenWorkspaces.changeWorkspaceWithID(spaces[0].uuid)
+      press("ctrl+2", document.documentElement)
+      const switched = await until(() => gZenWorkspaces.activeWorkspace === spaces[1].uuid, 3000).catch(() => false)
+      const missing = spaces.length + 1
+      const event = press("ctrl+" + missing, document.documentElement)
+      const passed = !event.defaultPrevented
+      await gZenWorkspaces.changeWorkspaceWithID(spaces[0].uuid)
+      return { ok: Boolean(switched) && passed, detail: (switched ? "switched to " + spaces[1].name : "did not switch") + "; ctrl+" + missing + (passed ? " passed through" : " was taken") }`,
+  },
+  {
     name: "ctrl+shift+, opens the extensions page",
     body: String.raw`${READY}
       press("ctrl+shift+,", document.documentElement)
@@ -383,6 +397,30 @@ const SCENARIOS: Scenario[] = [
       const vertical = await until(() => [...doc.querySelectorAll("[role=tabpanel] [role=switch]")].some((s) => s.getAttribute("aria-label") === "Vertical tabs"), 2000).catch(() => false)
       const ok = nav.length === 4 && columns === spaces && icon.includes("logo") && tabs.length === 8 && vertical
       return { ok, detail: nav.join(", ") + "; " + columns + " space columns; favicon " + (icon.split("/").pop() || "missing") + "; settings tabs " + tabs.map((t) => t.textContent.trim()).join(" ") + (vertical ? "; Vertical tabs under Tabs" : "") }`,
+  },
+  {
+    name: "zencast's card in Sine's mod list opens the settings page",
+    body: String.raw`${READY}
+      openPreferences("paneSineMods")
+      const browser = await until(() => gBrowser.selectedBrowser.currentURI.spec.startsWith("about:preferences") && gBrowser.selectedBrowser)
+      const button = await until(() => browser.contentDocument?.querySelector('.sineItem[mod-id="zencast"] .zencast-settings-button'), 10000)
+      const title = await until(() => button.getAttribute("title"), 3000).catch(() => "")
+      button.click()
+      const opened = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings"), 3000).catch(() => false)
+      return { ok: Boolean(opened), detail: "button \"" + title + "\"; " + (opened ? "opened settings" : "settings did not open") }`,
+  },
+  {
+    // Closing a space's first tab leaves Zen's placeholder tab without a browser.
+    name: "ctrl+, still opens settings when a tab has no browser",
+    body: String.raw`${READY}
+      for (const tab of gBrowser.tabs.filter((tab) => tab.linkedBrowser?.currentURI?.spec.includes("zencast/settings"))) gBrowser.removeTab(tab)
+      const first = gBrowser.tabs[0]
+      gBrowser.selectedTab = gBrowser.addTrustedTab("about:blank", { skipAnimation: true })
+      gBrowser.removeTab(first)
+      const empty = await until(() => gBrowser.tabs.filter((tab) => tab.linkedBrowser === null).length, 3000).catch(() => 0)
+      press("ctrl+,", document.documentElement)
+      const opened = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings"), 3000).catch(() => false)
+      return { ok: empty > 0 && Boolean(opened), detail: empty + " tab without a browser; " + (opened ? "opened settings" : "settings did not open") }`,
   },
 ]
 

@@ -41,7 +41,7 @@ function tabNode(tab: XULTab): TabNode {
     key: tabKey(tab),
     tab,
     title: tab.label,
-    url: tab.linkedBrowser.currentURI?.spec ?? "",
+    url: tab.linkedBrowser?.currentURI?.spec ?? "",
   }
 }
 

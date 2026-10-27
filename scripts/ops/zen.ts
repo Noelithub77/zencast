@@ -142,8 +142,11 @@ const press = (combo, target) => {
     composed: true,
   }
   const el = target ?? deepActive() ?? document.documentElement
-  el.dispatchEvent(new KeyboardEvent("keydown", init))
+  const down = new KeyboardEvent("keydown", init)
+  el.dispatchEvent(down)
   el.dispatchEvent(new KeyboardEvent("keyup", init))
+  // Lets a test see whether a handler took the key.
+  return down
 }
 // Trusted key events, which Zen's own <key> shortcuts need; synthetic ones never trigger them.
 const pressTrusted = (combo) => {

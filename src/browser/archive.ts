@@ -83,7 +83,7 @@ function serialize(folder: ZenFolder): ArchivedFolderNode {
       items.push({
         type: "tab",
         title: tab.label,
-        url: tab.linkedBrowser.currentURI?.spec ?? "about:blank",
+        url: tab.linkedBrowser?.currentURI?.spec ?? "about:blank",
         userContextId: tab.userContextId,
       })
     }

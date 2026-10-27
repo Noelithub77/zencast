@@ -1,7 +1,9 @@
 // Mod entry: Sine imports this module once per browser window.
 import { sweepTemporaryContainers } from "@/browser/containers"
 import { isTab } from "@/browser/folders"
+import { addSineSettingsButton } from "@/browser/sine-card"
 import { registerToasts } from "@/browser/toast"
+import { openSettings } from "@/commands/catalog"
 import { buildIndex } from "@/keys/bindings"
 import { startKeyEngine } from "@/keys/engine"
 import { closePalette, commandContext, disposeController, initController, openPalette, runCommand } from "@/palette/controller"
@@ -37,6 +39,8 @@ function start(win: Window): () => void {
     win.cancelIdleCallback(idle)
     unmount?.()
   })
+
+  disposers.push(addSineSettingsButton(win, () => openSettings(win)))
 
   const onTabClose = (event: Event) => {
     if (event.target instanceof Element && isTab(event.target)) sweepTemporaryContainers(event.target)

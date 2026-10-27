@@ -1,5 +1,6 @@
 import { z } from "zod"
 
+import { loadedBrowser } from "./tabs"
 import { systemPrincipal } from "./window"
 
 const CIS_URL = "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs"
@@ -67,7 +68,7 @@ export function openInContainer(win: Window, userContextId: number, url = "about
 
 /** Reopens the tab's page in another container and closes the original. */
 export function reopenInContainer(win: Window, tab: XULTab, userContextId: number): XULTab {
-  const next = openInContainer(win, userContextId, tab.linkedBrowser.currentURI.spec)
+  const next = openInContainer(win, userContextId, loadedBrowser(tab).currentURI.spec)
   win.gBrowser.removeTab(tab)
   return next
 }

@@ -1,4 +1,5 @@
 import { openInContainer } from "./containers"
+import { loadedBrowser } from "./tabs"
 
 export interface SessionCopyResult {
   site: string
@@ -64,7 +65,7 @@ function copyLocalStorage(uri: nsIURI, from: number, to: number): number {
 
 /** Copies the tab site's cookies (including HttpOnly) and the page origin's localStorage into another container. */
 export function copySession(tab: XULTab, toUserContextId: number): SessionCopyResult {
-  const uri = tab.linkedBrowser.currentURI
+  const uri = loadedBrowser(tab).currentURI
   if (!isWebUri(uri)) throw new Error("Only web pages have a session to copy")
   const site = siteOf(uri)
   return {
@@ -95,7 +96,7 @@ export async function transferSession(
   mode: "copy" | "move",
 ): Promise<SessionCopyResult> {
   const result = copySession(tab, toUserContextId)
-  openInContainer(win, toUserContextId, tab.linkedBrowser.currentURI.spec)
+  openInContainer(win, toUserContextId, loadedBrowser(tab).currentURI.spec)
   if (mode === "move") {
     await clearSite(result.site, tab.userContextId)
     win.gBrowser.removeTab(tab)
@@ -108,7 +109,7 @@ export async function transferSession(
  * drops its back/forward history and reloads from the network.
  */
 export async function wipeTab(tab: XULTab): Promise<string> {
-  const browser = tab.linkedBrowser
+  const browser = loadedBrowser(tab)
   const uri = browser.currentURI
   const site = isWebUri(uri) ? siteOf(uri) : ""
   if (site) await clearSite(site, tab.userContextId)

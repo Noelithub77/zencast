@@ -84,7 +84,7 @@ declare global {
   }
 
   interface XULTab extends Element {
-    readonly linkedBrowser: XULBrowser
+    readonly linkedBrowser: XULBrowser | null
     readonly pinned: boolean
     readonly selected: boolean
     readonly label: string
@@ -199,6 +199,7 @@ declare global {
 
   interface Document {
     readonly l10n: DOMLocalization
+    createXULElement(tagName: string): Element
     /** Routes edit commands to the focused element's controllers, including a remote page's. */
     readonly commandDispatcher: {
       readonly focusedElement: Element | null

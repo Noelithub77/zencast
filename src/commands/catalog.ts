@@ -42,10 +42,10 @@ export const SETTINGS_URL = "chrome://sine/content/zencast/settings/index.html"
 
 export function openSettings(win: Window, section = "") {
   const url = section ? `${SETTINGS_URL}#${section}` : SETTINGS_URL
-  const existing = win.gBrowser.tabs.find((tab) => tab.linkedBrowser.currentURI?.spec.startsWith(SETTINGS_URL))
+  const existing = win.gBrowser.tabs.find((tab) => tab.linkedBrowser?.currentURI?.spec.startsWith(SETTINGS_URL))
   if (existing) {
     win.gBrowser.selectedTab = existing
-    if (section) existing.linkedBrowser.contentDocument?.location.replace(url)
+    if (section) existing.linkedBrowser?.contentDocument?.location.replace(url)
     return
   }
   win.gBrowser.selectedTab = win.gBrowser.addTrustedTab(url)
@@ -53,7 +53,7 @@ export function openSettings(win: Window, section = "") {
 
 const isPinned = ({ tab }: CommandContext) => tab.pinned && !tab.hasAttribute("zen-essential")
 const inFolder = ({ tab }: CommandContext) => isFolder(tab.group)
-const isWebPage = ({ tab }: CommandContext) => ["http", "https"].includes(tab.linkedBrowser.currentURI?.scheme ?? "")
+const isWebPage = ({ tab }: CommandContext) => ["http", "https"].includes(tab.linkedBrowser?.currentURI?.scheme ?? "")
 
 function workspacePicker(ctx: CommandContext, title: string, pick: (id: string) => void | Promise<void>): ListView {
   const active = activeWorkspaceId(ctx.win)
@@ -124,6 +124,18 @@ const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
     await moveTabAndFollow(ctx.win, ctx.tab, ws.uuid)
     ctx.ui.toast(`Moved to ${ws.name}`)
   },
+}))
+
+// Takes Ctrl+N from Firefox's "select tab N" only while space N exists.
+const switchToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
+  id: `space.switch.${i + 1}`,
+  title: `Switch to space ${i + 1}`,
+  section: "Spaces",
+  icon: Layers01Icon,
+  hidden: true,
+  defaultKeys: [`ctrl+${i + 1}`],
+  when: (ctx) => listWorkspaces(ctx.win).length > i,
+  run: (ctx) => switchWorkspace(ctx.win, listWorkspaces(ctx.win)[i].uuid),
 }))
 
 export const COMMANDS: Command[] = [
@@ -330,6 +342,7 @@ export const COMMANDS: Command[] = [
     run: (ctx) => workspacePicker(ctx, "Move here", (id) => moveTabAndFollow(ctx.win, ctx.tab, id)),
   },
   ...moveToSpaceN,
+  ...switchToSpaceN,
 
   // Containers
   {

@@ -1,11 +1,13 @@
 ---
 name: add-command
-description: Add or change a Zencast command, its default keys or its palette results. Use when a fork or a feature needs a new action, a new keybinding, or a different default.
+description: Add or change a Zencast command, its default keys, its palette results or the browser's look. Use when a fork or a feature needs a new action, a new keybinding, a different default, or CSS for Zen itself.
 ---
 
 # Add a command
 
-Every action in Zencast, bound to a key or not, is a `Command` in `src/commands/catalog.ts`; its shape and the meaning of each field are in `src/commands/types.ts`. The palette lists commands, the key engine binds their `defaultKeys`, and the settings page lets users rebind them, so one catalog entry reaches all three.
+Every action in Zencast, bound to a key or not, is a `Command`; its shape and the meaning of each field are in `src/commands/types.ts`. The palette lists commands, the key engine binds their `defaultKeys`, and the settings page lets users rebind them, so one catalog entry reaches all three.
+
+A new feature goes in its own file in `src/features/`, which exports `commands: Command[]`; `catalog.ts` collects every file there, so nothing else needs editing. `src/features/copy-link.ts` is the smallest example. A `.css` file beside it restyles Zen itself: the build appends it to `document.css`, which Sine applies to every window. Change Zencast's own core commands in `catalog.ts`.
 
 ## Steps
 

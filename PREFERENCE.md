@@ -155,9 +155,10 @@ Use Zen's native toast, the one that says "URL copied" on Ctrl+Shift+C, for mess
   - Excalidraw or rough.js-style images rendered by a script and placed in the Markdown;
   - explains how everything works.
 - **Code to back the claims:**
-  - easier reusable modules;
-  - packaging help for forks;
+  - focus on what matters, modding Zen: drop-in feature modules in `src/features/` (commands in `.ts`, looks in `.css`);
+  - no rebrand or packaging tooling: agents can rename a fork themselves;
   - more skills.
+- **Priority:** the creative work (video and blog) comes before more tooling.
 
 ## Working with the owner
 

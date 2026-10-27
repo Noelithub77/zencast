@@ -161,6 +161,28 @@ const SCENARIOS: Scenario[] = [
       return { ok: !!picker && copied, detail: (picker ? "no selection: picker" : "no selection: nothing") + "; with selection: " + (opened ? "picker" : "clipboard " + JSON.stringify(clip.slice(0, 30))) }`,
   },
   {
+    // The example in src/features/ proves the feature-module glob reaches the palette.
+    name: "a feature module's command copies the tab as a Markdown link",
+    body: String.raw`${READY}
+      const tab = newTab("data:text/html,<title>Feature [demo]</title>x")
+      await until(() => tab.label === "Feature [demo]")
+      let clip = ""
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("copy as markdown")
+        const row = await until(() => shadow().querySelector('[cmdk-item][data-value="tab.copyMarkdownLink"]'), 3000)
+        row.click()
+        await until(() => !paletteOpen(), 2000)
+        await sleep(300)
+        clip = await navigator.clipboard.readText().catch((e) => "unreadable: " + e)
+      } finally {
+        if (paletteOpen()) await dismiss()
+        gBrowser.removeTab(tab)
+      }
+      return { ok: clip.startsWith("[Feature demo](data:text/html,"), detail: JSON.stringify(clip.slice(0, 40)) }`,
+  },
+  {
     name: "alt+p pins and unpins",
     body: String.raw`${READY}
       const tab = newTab()

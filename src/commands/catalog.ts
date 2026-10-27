@@ -138,7 +138,7 @@ const switchToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   run: (ctx) => switchWorkspace(ctx.win, listWorkspaces(ctx.win)[i].uuid),
 }))
 
-export const COMMANDS: Command[] = [
+const CORE: Command[] = [
   {
     id: "zencast.palette",
     title: "Open Zencast",
@@ -446,5 +446,10 @@ export const COMMANDS: Command[] = [
     }),
   },
 ]
+
+// Each file in src/features/ exports `commands`; forks add features there instead of editing this list.
+const FEATURES = import.meta.glob<Command[]>("../features/*.ts", { eager: true, import: "commands" })
+
+export const COMMANDS: Command[] = [...CORE, ...Object.values(FEATURES).flat()]
 
 export const COMMANDS_BY_ID = new Map(COMMANDS.map((command) => [command.id, command]))

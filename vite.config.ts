@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
-import { resolve } from "node:path"
+import { readdirSync, readFileSync } from "node:fs"
+import { join, resolve } from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import { defineConfig, type Plugin } from "vite"
@@ -7,11 +8,13 @@ import { defineConfig, type Plugin } from "vite"
 const OUT_DIR = resolve(import.meta.dirname, "dist/zencast")
 // Must match the link in src/palette/host.tsx.
 const PALETTE_URL = "chrome://sine/content/zencast/palette.css"
+const FEATURES = resolve(import.meta.dirname, "src/features")
 
 /**
  * Shadow roots ignore @property and @font-face, so they move from the palette sheet into
  * document.css, which Sine loads as the mod's chrome-wide stylesheet. The palette link also gets a
  * content hash: Gecko caches chrome:// sheets by URL, so a fixed URL can pair new markup with old CSS.
+ * Stylesheets in src/features/ restyle the browser itself, so they ship in document.css too.
  */
 function documentCss(): Plugin {
   return {
@@ -27,7 +30,14 @@ function documentCss(): Plugin {
         hoisted.push(rule)
         return ""
       })
-      this.emitFile({ type: "asset", fileName: "document.css", source: hoisted.join("\n") })
+      const looks = readdirSync(FEATURES)
+        .filter((file) => file.endsWith(".css"))
+        .sort()
+        .map((file) => {
+          this.addWatchFile(join(FEATURES, file))
+          return `/* src/features/${file} */\n${readFileSync(join(FEATURES, file), "utf8")}`
+        })
+      this.emitFile({ type: "asset", fileName: "document.css", source: [...hoisted, ...looks].join("\n") })
 
       const version = createHash("sha256").update(palette.source).digest("hex").slice(0, 10)
       const script = bundle["zencast.uc.mjs"]

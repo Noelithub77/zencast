@@ -10,6 +10,7 @@ Read `PREFERENCE.md` before changing the project's direction, wording, design or
 | --- | --- |
 | `src/main.ts` | Mod entry: mounts the palette, keybinding engine and toasts per window, and undoes it all on unload |
 | `src/browser/` | Thin wrappers over Zen and Firefox internals (tabs, folders, workspaces, containers, session, toasts), plus the settings button on Zencast's card in Sine |
+| `src/features/` | Drop-in features: each `.ts` exports `commands`, each `.css` restyles Zen. The way to mod Zen without touching the core |
 | `src/commands/` | The command catalog, Zen's native commands and shared types |
 | `src/keys/` | Keybinding engine: matching, chords and `when` contexts |
 | `src/palette/` | Palette UI in a shadow root, its store, search (uFuzzy) and result sources |

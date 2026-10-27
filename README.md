@@ -5,15 +5,15 @@
 <h1 align="center">Zencast</h1>
 
 <p align="center">
-  <b>Raycast for Zen.</b> A powerful keyboard-first browser: one palette for tabs, spaces, containers, settings and your own shortcuts.
+  <b>Describe the browser you want. Your agent builds it.</b>
 </p>
 
 <p align="center">
-  Also a template for making Zen, or any Firefox, malleable: fork it and let your agent reshape the browser any way you want.
+  A one-shot template for reshaping any Firefox-based browser with your coding agent, and my own setup for Zen: Raycast for Zen, a keyboard-first palette for tabs, spaces, containers, settings and my own keys.
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> · <a href="#features">Features</a> · <a href="#keys">Keys</a> · <a href="#make-it-yours">Make it yours</a> · <a href="#how-do-you-make-a-browser-malleable">Why Firefox</a>
+  <a href="https://zencast.allpyq.in">Website</a> · <a href="#install">Install</a> · <a href="#features">Features</a> · <a href="#keys">Keys</a> · <a href="#make-it-yours">Make it yours</a> · <a href="#how-do-you-make-a-browser-malleable">Why Firefox</a>
 </p>
 
 ![Ctrl+K, type, Enter: the palette jumps to a tab in another space](docs/media/hero.gif)

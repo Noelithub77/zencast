@@ -1,0 +1,179 @@
+# Owner's intent and preferences
+
+This file records everything the owner, Noel Georgi, has asked for while building Zencast: why the project exists, how it should be described, what it must do and how the work should be done. Read it before changing the project's direction, its wording, its design or its keybindings. Where a later request replaced an earlier one, the later one is recorded and the earlier one is noted as replaced.
+
+Zencast is a project, not a product. Describe it as a project everywhere.
+
+## Why the project exists
+
+- **The agentic era.** Anyone can make their own software now; it takes a single prompt. The owner believes in custom, malleable software that people shape to their liking.
+- **A browser is the exception.** Building your own browser is not realistic: security constraints, a rendering engine, and years of web compatibility work. Forking Chromium means a huge build, a full rebuild for every change, no hot reload, and keeping up with its security updates to stay safe from vulnerabilities.
+- **A layer instead of a new browser.** One way to overlay just the small changes you want on top of a maintained browser, with all the creativity that allows, is a large boost in the agentic era. "It changes everything."
+- **The browser is where the day goes.** Omarchy is an agentic, malleable OS, but most computer time is spent in the browser. A malleable OS still leaves the browser fixed, so a malleable browser lifts the workflow more and makes you more productive.
+- **Firefox is the way in.** Firefox supports loading custom JS and CSS at startup through AutoConfig, so it allows far more live malleability than Chromium. Sine builds on that. Zen already gives a good starting point. This is the easy way to get a secure agentic browser: the browser's own security updates keep coming underneath your changes.
+- **Why Sine and not a native Zen mod.** Zen's own mods load only CSS and preferences, never JS. A Sine mod is needed for full access to Zen and Firefox internal APIs. Pre-agentic extension and add-on formats cap what code may touch because they assume you install code you never read; an agent writes and reads every line it ships, so the cap is what's left in the way.
+- **Why not Chrome.** Chrome extensions run in a sandbox and can't reach the browser's own interface, and no other route in Chrome gives this level of malleability. List every Chromium limit, but keep the full list collapsed until the reader asks for it.
+- **Security is why it's a template, not a product.** Custom JS in a browser, like any extension, can be turned against you: a script with this reach can read every cookie and signed-in session and send them anywhere. Nobody should blindly trust code that runs directly in their browser with full access to cookies and sessions. Use your own agent to audit it, and run only what you've audited. This is a big part of the story; say it plainly.
+
+## The owner's own story (Zencast as "my way")
+
+- The owner has always loved VS Code's command palette: one search box, type anything, get anything. They want everything to work like that. They also love Raycast.
+- A fully keyboard-first browser is a productive way to work. Zen is trying to get there, but it's nowhere near a fully keyboard-first experience.
+- Zencast is the owner's way of doing it: their palette and their keybindings, which changed their workflow and made it better and easier. Zen is their personal case because it already has a lot customized.
+- Anyone can use the same project as a template: fork it, point an agent at it, and change it to fit how they work.
+
+## How to describe it
+
+- **Order of the pitch:**
+  1. Browser malleability first, in the agentic era.
+  2. Why the browser matters (Omarchy and time spent in the browser).
+  3. Why Chromium can't do it and Firefox can.
+  4. How Sine mods work, and why other formats limit you.
+  5. The owner's workflow and keys, inspired by VS Code and Raycast.
+  6. The template: fork it, point your agent, change it.
+- **Firefox first.** Zen is niche and Firefox is widely known, so lead with customizing any Firefox-based browser. Zen is the owner's personal case. Generalize wherever the code allows, and stay honest: Zen-specific code lives in `src/browser/`.
+- **The hero** says you can change whatever you want in the browser you already use, with just prompts. Don't say Zencast is a browser; it's a one-shot template for fully customizing your browser with your agent. Make it punchy and engaging. Current hero: "Describe the browser you want. Your agent builds it."
+- **Headline history:**
+  - "Raycast for Zen", plus malleable, and "a powerful keyboard-first browser experience".
+  - Then "a malleable Zen power-user setup: one mod to make Zen the way you want".
+  - Then "a template to customize Zen, or any Firefox, the way you want".
+  - The GitHub description must include the malleable-browser idea.
+- **Agent-first wording.** The template ships skills, setup scripts, code references and packaged APIs so agents can onboard quickly. People point their agents at the repo; there is no fork-setup wizard ("Fork only").
+- **Emphasize the agent tooling:** the skills, the `pnpm ops` commands that let agents set up and mod the template, and that the APIs come packaged for simple forking.
+- **Mention VS Code and Raycast everywhere:** README, landing page, video and blog.
+- **Keybindings are personal.** Say plainly that the shown keybindings are the owner's personal setup ("I don't use them so don't worry") and invite people to fork and change them. List every key the owner overrides.
+- **Store status.** Zencast is not in the Sine store yet. The setup script turns on "Allow unsafe JS" for users, but only after telling them everything about it and linking the repo.
+- **Use ordinary examples:** spaces named Work, Acad and Personal, and common sites like google.com.
+- **Ready-made setup.** The setup scripts are ready made and set up Sine for users on their platform (Linux, macOS, Windows). Agents doing the setup get a proper guide too.
+
+## Claims and sources
+
+- Always cross-check the owner's claims; they may be wrong. Every claim on the README, landing page, video and blog needs a source.
+- Research each point and state honestly whether a better alternative exists, for Chromium or any of its forks.
+- Back the ideology with sources: Ink & Switch on malleable software, Chromium docs, Chrome extension docs, Mozilla and fx-autoconfig, Sine, Zen's mod loader, the Omarchy manual, and the Forrester study for Google on browser time.
+
+## Features the owner asked for
+
+### Palette
+
+- A full Raycast-style palette that can do everything in Zen, on Ctrl+K.
+- Ctrl+T as an option. It is off by default and replaces Zen's new-tab with the palette only when the toggle is on. An earlier request had both keys always open the palette; the later "by default don't override Ctrl+T" replaced it.
+- Ctrl+, opens the settings page; Ctrl+Shift+, opens the extensions settings page.
+- Search every Zen setting, and show each one's keybinding. Change settings from the palette itself.
+- Fuzzy-search every tab: active, unloaded and pinned, in all folders, plus folder names. Active tabs rank above unloaded ones.
+- **DNS cache fill.** Typing "allpyq" fills "allpyq.in" from the DNS cache plus history. When the DNS cache has a match, it always wins Enter.
+- **Hold Ctrl for hints:** numbers for options and a letter marked in each title, vim-style.
+- **While the palette is open:**
+  - its keybindings override everything else;
+  - Alt+1/2/3 tints the palette to that space, names it, and opens the result there;
+  - Ctrl+1/2/3 does the same for containers, with container colour and name;
+  - both are toggles: pressing again reverts. Transitions are smooth.
+- Ideas the owner chose: record keys from the palette, all settings in the palette, keys for tabs and sites, and hold-to-reveal strips.
+- A bit bigger, and centred on screen.
+- Best fuzzy search for speed and typo tolerance.
+
+### Keys (the owner's current personal setup)
+
+| Key | Action |
+| --- | --- |
+| Ctrl+K | Find anything: tabs, spaces, history, commands, settings |
+| Ctrl+1…9 | Switch to that space |
+| Alt+1…9 | Send the tab to that space and follow it (replaced Ctrl+Shift+1…9) |
+| Alt+P | Pin or unpin the tab |
+| Alt+Shift+P | Change the pin to the current URL |
+| Ctrl+Shift+N | New folder in the space, or a subfolder when the tab is already in a folder |
+| Ctrl+C | Open in a container, only when nothing is selected for copying (Alt+C was taken) |
+| Alt+Shift+T | Tab in a throwaway container |
+| Alt+M | Move a signed-in session (cookies and all) to another container; ask each time |
+| Alt+Shift+W | Full tab wipe: site data and history |
+| Ctrl+Space, then a key | Chords: move to a folder, space or essentials |
+| Ctrl+. | Give any command, tab or site its own key |
+
+The keybinding system should show all native Zen bindings and be more customizable than Zen's. Moving a tab also switches to its space, so the move is visible.
+
+### Feedback
+
+Use Zen's native toast, the one that says "URL copied" on Ctrl+Shift+C, for messages like "moved to this workspace". Don't build a custom overlay.
+
+### Settings page
+
+- Vite + React.
+- A file-manager-style page for all folders, with archive (kept in Zencast's own state) and quick moves.
+- Workspaces side by side, collapsed to one level: each workspace and its immediate root folders.
+- Zen's settings grouped into categories with subtabs.
+- A settings button on Zencast's card in Sine.
+
+## Design
+
+- Elegant dark mode, Vesper-like, with pastel accents and few blues.
+- shadcn components with the Luma style. Keep it calm and minimal per the minui-nol skill:
+  - progressive disclosure;
+  - long detail, such as the full Chromium-versus-Firefox list, stays collapsed until clicked;
+  - state shown as dots and chips rather than sentences.
+- **Logo:**
+  - dark, Vesper-like, elegant and minimal, in the spirit of Raycast's mark;
+  - an animated SVG, also used as the favicon;
+  - the owner chose the pressed keycap from ten options and liked that it had a clever reference.
+- Sentence case everywhere; never all caps.
+
+## Engineering
+
+- Use the best packages for the job: TypeScript, React 19, Vite.
+- Treat performance as a constraint: build with it in mind, then benchmark and optimize so every interaction stays smooth.
+- Provide an `ops` entry point so agents can build, install, test, benchmark, record media, release and deploy without one-off scripts.
+- Never test against the owner's running Zen or real profile; tests use a throwaway headless profile.
+- **Distribution:**
+  - one-line setup (`curl | bash` and a PowerShell twin) that checks for Sine and installs it if needed;
+  - guide the user through any manual step;
+  - a release branch and a working update system through Sine;
+  - a hand-triggered GitHub Action that runs the ops release;
+  - the landing page in the manifest;
+  - Sine store details documented in `docs/`, with skills and `AGENTS.md` updated to match.
+- The repository is public.
+
+## Media and writing
+
+- **README:**
+  - a concise, elegant, standard README without redundancy;
+  - features, setup, fast-paced screen recordings and screenshots;
+  - a section answering "How do you make a malleable browser?", with sources.
+- **Concise everywhere.**
+  - Less text, more icons and visuals.
+  - No redundancy: every idea once, short and straight.
+  - Keep every main idea (the agentic era, why not Chromium, why Firefox, Omarchy and browser time, security, the owner's way, the template), each in a line or two.
+  - Put technical depth and sources behind hover tooltips and expanders so readers choose how much to see.
+- **Landing page** at zencast.allpyq.in:
+  - built on the Eko and Bunkialo template: rough.js scenes, GSAP, Lenis and an OGL shader;
+  - lightweight and fast to load, and agent-first;
+  - told as a story: no way in Chromium, then Firefox, then the template and the owner's way.
+- **Video:**
+  - HyperFrames, like Eko's in `~/Nocs/video`;
+  - about browser malleability and customizing your browser with just prompts, with VS Code and Raycast as the inspiration;
+  - use HyperFrames assets and record more footage.
+- **Blog:**
+  - Medium-style Markdown like Eko's blog;
+  - Excalidraw or rough.js-style images rendered by a script and placed in the Markdown;
+  - explains how everything works.
+- **Code to back the claims:**
+  - easier reusable modules;
+  - packaging help for forks;
+  - more skills.
+
+## Working with the owner
+
+- When the owner is away, finish the whole job, then end with the open questions.
+- Creative work, such as the logo, stays with the main agent. Small helper subagents only with the owner's approval.
+- Commit and push when asked.
+- Keep this file at the repository root as `PREFERENCE.md`, and add every new preference the owner states.
+
+## Name notes
+
+Voice input sometimes garbles names in the owner's messages:
+
+| Heard as | Means |
+| --- | --- |
+| "Rekha's" | Raycast |
+| "Send" | Zen |
+| "Haiku sign project" | Sine |
+| "Omarchi" | Omarchy |
+| "Echo" and "Bangiala" | Eko and Bunkialo, sibling projects in `~/Projects/hobby` |

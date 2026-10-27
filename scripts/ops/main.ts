@@ -9,6 +9,7 @@ import { captureScreens, runBench, runScenarios } from "./e2e.ts"
 import { captureMedia } from "./media.ts"
 import { defaultProfile, isRunning, MOD_ID, modsDir, readMods, readPref, writeMods, type ModEntry } from "./profile.ts"
 import { bumpSource, isBump, publish, RELEASE_BRANCH, REPO_URL } from "./release.ts"
+import { buildSite, deploySite } from "./site.ts"
 import { launchZen, removeProfile, type Zen } from "./zen.ts"
 
 const ROOT = resolve(import.meta.dirname, "..", "..")
@@ -25,10 +26,12 @@ Commands
   eval <js>          Run chrome-privileged JS in an isolated headless Zen and print what it returns
   media [dir]        Record the README's GIFs and screenshots in an isolated headless Zen (default docs/media)
   release            Build and publish the mod to the release branch, which Sine installs and updates from
+  site               Typecheck and build the landing page into site/dist
+  deploy             Build the landing page, deploy it to zencast.allpyq.in and check it is live
 
 Options
   --profile <dir>    Zen profile directory (default: the profile Zen opens by default)
-  --dry-run          install, release: report what would change without writing or pushing
+  --dry-run          install, release, deploy: report what would change without writing or pushing
   --screenshots <dir>  e2e: also save screenshots of the palette and settings page
   --tabs <n>         bench: lazy tabs to open first (default 300)
   --opens <n>        bench: palette opens to measure (default 40)
@@ -48,6 +51,8 @@ Effects
   release needs a clean tree. It replaces the release branch with the build, stamps updatedAt in
   theme.json so Sine updates installed copies on their next start, and pushes the branch, plus the
   version commit and tag with --bump.
+  deploy runs wrangler with site/wrangler.jsonc. It uses CLOUDFLARE_API_TOKEN, or else the cf CLI's
+  current login (cf auth login), then fetches the live page and reports its status and title.
 
 Examples
   pnpm ops build
@@ -57,7 +62,8 @@ Examples
   pnpm --silent ops bench --json
   pnpm ops eval "return gZenWorkspaces.getWorkspaces().map((w) => w.name)"
   pnpm ops media
-  pnpm ops release --bump patch`
+  pnpm ops release --bump patch
+  pnpm --silent ops deploy --json`
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -301,6 +307,21 @@ async function release() {
   )
 }
 
+function site() {
+  const result = buildSite(ROOT)
+  finish({ command: "site", ...result }, result.ok ? `Built ${result.output}  ${result.bytes ?? 0} B` : "Site build failed")
+}
+
+async function deploy() {
+  const result = await deploySite(ROOT, values["dry-run"])
+  const text = !result.ok
+    ? `Deploy failed: ${"error" in result ? result.error : `${result.url} returned ${"status" in result ? result.status : "nothing"}`}`
+    : result.dryRun
+      ? `Would deploy to ${result.url}`
+      : `Deployed ${result.url}\n  ${"status" in result ? result.status : ""}  ${"title" in result ? result.title : ""}`
+  finish({ command: "deploy", ...result }, text)
+}
+
 const command = positionals[0]
 if (values.help || !command) console.log(HELP)
 else if (command === "build") build()
@@ -311,6 +332,8 @@ else if (command === "bench") await bench()
 else if (command === "eval") await evaluate()
 else if (command === "media") await media()
 else if (command === "release") await release()
+else if (command === "site") site()
+else if (command === "deploy") await deploy()
 else {
   console.error(`Unknown command: ${command}\n\n${HELP}`)
   process.exitCode = 2

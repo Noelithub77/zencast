@@ -2,7 +2,7 @@
 
 A keyboard-first command palette for Zen browser, shipped as a Sine mod. It runs in the chrome window with full privileges: commands, tabs, settings, containers, folders, session move, tab wipe and a custom keybinding engine. It doubles as a template: people fork it and have their agent reshape Zen, or any Firefox, from here.
 
-Background research and decisions live in `plan/zencast/feasibility.md`. How users install and update it (Sine, the release branch, the store) lives in `docs/distribution.md`; the `release` skill covers cutting a version. The `add-command` skill covers new commands and keys; `zen-internals` covers finding and wrapping browser internals.
+Read `PREFERENCE.md` before changing the project's direction, wording, design or keys: it records the owner's intent and every preference they've stated. Background research and decisions live in `plan/zencast/feasibility.md`. How users install and update it (Sine, the release branch, the store) lives in `docs/distribution.md`; the `release` skill covers cutting a version. The `add-command` skill covers new commands and keys; `zen-internals` covers finding and wrapping browser internals.
 
 ## Layout
 
@@ -21,6 +21,8 @@ Background research and decisions live in `plan/zencast/feasibility.md`. How use
 | `scripts/ops/` | The operator CLI |
 | `scripts/install/` | The public setup scripts, `install.sh` and its Windows twin `install.ps1` |
 | `docs/` | Distribution reference and the README's media |
+| `site/` | The landing page at zencast.allpyq.in: Vite, rough.js scenes, GSAP and an OGL shader, deployed as a static-assets Worker (`site/wrangler.jsonc`) |
+| `PREFERENCE.md` | The owner's intent and every stated preference |
 | `.github/workflows/release.yml` | Hand-triggered release, running `pnpm ops release` |
 
 ## Operating the project
@@ -35,6 +37,8 @@ Use `pnpm ops`; run `pnpm ops --help` for commands and options. Every command ta
 - `media`: re-record the README's GIFs and screenshots into `docs/media` with demo spaces and sites. Needs ffmpeg and network.
 - `bench`: open, search and keystroke latency against p95 budgets, with 300 lazy tabs by default.
 - `release`: build and publish to the `release` branch, which Sine installs and updates from. `--bump` raises the version, commits and tags it.
+- `site`: typecheck and build the landing page.
+- `deploy`: build the landing page, deploy it with wrangler and check the live page. It uses `CLOUDFLARE_API_TOKEN`, or the `cf` CLI's login.
 
 `e2e`, `bench`, `eval` and `media` copy Sine from the default profile into a temporary profile and never write to the original. Never drive the user's running Zen for tests.
 

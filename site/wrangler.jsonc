@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zencast",
+  "account_id": "75bb6d35925d6493575a3e2d6deac186",
+  "compatibility_date": "2026-10-01",
+  // Static assets only: the landing page has no server code.
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "none"
+  },
+  "routes": [{ "pattern": "zencast.allpyq.in", "custom_domain": true }],
+  "workers_dev": false
+}

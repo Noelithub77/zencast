@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#101010" />
+    <meta name="color-scheme" content="dark" />
+    <title>Zencast · customize your browser with prompts</title>
+    <meta name="description" content="A one-shot template for your coding agent: fork it, say how you work, and it reshapes the Firefox-based browser you already use, while security updates keep arriving." />
+    <link rel="canonical" href="https://zencast.allpyq.in/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Zencast" />
+    <meta property="og:url" content="https://zencast.allpyq.in/" />
+    <meta property="og:title" content="Zencast · customize your browser with prompts" />
+    <meta property="og:description" content="A one-shot template that lets your agent reshape the browser you already use." />
+    <meta property="og:image" content="https://zencast.allpyq.in/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/nunito.woff2" as="font" type="font/woff2" crossorigin />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Zencast","url":"https://zencast.allpyq.in/","applicationCategory":"BrowserApplication","operatingSystem":"Linux, macOS, Windows","description":"A one-shot template for customizing a Firefox-based browser with a coding agent, and a keyboard-first command palette for Zen.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Noel Georgi"}}</script>
+    <script>document.documentElement.classList.add("js")</script>
+    <style>
+      @font-face{font-family:"Nunito";src:url(/fonts/nunito.woff2) format("woff2");font-weight:400 800;font-display:swap}
+      @font-face{font-family:"Excalifont";src:url(/fonts/excalifont.woff2) format("woff2");font-weight:400;font-display:swap}
+      :root{--bg:#101010;--fg:#ededed;--muted:#8f8f8f;--line:#232323;--accent:#ffc799;--mint:#99ffe4;--ink:#1f140b;--ease:cubic-bezier(.22,1,.36,1);--font:"Nunito",ui-rounded,system-ui,sans-serif;--mono:ui-monospace,"SF Mono","JetBrains Mono","Liberation Mono",Consolas,monospace;font-family:var(--font);color:var(--fg);background:var(--bg);color-scheme:dark;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased}
+      *{box-sizing:border-box}body{margin:0;overflow-x:clip;background:var(--bg)}a{color:inherit;text-decoration:none}[hidden]{display:none!important}button{font:inherit;color:inherit}
+      .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+      .bar{position:fixed;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:max(14px,env(safe-area-inset-top)) clamp(16px,4vw,40px) 14px}
+      .brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+      .brand img{width:30px;height:30px}
+      .hero{position:relative;min-height:100svh;display:grid;grid-template-columns:minmax(0,1fr);place-items:center;padding:110px 20px 120px;text-align:center;isolation:isolate;overflow:hidden}
+      .hero::before{content:"";position:absolute;inset:0;z-index:-2;background:radial-gradient(46% 36% at 50% 32%,#ffc79914,transparent 70%)}
+      .field{position:absolute;inset:0;z-index:-1;width:100%;height:100%;opacity:0;transition:opacity 1.2s}
+      .field.is-live{opacity:1}
+      .hero-inner{width:min(100%,860px);display:grid;grid-template-columns:minmax(0,1fr);justify-items:center}
+      .logo{display:block;overflow:visible}
+      .hero .logo{width:clamp(96px,12vw,128px);height:auto;filter:drop-shadow(0 18px 40px #ffc79926)}
+      h1{margin:28px 0 0;font-weight:800;font-size:clamp(60px,11vw,132px);line-height:1;letter-spacing:-.05em}
+      .morph{display:inline-grid;align-items:center;justify-items:center;perspective:700px}
+      .morph>span{grid-area:1/1;white-space:nowrap}
+      .morph .phrase{font-size:.5em;letter-spacing:-.035em;opacity:0}
+      .morph .phrase b{color:var(--accent);font-weight:800}
+      .tagline{margin:22px 0 0;font-size:clamp(21px,2.7vw,30px);font-weight:700;letter-spacing:-.025em}
+      .tagline em{font-style:normal;color:var(--accent)}
+      .lede{max-width:600px;margin:16px auto 0;color:#a8a8a8;font-size:clamp(16px,1.8vw,18px);line-height:1.6}
+      .get{width:min(100%,640px);margin-top:34px}
+      .seg{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:999px;background:#151515}
+      .seg button{padding:7px 16px;border:0;border-radius:999px;background:none;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;transition:color .2s,background .2s}
+      .seg [aria-pressed="true"]{background:var(--accent);color:var(--ink)}
+      .cmd{display:flex;align-items:center;gap:8px;margin:14px 0 0;padding:6px 6px 6px 16px;border:1px solid #262626;border-radius:16px;background:#0a0a0acc;text-align:left}
+      .cmd code{flex:1;min-width:0;font:13px var(--mono);color:#ffd9b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .cmd button{flex:none;padding:9px 14px;border:0;border-radius:11px;background:var(--accent);color:var(--ink);font-size:13px;font-weight:800;cursor:pointer}
+      .get-note{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;margin:14px 0 0;color:#767676;font-size:14px}
+      .swap{padding:2px;border:0;border-bottom:1px solid #333;background:none;color:var(--muted);font-size:14px;cursor:pointer}
+      .hero-inner>:not(.logo){animation:rise 1s var(--ease) both}
+      .hero-inner>:nth-child(2){animation-delay:.15s}.hero-inner>:nth-child(3){animation-delay:.25s}.hero-inner>:nth-child(4){animation-delay:.32s}.hero-inner>:nth-child(5){animation-delay:.4s}
+      @keyframes rise{from{opacity:0;transform:translateY(16px);filter:blur(6px)}}
+      @media (max-width:640px){.hero{min-height:auto;padding:96px 16px 40px}.hero .scroll-cue{display:none}.cmd code{font-size:12px}}
+      @media (prefers-reduced-motion:reduce){.hero-inner>*{animation:none!important}}
+    </style>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="#top" aria-label="Zencast home"><img src="/logo.svg" alt="" width="30" height="30" />Zencast</a>
+      <button type="button" class="jump-open" data-jump-open aria-label="Jump to a section"><span>Jump to</span><kbd data-mod>Ctrl</kbd><kbd>K</kbd></button>
+      <i class="bar-progress" aria-hidden="true"></i>
+      <a class="star-pill" href="https://github.com/Noelithub77/zencast" aria-label="Star Zencast on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z" /></svg>
+        <span>Star</span>
+      </a>
+    </header>
+
+    <main>
+      <section class="hero" id="top">
+        <canvas class="field" data-field aria-hidden="true"></canvas>
+        <div class="hero-inner">
+          <!--logo:hero-logo-->
+          <h1><span class="sr-only">Zencast</span><span class="morph" aria-hidden="true" data-morph><span class="name">Zencast</span><span class="phrase">Your browser, <b>your rules</b></span></span></h1>
+          <p class="tagline">Describe the browser you want. <em>Your agent builds it.</em></p>
+          <p class="lede">New keys, a palette, tab rules, panels that don't exist yet. If you can say it, your agent ships it into any Firefox-based browser.</p>
+          <div class="get" data-get>
+            <div class="seg" role="group" aria-label="How to start">
+              <button type="button" data-mode="agent" aria-pressed="true">For your agent</button>
+              <button type="button" data-mode="install" aria-pressed="false">Install</button>
+            </div>
+            <div class="cmd"><code data-cmd></code><button type="button" data-copy>Copy</button></div>
+            <p class="get-note"><span data-note></span><button type="button" class="swap" data-swap hidden>On Windows?</button></p>
+          </div>
+        </div>
+        <a class="scroll-cue" href="#era" aria-label="Scroll to the story"><i></i><span>Scroll</span></a>
+      </section>
+
+      <section class="section" id="era">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>01</span> The agentic era</p>
+            <h2>Anyone can build software now. Except a browser.</h2>
+            <p>An engine, a sandbox, weekly security fixes<a class="cite" href="https://developer.chrome.com/blog/chrome-two-week-start" data-tip="Chrome ships every two weeks, with weekly security fixes" aria-label="Source: Chrome ships every two weeks, with weekly security fixes">↗</a>, decades of web compatibility. You don't need a new browser. You need your own layer on a good one.</p>
+          </div>
+          <ol class="era" data-reveal>
+            <li><b>An app</b><span>One prompt</span><i class="era-dot is-ok" aria-hidden="true"></i></li>
+            <li><b>A browser</b><span>Engine, sandbox, security, web compatibility</span><i class="era-dot is-no" aria-hidden="true"></i></li>
+            <li><b>Your layer on a browser</b><span>One prompt again</span><i class="era-dot is-ok" aria-hidden="true"></i></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" id="why" data-pin-section>
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>02</span> Where you work</p>
+            <h2>Your desktop bends. Your day happens in the browser.</h2>
+            <p>Omarchy lets an agent shape the desktop.<a class="cite" href="https://learn.omacom.io/2/the-omarchy-manual" data-tip="The Omarchy manual: config in plain files, coding agents built in" aria-label="Source: The Omarchy manual: config in plain files, coding agents built in">↗</a> The browser, where the hours go<a class="cite" href="https://services.google.com/fh/files/helpcenter/the_rising_impotance_of_browser_in_enterprise_it_strategies_infographic.pdf" data-tip="Forrester for Google: 2.7 hours a day in the browser" aria-label="Source: Forrester for Google: 2.7 hours a day in the browser">↗</a>, stays the same for everyone.</p>
+          </div>
+          <div class="pin">
+            <figure class="scene" data-scene="day" aria-label="Your agent shapes the Omarchy desktop: keys, bar and themes. The browser inside it, where about 2.7 hours of the workday go, stays the same for everyone.">
+              <svg aria-hidden="true"></svg>
+            </figure>
+            <ol class="story-steps" data-story="day" aria-hidden="true"><li>Desktop, shaped</li><li>Hours in the browser</li><li>Browser, fixed</li></ol>
+          </div>
+          <dl class="stats" data-reveal>
+            <div><dt>A workday</dt><dd>2.7 h</dd></div>
+            <div><dt>Cloud workers</dt><dd>4.6 h</dd></div>
+            <div><dt>Source</dt><dd class="small"><a href="https://services.google.com/fh/files/helpcenter/the_rising_impotance_of_browser_in_enterprise_it_strategies_infographic.pdf">Forrester for Google, 2018</a></dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="section" id="chrome" data-pin-section>
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>03</span> The wall</p>
+            <h2>Chrome keeps your agent outside.</h2>
+            <p>Extensions live in a sandbox.<a class="cite" href="https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle" data-tip="Chrome extensions: sandboxed APIs, a service worker that stops after 30 s idle" aria-label="Source: Chrome extensions: sandboxed APIs, a service worker that stops after 30 s idle">↗</a> Tabs, toolbar and dialogs are native C++ that no script reaches.<a class="cite" href="https://chromium.googlesource.com/chromium/src.git/+/main/chrome/browser/ui/views/README.md" data-tip="Chromium: the browser UI is built from C++ Views" aria-label="Source: Chromium: the browser UI is built from C++ Views">↗</a></p>
+          </div>
+          <div class="pin">
+            <figure class="scene" data-scene="wall" aria-label="Your agent writes an extension. It runs in a sandbox with at most four suggested shortcuts, and cannot reach Chrome's tabs, toolbar and dialogs, which are native C++ views.">
+              <svg aria-hidden="true"></svg>
+            </figure>
+            <ol class="story-steps" data-story="wall" aria-hidden="true"><li>Write an extension</li><li>Sandboxed</li><li>Interface out of reach</li></ol>
+          </div>
+          <details class="more" data-reveal>
+            <summary>Why not Chromium?<span>9 limits</span></summary>
+            <div class="route-table compare" role="table" aria-label="Chromium and Firefox compared">
+              <div class="route head" role="row"><span role="columnheader">You want to change</span><span role="columnheader">Chromium</span><span role="columnheader">Firefox</span></div>
+                <div class="route" role="row"><b role="cell">Toolbar, tabs and menus</b><span role="cell" data-label="Chromium">Native C++ views; no extension script reaches them<a class="cite" href="https://chromium.googlesource.com/chromium/src.git/+/main/chrome/browser/ui/views/README.md" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">Markup, CSS and JS; a script edits them like a page</span></div>
+                <div class="route" role="row"><b role="cell">The look</b><span role="cell" data-label="Chromium">Themes: colours, PNG images and tints, no code<a class="cite" href="https://developer.chrome.com/docs/extensions/develop/ui/themes" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">Any CSS, across the whole interface</span></div>
+                <div class="route" role="row"><b role="cell">Shortcuts</b><span role="cell" data-label="Chromium">Four suggested per extension, each with Ctrl or Alt, never Ctrl+Alt<a class="cite" href="https://developer.chrome.com/docs/extensions/reference/api/commands" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">Any key, including the browser's own</span></div>
+                <div class="route" role="row"><b role="cell">Code that stays running</b><span role="cell" data-label="Chromium">The service worker stops after 30 s idle<a class="cite" href="https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">Modules that live as long as the browser</span></div>
+                <div class="route" role="row"><b role="cell">Where code comes from</b><span role="cell" data-label="Chromium">Bundled in the extension; remote code is banned<a class="cite" href="https://developer.chrome.com/docs/extensions/develop/migrate/remote-hosted-code" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">Your files in the profile, loaded at startup<a class="cite" href="https://github.com/MrOtherGuy/fx-autoconfig" aria-label="Source">↗</a></span></div>
+                <div class="route" role="row"><b role="cell">Behaviour</b><span role="cell" data-label="Chromium">Only what the extension APIs expose</span><span role="cell" data-label="Firefox">The browser's own objects: tabs, windows, sessions, prefs</span></div>
+                <div class="route" role="row"><b role="cell">A change costs</b><span role="cell" data-label="Chromium">A fork: 100 GB checkout and a rebuild<a class="cite" href="https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">A restart; CSS applies live<a class="cite" href="https://docs.zen-browser.app/guides/live-editing" aria-label="Source">↗</a></span></div>
+                <div class="route" role="row"><b role="cell">Mods that survive updates</b><span role="cell" data-label="Chromium">Vivaldi's JS mods must be copied back after every update<a class="cite" href="https://forum.vivaldi.net/topic/10549/modding-vivaldi" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">They live in your profile and stay</span></div>
+                <div class="route" role="row"><b role="cell">Security fixes</b><span role="cell" data-label="Chromium">A fork patches itself and trails upstream<a class="cite" href="https://www.csoonline.com/article/4220939/attackers-are-weaponizing-the-gap-between-chromium-fixes-and-chrome-patches.html" aria-label="Source">↗</a></span><span role="cell" data-label="Firefox">The browser keeps updating underneath</span></div>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <section class="section" id="fork" data-pin-section>
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>04</span> Fork it?</p>
+            <h2>Forking Chromium means owning a browser.</h2>
+            <p>100 GB to clone<a class="cite" href="https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md" data-tip="Chromium build docs: 100 GB of disk to check out and build" aria-label="Source: Chromium build docs: 100 GB of disk to check out and build">↗</a>, a rebuild for every change, and a release every two weeks to keep up with.<a class="cite" href="https://www.csoonline.com/article/4220939/attackers-are-weaponizing-the-gap-between-chromium-fixes-and-chrome-patches.html" data-tip="CSO Online: attackers exploit browsers that lag Chromium's fixes" aria-label="Source: CSO Online: attackers exploit browsers that lag Chromium's fixes">↗</a></p>
+          </div>
+          <div class="pin">
+            <figure class="scene" data-scene="fork" aria-label="Cloning Chromium takes 100 gigabytes, every change needs a rebuild, and a fork trails Chromium's two-week releases, leaving a patch gap attackers exploit.">
+              <svg aria-hidden="true"></svg>
+            </figure>
+            <ol class="story-steps" data-story="fork" aria-hidden="true"><li>Clone</li><li>Rebuild</li><li>Fall behind</li></ol>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="firefox" data-pin-section>
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>05</span> The way in</p>
+            <h2>Firefox still lets you in.</h2>
+            <p>Its interface is markup, CSS and JS. A small loader runs your files inside it<a class="cite" href="https://github.com/MrOtherGuy/fx-autoconfig" data-tip="fx-autoconfig: Firefox's AutoConfig loads JS into the browser context" aria-label="Source: fx-autoconfig: Firefox's AutoConfig loads JS into the browser context">↗</a>, in any Firefox-based browser<a class="cite" href="https://github.com/CosmoCreeper/Sine" data-tip="Sine: a mod manager for all Firefox-based browsers" aria-label="Source: Sine: a mod manager for all Firefox-based browsers">↗</a>, while its updates keep coming.</p>
+          </div>
+          <div class="pin">
+            <figure class="scene" data-scene="firefox" aria-label="A loader in Firefox's install folder runs your script and stylesheet from your profile inside the browser window, where a command palette appears. Firefox-based browsers still update with their security fixes.">
+              <svg aria-hidden="true"></svg>
+            </figure>
+            <ol class="story-steps" data-story="firefox" aria-hidden="true"><li>Loader</li><li>Your files</li><li>Live in the browser</li><li>Updates continue</li></ol>
+          </div>
+          <div class="can" data-reveal>
+            <h3>One prompt, any layer</h3>
+            <ul>
+              <li><b>Looks</b><q>Make the tabs compact and tint them per space</q><code>CSS</code></li>
+              <li><b>Behaviour</b><q>Open GitHub links in my Work space</q><code>JS</code></li>
+              <li><b>Keys</b><q>Alt+S sends this tab to Acad and mutes it</q><code>keys</code></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="mods" data-pin-section>
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>06</span> Mod formats</p>
+            <h2>Only one format hands over the whole browser.</h2>
+            <p>Extensions get pages. Zen mods get CSS.<a class="cite" href="https://github.com/zen-browser/desktop/tree/dev/src/zen/mods" data-tip="Zen's mod loader reads chrome.css and preferences, never JS" aria-label="Source: Zen's mod loader reads chrome.css and preferences, never JS">↗</a> Sine mods get the browser.<a class="cite" href="https://github.com/CosmoCreeper/Sine" data-tip="Sine loads each mod's scripts into every browser window" aria-label="Source: Sine loads each mod's scripts into every browser window">↗</a></p>
+          </div>
+          <div class="pin">
+            <figure class="scene" data-scene="formats" aria-label="An extension reaches only the page. A Zen mod restyles the browser with CSS but adds no code. A Sine mod runs JavaScript, CSS and preferences in every browser window.">
+              <svg aria-hidden="true"></svg>
+            </figure>
+            <ol class="story-steps" data-story="formats" aria-hidden="true"><li>Extension</li><li>Zen mod</li><li>Sine mod</li></ol>
+          </div>
+
+          <details class="more how" data-reveal>
+            <summary>How a Sine mod loads<span>4 steps</span></summary>
+            <ol class="how-steps">
+              <li><b>AutoConfig</b><span>Firefox runs a config file from its install folder at startup, with full privileges.</span></li>
+              <li><b>Bootloader</b><span>Sine hooks in there and finds the mods in your profile.</span></li>
+              <li><b>Every window</b><span>Each mod's JS and CSS load into every browser window.</span></li>
+              <li><b>Updates</b><span>Mods update from their GitHub repo.</span></li>
+            </ol>
+            <p class="aside">Scripts from outside Sine's store run only after you allow them.</p>
+          </details>
+
+          <div class="routes" data-reveal>
+            <details class="sources">
+              <summary>Sources</summary>
+              <ol>
+                <li><a href="https://expel.com/blog/security-alert-christmas-day-chrome-extension-compromise/">Expel, the Christmas Chrome extension compromise (2024)</a></li>
+                <li><a href="https://www.inkandswitch.com/essay/malleable-software/">Ink &amp; Switch, Malleable software (2025)</a></li>
+                <li><a href="https://learn.omacom.io/2/the-omarchy-manual">The Omarchy manual</a></li>
+                <li><a href="https://services.google.com/fh/files/helpcenter/the_rising_impotance_of_browser_in_enterprise_it_strategies_infographic.pdf">Forrester for Google, the rising importance of the browser (2018)</a></li>
+                <li><a href="https://chromium.googlesource.com/chromium/src.git/+/main/chrome/browser/ui/views/README.md">Chromium, Browser Views</a></li>
+                <li><a href="https://developer.chrome.com/docs/extensions/reference/api/commands">Chrome for Developers, chrome.commands</a></li>
+                <li><a href="https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md">Chromium, building on Linux</a></li>
+                <li><a href="https://developer.chrome.com/blog/chrome-two-week-start">Chrome for Developers, the two-week release cycle (2026)</a></li>
+                <li><a href="https://www.csoonline.com/article/4220939/attackers-are-weaponizing-the-gap-between-chromium-fixes-and-chrome-patches.html">CSO Online, the Chromium patch gap (2026)</a></li>
+                <li><a href="https://forum.vivaldi.net/topic/10549/modding-vivaldi">Vivaldi forum, Modding Vivaldi</a></li>
+                <li><a href="https://blog.mozilla.org/addons/2017/02/16/the-road-to-firefox-57-compatibility-milestones/">Mozilla, the road to Firefox 57</a></li>
+                <li><a href="https://github.com/MrOtherGuy/fx-autoconfig">fx-autoconfig</a> and <a href="https://github.com/CosmoCreeper/Sine">Sine, for all Firefox-based browsers</a></li>
+                <li><a href="https://github.com/zen-browser/desktop/tree/dev/src/zen/mods">Zen, its mod loader: CSS and preferences</a></li>
+                <li><a href="https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette">VS Code, the Command Palette</a> and <a href="https://www.raycast.com/">Raycast</a></li>
+                <li><a href="https://docs.zen-browser.app/guides/live-editing">Zen docs, live editing</a></li>
+              </ol>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="trust">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>07</span> Trust</p>
+            <h2>Code in your browser sees every session.</h2>
+            <p>Any mod with this reach can take your cookies and sessions.<a class="cite" href="https://expel.com/blog/security-alert-christmas-day-chrome-extension-compromise/" data-tip="Expel: a hijacked Chrome extension update exposed sessions and cookies (2024)" aria-label="Source: Expel: a hijacked Chrome extension update exposed sessions and cookies (2024)">↗</a> Trust only code you've read<a class="cite" href="https://github.com/MrOtherGuy/fx-autoconfig" data-tip="fx-autoconfig warns that anything editing its loader can inject code into Firefox" aria-label="Source: fx-autoconfig warns that anything editing its loader can inject code into Firefox">↗</a>: that's why Zencast is a template, not a product.</p>
+          </div>
+          <ol class="era" data-reveal>
+            <li><b>A stranger's mod</b><span>Full reach: cookies, sessions, every page</span><i class="era-dot is-no" aria-hidden="true"></i></li>
+            <li><b>An auto-updating extension</b><span>One hijacked update away<a class="cite" href="https://expel.com/blog/security-alert-christmas-day-chrome-extension-compromise/" aria-label="Source">↗</a></span><i class="era-dot is-no" aria-hidden="true"></i></li>
+            <li><b>Your fork, audited by your agent</b><span>Code you've read, updates you choose</span><i class="era-dot is-ok" aria-hidden="true"></i></li>
+          </ol>
+          <p class="aside center-aside" data-reveal>The one-line install trusts my builds. A fork trusts only you.</p>
+        </div>
+      </section>
+
+      <section class="section" id="zencast">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>08</span> My way</p>
+            <h2>Zencast is how I use my browser.</h2>
+            <p>Inspired by VS Code's command palette<a class="cite" href="https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette" data-tip="VS Code: the Command Palette, Ctrl+Shift+P" aria-label="Source: VS Code: the Command Palette, Ctrl+Shift+P">↗</a> and Raycast<a class="cite" href="https://www.raycast.com/" data-tip="Raycast: a keyboard launcher for the whole desktop" aria-label="Source: Raycast">↗</a>: one box, type anything, all from the keyboard.</p>
+          </div>
+          <div class="demo" data-demo data-reveal>
+            <figure class="screen">
+              <picture data-shot="search"><source srcset="../docs/media/palette.png" media="(prefers-reduced-motion: reduce)" /><img src="../docs/media/hero.gif" alt="Ctrl+K, type, Enter: the palette jumps to a tab in another space" width="1000" height="643" decoding="async" /></picture>
+              <picture data-shot="spaces" hidden><source srcset="../docs/media/targets.png" media="(prefers-reduced-motion: reduce)" /><img src="../docs/media/spaces.gif" alt="Alt+2 tints the palette to a space, Ctrl+1 picks a container" width="1000" height="643" loading="lazy" decoding="async" /></picture>
+              <picture data-shot="hints" hidden><source srcset="../docs/media/actions.png" media="(prefers-reduced-motion: reduce)" /><img src="../docs/media/hints.gif" alt="Holding Ctrl marks a letter in every result" width="1000" height="643" loading="lazy" decoding="async" /></picture>
+              <picture data-shot="settings" hidden><source srcset="../docs/media/settings.png" media="(prefers-reduced-motion: reduce)" /><img src="../docs/media/settings.gif" alt="Typing a setting's name and switching it from the palette" width="1000" height="643" loading="lazy" decoding="async" /></picture>
+            </figure>
+            <div class="demo-tabs" role="tablist" aria-label="Zencast features">
+              <button type="button" role="tab" data-show="search" aria-selected="true"><b>Search everything</b><span>Tabs in every space, history, bookmarks, commands</span></button>
+              <button type="button" role="tab" data-show="spaces" aria-selected="false"><b>Open anywhere</b><span><kbd>Alt</kbd> aims at a space, <kbd>Ctrl</kbd> at a container</span></button>
+              <button type="button" role="tab" data-show="hints" aria-selected="false"><b>Hold to reveal</b><span>Hold <kbd>Ctrl</kbd>, press a letter to run</span></button>
+              <button type="button" role="tab" data-show="settings" aria-selected="false"><b>Settings in place</b><span>Flip any Zen setting from the list</span></button>
+            </div>
+          </div>
+          <div class="mykeys" data-reveal>
+            <h3>My keys</h3>
+            <ul>
+              <li><span><kbd>Ctrl</kbd><kbd>K</kbd></span>Find anything: tabs, spaces, history, commands, settings</li>
+              <li><span><kbd>Ctrl</kbd><kbd>1…9</kbd></span>Switch space</li>
+              <li><span><kbd>Alt</kbd><kbd>1…9</kbd></span>Send the tab to a space</li>
+              <li><span><kbd>Alt</kbd><kbd>P</kbd></span>Pin or unpin the tab</li>
+            </ul>
+            <details class="more">
+              <summary>All my keys<span>7 more</span></summary>
+              <ul>
+                <li><span><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>N</kbd></span>New folder, or a subfolder</li>
+                <li><span><kbd>Ctrl</kbd><kbd>C</kbd></span>Open in a container, when nothing is selected</li>
+                <li><span><kbd>Alt</kbd><kbd>Shift</kbd><kbd>T</kbd></span>Tab in a throwaway container</li>
+                <li><span><kbd>Alt</kbd><kbd>M</kbd></span>Move a signed-in session to another container</li>
+                <li><span><kbd>Alt</kbd><kbd>Shift</kbd><kbd>W</kbd></span>Wipe a site's data and history</li>
+                <li><span><kbd>Ctrl</kbd><kbd>Space</kbd><kbd>F</kbd></span>Chords: move to a folder, space or essentials</li>
+                <li><span><kbd>Ctrl</kbd><kbd>.</kbd></span>Give any command, tab or site its own key</li>
+              </ul>
+            </details>
+            <p class="aside">Mine, not yours. Fork it and change them.</p>
+          </div>
+          <dl class="stats" data-reveal>
+            <button type="button" class="tip" data-tip="p95 in a headless Zen with 300 tabs, from pnpm ops bench" aria-label="How these were measured">i</button>
+            <div><dt>Open</dt><dd>24 ms</dd></div>
+            <div><dt>Search</dt><dd>3.4 ms</dd></div>
+            <div><dt>Keystroke</dt><dd>11 ms</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="section" id="template">
+        <div class="wrap">
+          <div class="section-head center" data-reveal>
+            <p class="kicker"><span>09</span> The template</p>
+            <h2>Your way: point your agent at it.</h2>
+            <p>Fork it and say how you work. Here's what your agent finds.</p>
+          </div>
+          <div class="prompt" data-prompt data-reveal>
+            <div class="prompt-head"><span class="prompt-dot"></span>your agent<span class="prompt-chip">zencast fork</span></div>
+            <p class="prompt-ask"><span data-prompt-text>Add Alt+S to send this tab to my Acad space and mute it</span><i class="caret" aria-hidden="true"></i></p>
+            <ul class="prompt-tools" data-prompt-tools><li>read .claude/skills/add-command</li><li>pnpm ops eval: is Alt+S free in Zen?</li><li>edit src/commands/catalog.ts</li><li>pnpm ops e2e: all passed</li><li>pnpm ops install</li></ul>
+            <p class="prompt-answer" data-prompt-answer>Added “Send to Acad and mute” on Alt+S. Zen doesn't use that key, a new scenario proves it in a headless Zen, and it's installed. Restart Zen to use it.</p>
+            <div class="prompt-picks" role="group" aria-label="Example requests">
+              <button type="button" data-pick="0" aria-pressed="true">A new key</button>
+              <button type="button" data-pick="1" aria-pressed="false">A tab rule</button>
+              <button type="button" data-pick="2" aria-pressed="false">Ship it</button>
+            </div>
+          </div>
+          <p class="footnote">Example sessions.</p>
+          <div class="pin-free">
+            <figure class="scene" data-scene="agent" aria-label="You ask your agent. It learns the workflow from the skills and AGENTS.md, works through pnpm ops, proves the change in a headless copy with a throwaway profile, then installs it into your browser.">
+              <svg aria-hidden="true"></svg>
+            </figure>
+            <ol class="story-steps" data-story="agent" aria-hidden="true"><li>Ask</li><li>Learn</li><li>Prove headless</li><li>Install</li></ol>
+          </div>
+
+          <div class="kit">
+            <article data-reveal><h3>Zen, wrapped</h3><code>src/browser/</code><p>Tabs, spaces, folders, containers, sessions, toasts.</p></article>
+            <article data-reveal><h3>Skills</h3><code>.claude/skills/</code><p>Add a command, find internals, cut a release.</p></article>
+            <article data-reveal><h3>One ops command</h3><code>pnpm ops</code><p>Build, test in a throwaway headless browser, bench, install, release.</p></article>
+            <article data-reveal><h3>Ready-made setup</h3><code>scripts/install/</code><p>Installs Sine and the mod on Linux, macOS and Windows, with a setup skill for agents.</p></article>
+            <article data-reveal><h3>Keys and palette</h3><code>src/keys/</code><p>Chords, when-contexts, and a palette every command joins.</p></article>
+            <article data-reveal><h3>Ships itself</h3><code>pnpm ops release</code><p>Release branch, one-line installers, Sine updates.</p></article>
+          </div>
+          <div class="cmd center-cmd" data-reveal><code>gh repo fork Noelithub77/zencast --clone</code><button type="button" data-copy>Copy</button></div>
+        </div>
+      </section>
+
+      <section class="section" id="star">
+        <div class="wrap">
+          <div class="star-card" data-reveal>
+            <svg class="star-sketch" data-scene="star" aria-hidden="true"></svg>
+            <div>
+              <h2>If Zencast made your browser feel like yours.</h2>
+              <p>It helps the next person find it.</p>
+              <a class="star-button" href="https://github.com/Noelithub77/zencast"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.55 4.43 1.07 6.27L12 17.15 6.38 20.1l1.07-6.27L2.9 9.4l6.3-.9L12 2.8Z" /></svg>Star on GitHub</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="final">
+        <div class="final-inner">
+          <!--logo:final-logo-->
+          <h2>Make your browser yours.</h2>
+          <p class="after">Free and open source.</p>
+          <div class="get" data-get>
+            <div class="seg" role="group" aria-label="How to start">
+              <button type="button" data-mode="agent" aria-pressed="true">For your agent</button>
+              <button type="button" data-mode="install" aria-pressed="false">Install</button>
+            </div>
+            <div class="cmd"><code data-cmd></code><button type="button" data-copy>Copy</button></div>
+            <p class="get-note"><span data-note></span><button type="button" class="swap" data-swap hidden>On Windows?</button></p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Made by <a href="https://www.linkedin.com/in/noel-georgi/">Noel Georgi</a></p>
+      <p><a href="https://github.com/Noelithub77/zencast">GitHub</a> · <a href="https://zen-browser.app">Zen</a> · <a href="https://github.com/CosmoCreeper/Sine">Sine</a></p>
+    </footer>
+
+    <dialog class="jump" data-jump aria-label="Jump to">
+      <input type="text" data-jump-input placeholder="Jump to…" aria-label="Search sections and actions" autocomplete="off" spellcheck="false" />
+      <ul data-jump-list role="listbox" aria-label="Results"></ul>
+    </dialog>
+  </body>
+</html>

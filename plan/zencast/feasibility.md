@@ -119,7 +119,7 @@ Container colours keep Firefox's names but are mapped to softened pastel equival
 Interaction rules adopted from Raycast:
 
 - Visible within one frame of the keypress; results under 50 ms; data streams in without blocking input.
-- `Enter` primary action, `Ctrl+Enter` secondary, `Ctrl+K` or `→` action panel, `Esc` pops the stack, `Alt+1…9` jump to result.
+- `Enter` primary action, `Ctrl+Enter` secondary, `Ctrl+K` or `→` action panel, `Esc` pops the stack, hold `Ctrl` for letter hints on results and numbers on actions. `Alt+1…9` is left free for moving the tab to a space.
 - Shortcuts shown inline as small badges on every row, never only in tooltips.
 - Short confirmation through Zen's own toast after actions that leave the palette; no decorative motion.
 

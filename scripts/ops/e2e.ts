@@ -89,20 +89,22 @@ const SCENARIOS: Scenario[] = [
       return { ok: isRoot && nested, detail: (isRoot ? "root folder" : "not root") + ", then " + (nested ? "subfolder inside it" : "folder outside it") }`,
   },
   {
-    name: "ctrl+shift+2 moves the tab to space 2, follows it, and shows a Zen toast",
+    name: "alt+2 moves the tab to space 2, follows it, and shows a Zen toast",
     body: String.raw`${READY}
       if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
       const [first, target] = gZenWorkspaces.getWorkspaces()
       const tab = newTab()
       await sleep(50)
-      press("ctrl+shift+2", document.documentElement)
+      press("alt+2", document.documentElement)
       await until(() => tab.getAttribute("zen-workspace-id") === target.uuid)
       await until(() => gZenWorkspaces.activeWorkspace === target.uuid && gBrowser.selectedTab === tab, 4000)
       const text = await until(() => toastText().includes("Moved to") && toastText(), 4000)
       const ok = text.includes("Moved to " + target.name)
       gBrowser.removeTab(tab)
       await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
-      return { ok, detail: "followed to " + target.name + "; toast: " + text }`,
+      const native = document.getElementById("key_selectTab2")
+      const shadowed = native ? native.getAttribute("modifiers") + "+" + native.getAttribute("key") : "none"
+      return { ok, detail: "followed to " + target.name + "; toast: " + text + "; overrides native " + shadowed }`,
   },
   {
     name: "ctrl+shift+, opens the extensions page",

@@ -103,7 +103,7 @@ const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   section: "Spaces",
   icon: Layers01Icon,
   hidden: true,
-  defaultKeys: [`ctrl+shift+${i + 1}`],
+  defaultKeys: [`alt+${i + 1}`],
   when: (ctx) => listWorkspaces(ctx.win).length > i,
   run: async (ctx) => {
     const ws = listWorkspaces(ctx.win)[i]

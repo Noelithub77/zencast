@@ -12,7 +12,7 @@ A keyboard-first command palette for [Zen browser](https://zen-browser.app), bui
 | `Ctrl+Shift+N` | New folder, or a subfolder inside the current tab's folder |
 | `Alt+P` | Pin or unpin the tab |
 | `Alt+Shift+P` | Set the pinned URL to the current URL |
-| `Ctrl+Shift+1…9` | Move the tab to space 1…9 |
+| `Alt+1…9` | Move the tab to space 1…9 |
 
 Every binding can be changed or recorded as a chord in settings.
 

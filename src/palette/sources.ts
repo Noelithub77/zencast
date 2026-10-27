@@ -1,4 +1,5 @@
 import {
+  Folder01Icon,
   Globe02Icon,
   KeyboardIcon,
   Layers01Icon,
@@ -17,6 +18,7 @@ import {
   searchPreferences,
   togglePref,
 } from "@/browser/settings-index"
+import { allFolders, folderPath, isFolder } from "@/browser/folders"
 import { closeTab, duplicateTab, listTabs, selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
 import { openUrl } from "@/browser/window"
@@ -66,13 +68,24 @@ function commandItems(ctx: CommandContext, bindings: Map<string, string[]>): Pal
   return out
 }
 
+const HOUR_MS = 3_600_000
+
+/**
+ * Every tab in every space and folder, including pinned, essential and unloaded ones. Loaded tabs
+ * rank above unloaded ones, and recently used tabs above both, without outranking commands.
+ */
 function tabItems(ctx: CommandContext): PaletteItem[] {
   const spaces = new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
+  const now = Date.now()
   return listTabs(ctx.win)
     .filter((tab) => tab !== ctx.tab)
     .map((tab) => {
       const url = tabUrl(tab)
       const container = tab.userContextId
+      const space = spaces.get(tab.getAttribute("zen-workspace-id") ?? "") ?? ""
+      const folder = isFolder(tab.group) ? folderPath(tab.group) : ""
+      const loaded = !tab.hasAttribute("pending")
+      const recency = 0.3 / (1 + Math.max(0, now - tab.lastAccessed) / HOUR_MS)
       return {
         id: tabKey(tab),
         transient: true,
@@ -80,9 +93,18 @@ function tabItems(ctx: CommandContext): PaletteItem[] {
         subtitle: url.replace(/^https?:\/\/(www\.)?/, ""),
         section: "Tabs",
         icon: { kind: "favicon", url: tab.getAttribute("image") || `page-icon:${url}` },
-        accessory: container ? containerName(container) : (spaces.get(tab.getAttribute("zen-workspace-id") ?? "") ?? undefined),
+        accessory: container ? containerName(container) : folder || space || undefined,
         accessoryColor: container ? undefined : "var(--faint)",
-        keywords: tab.pinned ? "pinned" : undefined,
+        keywords: [
+          folder,
+          space,
+          tab.pinned && "pinned",
+          tab.hasAttribute("zen-essential") && "essential",
+          !loaded && "unloaded",
+        ]
+          .filter(Boolean)
+          .join(" "),
+        boost: (loaded ? 0.6 : 0) + recency,
         actions: [
           { id: "switch", title: "Switch to tab", run: () => selectTab(ctx.win, tab) },
           { id: "close", title: "Close tab", keys: "ctrl+w", danger: true, keepOpen: true, run: () => closeTab(ctx.win, tab) },
@@ -90,6 +112,37 @@ function tabItems(ctx: CommandContext): PaletteItem[] {
         ],
       }
     })
+}
+
+/** Folders by name and path; opening one expands it and switches to its first tab. */
+function folderItems(ctx: CommandContext): PaletteItem[] {
+  const spaces = new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
+  return allFolders(ctx.win).map((folder) => {
+    const path = folderPath(folder)
+    const first = folder.tabs.find((tab) => !tab.hasAttribute("zen-empty-tab"))
+    return {
+      id: `folder:${folder.id}`,
+      title: folder.label,
+      subtitle: path === folder.label ? undefined : path,
+      section: "Folders",
+      icon: { kind: "icon", icon: Folder01Icon },
+      accessory: spaces.get(folder.getAttribute("zen-workspace-id") ?? ""),
+      accessoryColor: "var(--faint)",
+      keywords: `folder ${folder.tabs.length} tabs`,
+      transient: true,
+      actions: [
+        {
+          id: "open",
+          title: "Open folder",
+          run: async () => {
+            folder.collapsed = false
+            if (first) await selectTab(ctx.win, first)
+          },
+        },
+        { id: "manage", title: "Show in folder manager", keys: "ctrl+enter", run: () => openSettings(ctx.win, "folders") },
+      ],
+    }
+  })
 }
 
 function spaceItems(ctx: CommandContext): PaletteItem[] {
@@ -115,6 +168,7 @@ export function rootItems(ctx: CommandContext, bindings: Map<string, string[]>, 
     ...commandItems(ctx, bindings),
     ...native,
     ...tabItems(ctx),
+    ...folderItems(ctx),
     ...spaceItems(ctx),
     ...containerItems(
       ctx,

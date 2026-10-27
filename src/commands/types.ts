@@ -90,5 +90,7 @@ export interface Command {
   hidden?: boolean
   /** Availability for the current tab; unavailable commands are hidden and their keys pass through. */
   when?: (ctx: CommandContext) => boolean
+  /** Extra condition for the key only; when false the key keeps its usual meaning (Ctrl+C still copies a selection). */
+  keysWhen?: (ctx: CommandContext) => boolean
   run: (ctx: CommandContext) => RunResult
 }

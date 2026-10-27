@@ -54,7 +54,9 @@ export function startKeyEngine(win: Window, options: EngineOptions): () => void 
     const candidates = index.exact.get(sequence)
     if (candidates) {
       const context = options.context()
-      const command = candidates.find((candidate) => !candidate.when || candidate.when(context))
+      const command = candidates.find(
+        (candidate) => (!candidate.when || candidate.when(context)) && (!candidate.keysWhen || candidate.keysWhen(context)),
+      )
       if (command) {
         consume(event)
         clearPending()

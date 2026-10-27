@@ -13,8 +13,11 @@ A keyboard-first command palette for [Zen browser](https://zen-browser.app), bui
 | `Alt+P` | Pin or unpin the tab |
 | `Alt+Shift+P` | Set the pinned URL to the current URL |
 | `Alt+1…9` | Move the tab to space 1…9 |
+| `Ctrl+C` | Open in a container, when nothing is selected to copy |
 
 Every binding can be changed or recorded as a chord in settings.
+
+The palette searches every tab in every space and folder, including pinned, essential and unloaded ones, and folders by name. Loaded and recently used tabs come first. While it is open, its keys take priority over Zen's.
 
 In the palette, hold `Ctrl` to label the visible results with letters (`Ctrl+letter` runs one) and the options panel with numbers. Typing the start of a site you've visited, or one still in the browser's DNS cache, completes it inline: `allpyq` becomes `allpyq.in`, and `Tab` or `→` accepts it.
 

@@ -71,9 +71,19 @@ export function search(index: SearchIndex, query: string, usage: Usage, limit: n
   if (!idxs) return []
   const ranked: Ranked[] = []
   if (info && order) {
+    // Matches uFuzzy scores the same (same position, gaps and terms) share a rank, so boosts such as
+    // "loaded tab" decide between them instead of uFuzzy's final tiebreak on text length.
+    let tieRank = 0
+    let tieKey = ""
     for (let rank = 0; rank < order.length; rank++) {
-      const item = index.items[info.idx[order[rank]]]
-      ranked.push({ item, score: score(item, q, rank, order.length, usage, now) })
+      const i = order[rank]
+      const key = `${info.start[i]} ${info.chars[i]} ${info.terms[i]} ${info.interIns[i]} ${info.intraIns[i]}`
+      if (key !== tieKey) {
+        tieKey = key
+        tieRank = rank
+      }
+      const item = index.items[info.idx[i]]
+      ranked.push({ item, score: score(item, q, tieRank, order.length, usage, now) })
     }
   } else {
     // Too many candidates for the info pass; keep filter order.

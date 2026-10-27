@@ -51,6 +51,18 @@ declare global {
     reloadWithFlags(flags: number): void
     purgeSessionHistory(): void
     focus(): void
+    /** Find-in-page helper; also reports the page's selected text, including inside a focused field. */
+    readonly finder: Finder
+  }
+
+  interface FinderListener {
+    onCurrentSelection?(selection: string, initial: boolean): void
+  }
+
+  interface Finder {
+    addResultListener(listener: FinderListener): void
+    removeResultListener(listener: FinderListener): void
+    getInitialSelection(): void
   }
 
   interface ZenFolder extends Element {
@@ -79,6 +91,8 @@ declare global {
     readonly userContextId: number
     readonly group: ZenFolder | null
     readonly multiselected: boolean
+    /** Epoch ms of the last time the tab was selected. */
+    readonly lastAccessed: number
   }
 
   interface AddTabOptions {
@@ -184,6 +198,15 @@ declare global {
 
   interface Document {
     readonly l10n: DOMLocalization
+    /** Routes edit commands to the focused element's controllers, including a remote page's. */
+    readonly commandDispatcher: {
+      readonly focusedElement: Element | null
+      getControllerForCommand(command: string): nsIController | null
+    }
+  }
+
+  interface nsIController {
+    isCommandEnabled(command: string): boolean
   }
 
   interface L10nFileSource {
@@ -392,6 +415,8 @@ declare global {
     gZenKeyboardShortcutsManager: ZenKeyboardShortcutsManager
     gZenUIManager: ZenUIManager
     openPreferences(pane?: string): void
+    /** Runs a XUL edit command such as "cmd_copy" on the focused element. */
+    goDoCommand(command: string): void
     readonly BrowserAddonUI: { openAddonsMgr(view?: string): Promise<unknown> }
     openTrustedLinkIn(url: string, where: "current" | "tab" | "window", params?: Record<string, unknown>): void
     addUnloadListener?(callback: () => void): void

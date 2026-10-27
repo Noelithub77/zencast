@@ -10,8 +10,9 @@ const EDITING_KEYS = new Set([
   "ctrl+home", "ctrl+end", "ctrl+shift+home", "ctrl+shift+end",
 ])
 
-export function holdBrowserShortcut(event: KeyboardEvent, combo: string) {
-  if (/(^|\+)(ctrl|alt|meta)\+/.test(combo) && !EDITING_KEYS.has(combo)) event.preventDefault()
+/** A modified key that would reach Zen or Firefox, as opposed to editing the palette's input. */
+export function isBrowserShortcut(combo: string): boolean {
+  return /(^|\+)(ctrl|alt|meta)\+/.test(combo) && !EDITING_KEYS.has(combo)
 }
 
 export function ItemGlyph({ icon }: { icon?: ItemIcon }) {

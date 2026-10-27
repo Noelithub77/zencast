@@ -1,7 +1,7 @@
 import { ArrowLeft01Icon, Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Command as CommandPrimitive } from "cmdk"
-import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
+import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { completeDomain, readDnsDomains } from "@/browser/hosts"
 import { queryWeb, type WebResult } from "@/browser/urlbar"
@@ -14,11 +14,11 @@ import { ActionPanel } from "./ActionPanel"
 import { closePalette, popView, runAction } from "./controller"
 import { Keys } from "@/components/keys"
 import { assignHints, useCtrlHold } from "./hints"
-import { holdBrowserShortcut, ItemGlyph } from "./parts"
+import { isBrowserShortcut, ItemGlyph } from "./parts"
 import { markOpenPainted, record, timed } from "./perf"
 import { buildIndex, isStrongMatch, search } from "./search"
 import { queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
-import { setState, usePalette } from "./store"
+import { getState, HOST_ID, setState, usePalette } from "./store"
 
 const WEB_DEBOUNCE_MS = 40
 
@@ -67,17 +67,17 @@ interface RowProps {
 const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
   return (
     <>
-      <div cmdk-group-heading="" hidden={!heading} className="px-3 pt-3 pb-1 text-xs font-medium text-faint">
+      <div cmdk-group-heading="" hidden={!heading} className="px-3.5 pt-3.5 pb-1.5 text-[12.5px] font-medium text-faint">
         {heading}
       </div>
-      <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-11 gap-3 rounded-lg px-3 text-[15px] font-normal">
-        <span className="flex w-5.5 shrink-0 justify-center">
+      <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-12 gap-3.5 rounded-xl px-3.5 text-base font-normal">
+        <span className="flex w-6 shrink-0 justify-center [&>img]:size-[18px] [&>svg]:size-[18px]">
           {hint ? <Kbd className="bg-peach/15 text-peach">{hint}</Kbd> : <ItemGlyph icon={item.icon} />}
         </span>
         <span className="shrink-0 truncate">{item.title}</span>
-        <span className="min-w-0 truncate text-xs text-faint">{item.subtitle}</span>
+        <span className="min-w-0 truncate text-[13px] text-faint">{item.subtitle}</span>
         <span data-slot="command-shortcut" className="ml-auto flex shrink-0 items-center gap-2 pl-3">
-          <span className="text-xs empty:hidden" style={{ color: item.accessoryColor ?? "var(--muted-foreground)" }}>
+          <span className="text-[13px] empty:hidden" style={{ color: item.accessoryColor ?? "var(--muted-foreground)" }}>
             {item.accessory}
           </span>
           {item.keys && <Keys sequence={item.keys} />}
@@ -134,7 +134,7 @@ function completion(typed: string, web: WebResult[], domains: string[]): string 
   return completeDomain(typed, domains)
 }
 
-function caretAtEnd(target: EventTarget): boolean {
+function caretAtEnd(target: EventTarget | undefined): boolean {
   return target instanceof HTMLInputElement && target.selectionStart === target.value.length
 }
 
@@ -247,12 +247,31 @@ export function Palette() {
     void runAction(item, action)
   }, [])
 
-  const onKeyDown = (event: KeyboardEvent) => {
-    const combo = comboFromEvent(event.nativeEvent)
+  // The palette is modal: it reads keys in the window's capture phase, ahead of Zen's and Firefox's
+  // shortcuts (even reserved ones like Ctrl+W), and swallows every modified key it does not use
+  // except text editing. Unmodified keys go on to the input and cmdk's list navigation.
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.isComposing) return
+    const combo = comboFromEvent(event)
     if (!combo) return
     const consume = () => {
       event.preventDefault()
-      event.stopPropagation()
+      event.stopImmediatePropagation()
+      event.stopCrossProcessForwarding?.()
+    }
+
+    if (panel) {
+      const digit = /^ctrl\+([1-9])$/.exec(combo)
+      const numbered = digit && active ? active.actions[Number(digit[1]) - 1] : undefined
+      if (combo === "escape" || combo === "ctrl+k") {
+        consume()
+        setPanel(false)
+        inputRef.current?.focus()
+      } else if (active && numbered) {
+        consume()
+        run(active, numbered)
+      } else if (isBrowserShortcut(combo)) consume()
+      return
     }
 
     if (suffix && (combo === "tab" || combo === "right" || combo === "end")) {
@@ -276,7 +295,7 @@ export function Palette() {
       else setState({ openIn: null })
       return
     }
-    if (combo === "ctrl+k" || (combo === "right" && caretAtEnd(event.target) && (active?.actions.length ?? 0) > 1)) {
+    if (combo === "ctrl+k" || (combo === "right" && caretAtEnd(event.composedPath()[0]) && (active?.actions.length ?? 0) > 1)) {
       consume()
       if (active) setPanel(true)
       return
@@ -306,8 +325,35 @@ export function Palette() {
       run(active, action)
       return
     }
-    holdBrowserShortcut(event.nativeEvent, combo)
-  }
+    if (isBrowserShortcut(combo)) consume()
+  })
+  useEffect(() => {
+    if (!open || !context) return
+    const win = context.win
+    const listener = (event: KeyboardEvent) => onKeyDown(event)
+    win.addEventListener("keydown", listener, true)
+    return () => win.removeEventListener("keydown", listener, true)
+  }, [open, context])
+
+  // Zen moves focus on its own, such as to the address bar after a tab closes. The palette is modal,
+  // so focus goes back to where it was inside the palette (its input or the actions panel).
+  useEffect(() => {
+    if (!open || !context) return
+    const doc = context.win.document
+    const host = doc.getElementById(HOST_ID)
+    let inside: HTMLElement | null = null
+    const onFocus = (event: FocusEvent) => {
+      if (!getState().open) return
+      const active = host?.shadowRoot?.activeElement
+      if (event.target === host) {
+        if (active instanceof HTMLElement) inside = active
+        return
+      }
+      ;(inside?.isConnected ? inside : inputRef.current)?.focus()
+    }
+    doc.addEventListener("focusin", onFocus, true)
+    return () => doc.removeEventListener("focusin", onFocus, true)
+  }, [open, context])
 
   const placeholder = view?.placeholder ?? (openIn ? `Open in ${openIn.name}` : "Search or type a URL")
   const primary = active?.actions[0]
@@ -320,17 +366,17 @@ export function Palette() {
         if (event.target === event.currentTarget) closePalette(true)
       }}
     >
-      <div className="absolute top-[12vh] left-1/2 w-[min(800px,94vw)] -translate-x-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
+      {/* Fixed height, centred a little above the middle, so the input never moves as results change. */}
+      <div className="absolute top-[46%] left-1/2 w-[min(920px,94vw)] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
         <Command
           shouldFilter={false}
           vimBindings={false}
           loop
           value={active?.id ?? ""}
           onValueChange={setSelected}
-          onKeyDown={onKeyDown}
-          className="rounded-2xl border bg-popover p-0 shadow-2xl shadow-black/60"
+          className="flex h-[min(680px,82vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60"
         >
-          <div className="flex h-15 items-center gap-3 border-b px-5">
+          <div className="flex h-16 shrink-0 items-center gap-3.5 border-b px-6">
             {view ? (
               <button
                 type="button"
@@ -341,7 +387,7 @@ export function Palette() {
                 <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-3.5" />
               </button>
             ) : (
-              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-5 shrink-0 text-faint" />
+              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-5.5 shrink-0 text-faint" />
             )}
             <CommandPrimitive.Input
               ref={inputRef}
@@ -352,7 +398,7 @@ export function Palette() {
                 setSelected("")
               }}
               placeholder={placeholder}
-              className="h-full min-w-0 flex-1 bg-transparent text-[17px] outline-hidden placeholder:text-faint"
+              className="h-full min-w-0 flex-1 bg-transparent text-lg outline-hidden placeholder:text-faint"
             />
             {openIn && (
               <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-muted py-0.5 pr-1 pl-2 text-xs text-muted-foreground">
@@ -370,7 +416,7 @@ export function Palette() {
             )}
           </div>
 
-          <CommandList ref={listRef} className="max-h-[min(540px,64vh)] scroll-py-2 p-2">
+          <CommandList ref={listRef} className="max-h-none min-h-0 flex-1 scroll-py-2.5 p-2.5">
             <CommandEmpty className="py-8 text-center text-sm text-faint">No results</CommandEmpty>
             {/* Positional keys let a keystroke patch the existing rows instead of replacing them. */}
             {shown.map((entry, index) => (
@@ -384,7 +430,7 @@ export function Palette() {
             ))}
           </CommandList>
 
-          <div className="flex h-11 items-center gap-3 border-t px-4 text-xs text-muted-foreground">
+          <div className="flex h-12 shrink-0 items-center gap-3 border-t px-5 text-[13px] text-muted-foreground">
             <span className="min-w-0 truncate text-faint">{view?.title}</span>
             {primary && (
               <span className={`ml-auto flex items-center gap-1.5 ${primary.danger ? "text-rose" : "text-foreground"}`}>
@@ -406,10 +452,6 @@ export function Palette() {
             item={active}
             numbered={held}
             onRun={(action) => run(active, action)}
-            onClose={() => {
-              setPanel(false)
-              inputRef.current?.focus()
-            }}
           />
         )}
       </div>

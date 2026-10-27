@@ -34,6 +34,7 @@ import {
 } from "@/browser/folders"
 import { editPinnedUrl, replacePinnedUrl, resetPinnedTab, toggleEssential, togglePin } from "@/browser/pins"
 import { transferSession, wipeTab } from "@/browser/session"
+import { canCopy, isPageFocused, pageHasSelection } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import type { Command, CommandContext, ListView, PaletteItem } from "./types"
 
@@ -95,6 +96,19 @@ export function containerItems(ctx: CommandContext, primary: ContainerAction, se
 export function chooseContainer(ctx: CommandContext, id: number) {
   const container = listContainers().find((candidate) => candidate.id === id)
   if (container) ctx.ui.setOpenIn({ id, name: container.name, color: container.color })
+}
+
+function containerPicker(ctx: CommandContext): ListView {
+  return {
+    id: "pick-container",
+    title: "Open in container",
+    placeholder: "Container",
+    items: containerItems(
+      ctx,
+      { title: "Choose", keepOpen: true, run: (id) => chooseContainer(ctx, id) },
+      { title: "Open blank tab", run: (id) => void openInContainer(ctx.win, id) },
+    ),
+  }
 }
 
 const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
@@ -324,21 +338,13 @@ export const COMMANDS: Command[] = [
     section: "Containers",
     icon: UserGroupIcon,
     keywords: "new tab identity",
-    defaultKeys: ["alt+c"],
-    run: (ctx): ListView => ({
-      id: "pick-container",
-      title: "Open in container",
-      placeholder: "Container",
-      items: containerItems(
-        ctx,
-        {
-          title: "Choose",
-          keepOpen: true,
-          run: (id) => chooseContainer(ctx, id),
-        },
-        { title: "Open blank tab", run: (id) => void openInContainer(ctx.win, id) },
-      ),
-    }),
+    // Ctrl+C opens the picker only when there is nothing to copy; with a selection it still copies.
+    defaultKeys: ["ctrl+c"],
+    keysWhen: ({ win }) => isPageFocused(win) || !canCopy(win),
+    run: async (ctx): Promise<ListView | void> => {
+      if (isPageFocused(ctx.win) && (await pageHasSelection(ctx.win))) return ctx.win.goDoCommand("cmd_copy")
+      return containerPicker(ctx)
+    },
   },
   {
     id: "container.reopen",

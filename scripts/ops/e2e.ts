@@ -57,6 +57,82 @@ const SCENARIOS: Scenario[] = [
       return { ok: hit, detail: titles.slice(0, 3).join(" · ") }`,
   },
   {
+    name: "search covers unloaded pinned tabs and folder names, loaded tabs first",
+    body: String.raw`${READY}
+      const page = (title) => "data:text/html,<title>" + encodeURIComponent(title) + "</title>x"
+      const unloaded = newTab(page("Zebra docs"))
+      await until(() => unloaded.label === "Zebra docs")
+      const loaded = newTab(page("Zebra docs"))
+      await until(() => loaded.label === "Zebra docs")
+      const folder = gZenFolders.createFolder([unloaded], { label: "Quokka notes" })
+      gBrowser.pinTab(unloaded)
+      const current = newTab()
+      await sleep(100)
+      gBrowser.discardBrowser(unloaded, true)
+      await until(() => unloaded.hasAttribute("pending"))
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("zebra")
+      await sleep(80)
+      const zebra = resultTitles().filter((t) => t.startsWith("Zebra docs"))
+      typeQuery("quokka")
+      await sleep(80)
+      const quokka = resultTitles()
+      await dismiss()
+      const both = zebra.length === 2 && zebra[0].includes("data:") && zebra[1].includes("Quokka notes")
+      const byFolder = quokka.some((t) => t.startsWith("Quokka notes")) && quokka.some((t) => t.startsWith("Zebra docs"))
+      for (const tab of [loaded, current]) gBrowser.removeTab(tab)
+      await folder.delete()
+      return { ok: both && byFolder, detail: "zebra: " + zebra.join(" | ") + "; quokka: " + quokka.slice(0, 2).join(" | ") }`,
+  },
+  {
+    name: "palette keys win over the browser's while it is open",
+    body: String.raw`${READY}
+      const target = newTab("data:text/html,<title>Close%20me%20please</title>x")
+      await until(() => target.label === "Close me please")
+      // A blank tab would hand focus to the address bar on its own; use a page.
+      const current = newTab("data:text/html,<title>Current</title>x")
+      await until(() => current.label === "Current")
+      gBrowser.selectedBrowser.focus()
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("close me please")
+      await sleep(80)
+      press("ctrl+w")
+      await until(() => !target.isConnected, 2000).catch(() => false)
+      const closedTarget = !target.isConnected && current.isConnected && gBrowser.selectedTab === current
+      press("ctrl+l")
+      await sleep(80)
+      const open = paletteOpen()
+      const urlbar = gURLBar.focused
+      await dismiss()
+      gBrowser.removeTab(current)
+      const ok = closedTarget && open && !urlbar
+      return { ok, detail: (closedTarget ? "ctrl+w closed the result" : "ctrl+w: target " + (target.isConnected ? "open" : "closed") + ", current " + (current.isConnected ? "open" : "closed")) + "; ctrl+l " + (urlbar ? "focused the address bar" : open ? "held" : "closed the palette") }`,
+  },
+  {
+    name: "ctrl+c opens the container picker only when nothing is selected",
+    body: String.raw`${READY}
+      const tab = newTab("data:text/html,<title>Copy</title><p>Some text to copy</p>")
+      await until(() => tab.label === "Copy")
+      gBrowser.selectedBrowser.focus()
+      await sleep(100)
+      press("ctrl+c", document.documentElement)
+      const picker = await until(() => paletteOpen() && resultTitles().length > 0, 2000).catch(() => false)
+      await dismiss()
+      gBrowser.selectedBrowser.focus()
+      goDoCommand("cmd_selectAll")
+      await sleep(100)
+      press("ctrl+c", document.documentElement)
+      await sleep(300)
+      const opened = paletteOpen()
+      if (opened) await dismiss()
+      const clip = await navigator.clipboard.readText().catch((e) => "unreadable: " + e)
+      gBrowser.removeTab(tab)
+      const copied = !opened && clip.includes("Some text to copy")
+      return { ok: !!picker && copied, detail: (picker ? "no selection: picker" : "no selection: nothing") + "; with selection: " + (opened ? "picker" : "clipboard " + JSON.stringify(clip.slice(0, 30))) }`,
+  },
+  {
     name: "alt+p pins and unpins",
     body: String.raw`${READY}
       const tab = newTab()

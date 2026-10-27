@@ -2,40 +2,25 @@ import { Command as CommandPrimitive } from "cmdk"
 
 import type { ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
-import { comboFromEvent } from "@/shared/keys"
 import { Keys } from "@/components/keys"
 import { Kbd } from "@/components/ui/kbd"
-import { holdBrowserShortcut } from "./parts"
 
 interface ActionPanelProps {
   item: PaletteItem
   /** Ctrl is held: show 1–9, which Ctrl+digit runs. */
   numbered: boolean
   onRun: (action: ItemAction) => void
-  onClose: () => void
 }
 
-export function ActionPanel({ item, numbered, onRun, onClose }: ActionPanelProps) {
+export function ActionPanel({ item, numbered, onRun }: ActionPanelProps) {
   return (
-    <div className="absolute right-2 bottom-13 z-10 w-80 rounded-xl border bg-popover shadow-2xl shadow-black/60">
+    <div className="absolute right-2.5 bottom-14 z-10 w-88 rounded-xl border bg-popover shadow-2xl shadow-black/60">
       <Command
         vimBindings={false}
         loop
         className="rounded-xl bg-transparent p-1"
-        onKeyDown={(event) => {
-          // The palette underneath handles its own keys; keep these to the panel.
-          event.stopPropagation()
-          const combo = comboFromEvent(event.nativeEvent)
-          const digit = /^ctrl\+([1-9])$/.exec(combo ?? "")
-          const numberedAction = digit ? item.actions[Number(digit[1]) - 1] : undefined
-          if (combo === "escape" || combo === "ctrl+k") {
-            event.preventDefault()
-            onClose()
-          } else if (numberedAction) {
-            event.preventDefault()
-            onRun(numberedAction)
-          } else if (combo) holdBrowserShortcut(event.nativeEvent, combo)
-        }}
+        // Escape, Ctrl+K and Ctrl+digit are handled by the palette; keep list keys to the panel.
+        onKeyDown={(event) => event.stopPropagation()}
       >
         <CommandList className="max-h-64 p-0.5">
           <CommandEmpty className="py-3 text-xs text-faint">No actions</CommandEmpty>

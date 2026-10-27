@@ -77,7 +77,8 @@ function useRows(win: Window, config: Config): Row[] {
           issues.push({ tone: "error", text: `Also bound to ${others.map((other) => other.title).join(", ")}` })
         if (index.prefixes.has(sequence)) issues.push({ tone: "error", text: "Blocks a chord that starts with these keys" })
         const zen = nativeByCombo.get(first)
-        if (zen) issues.push({ tone: "warn", text: `Replaces Zen's ${zen}` })
+        // A key that yields when it has nothing to do (Ctrl+C with a selection) does not replace Zen's.
+        if (zen && !command.keysWhen) issues.push({ tone: "warn", text: `Replaces Zen's ${zen}` })
       }
       return {
         id: command.id,

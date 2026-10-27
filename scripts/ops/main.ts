@@ -6,7 +6,9 @@ import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 
 import { captureScreens, runBench, runScenarios } from "./e2e.ts"
+import { captureMedia } from "./media.ts"
 import { defaultProfile, isRunning, MOD_ID, modsDir, readMods, readPref, writeMods, type ModEntry } from "./profile.ts"
+import { bumpSource, isBump, publish, RELEASE_BRANCH, REPO_URL } from "./release.ts"
 import { launchZen, removeProfile, type Zen } from "./zen.ts"
 
 const ROOT = resolve(import.meta.dirname, "..", "..")
@@ -20,29 +22,42 @@ Commands
   doctor             Check the build, the profile, Sine and what blocks the mod from loading
   e2e                Run end-to-end checks in an isolated headless Zen
   bench              Measure open, search and keystroke latency in an isolated headless Zen
+  eval <js>          Run chrome-privileged JS in an isolated headless Zen and print what it returns
+  media [dir]        Record the README's GIFs and screenshots in an isolated headless Zen (default docs/media)
+  release            Build and publish the mod to the release branch, which Sine installs and updates from
 
 Options
   --profile <dir>    Zen profile directory (default: the profile Zen opens by default)
-  --dry-run          install: report what would change without writing
+  --dry-run          install, release: report what would change without writing or pushing
   --screenshots <dir>  e2e: also save screenshots of the palette and settings page
   --tabs <n>         bench: lazy tabs to open first (default 300)
   --opens <n>        bench: palette opens to measure (default 40)
-  --keep             e2e, bench: keep the temporary profile for inspection
+  --file <path>      eval: read the JS from a file instead of the argument
+  --keep             e2e, bench, eval, media: keep the temporary profile for inspection
+  --bump <part>      release: raise the version first (patch, minor or major), commit and tag it
   --json             Print one JSON result on stdout; progress goes to stderr
   -h, --help         Show this help
 
 Effects
   install writes <profile>/chrome/sine-mods/zencast and the zencast entry in mods.json.
   It never changes prefs. Restart Zen afterwards; Sine rebuilds chrome.css at startup.
-  e2e and bench copy Sine from the profile into a temporary profile and never touch the original.
-  Both need a current build (pnpm ops build).
+  e2e, bench, eval and media copy Sine from the profile into a temporary profile and never touch
+  the original. They need a current build (pnpm ops build). media loads real sites and needs ffmpeg.
+  eval runs its JS as an async function body in the browser window, with gBrowser, Zen's managers,
+  Services and the test helpers (until, sleep, press); return a JSON-serialisable value.
+  release needs a clean tree. It replaces the release branch with the build, stamps updatedAt in
+  theme.json so Sine updates installed copies on their next start, and pushes the branch, plus the
+  version commit and tag with --bump.
 
 Examples
   pnpm ops build
   pnpm ops install --dry-run --json
   pnpm --silent ops doctor --json
   pnpm ops e2e --screenshots /tmp/zencast-shots
-  pnpm --silent ops bench --json`
+  pnpm --silent ops bench --json
+  pnpm ops eval "return gZenWorkspaces.getWorkspaces().map((w) => w.name)"
+  pnpm ops media
+  pnpm ops release --bump patch`
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -53,6 +68,8 @@ const { values, positionals } = parseArgs({
     tabs: { type: "string", default: "300" },
     opens: { type: "string", default: "40" },
     keep: { type: "boolean", default: false },
+    bump: { type: "string" },
+    file: { type: "string" },
     json: { type: "boolean", default: false },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -78,11 +95,14 @@ function readTheme(dir: string): ModEntry | null {
   return typeof parsed === "object" && parsed !== null ? { ...parsed } : null
 }
 
-function build() {
+function runBuild(): boolean {
   log("Building…")
   // pnpm's own output stays on stderr so --json keeps stdout clean.
-  const run = spawnSync("pnpm", ["-s", "build"], { cwd: ROOT, stdio: ["ignore", 2, 2] })
-  const ok = run.status === 0
+  return spawnSync("pnpm", ["-s", "build"], { cwd: ROOT, stdio: ["ignore", 2, 2] }).status === 0
+}
+
+function build() {
+  const ok = runBuild()
   const files = ["zencast.uc.mjs", "palette.css", "document.css", "settings/index.html"].map((file) => {
     const path = join(DIST, file)
     return { file, bytes: existsSync(path) ? readFileSync(path).byteLength : null }
@@ -244,6 +264,43 @@ async function bench() {
   )
 }
 
+async function evaluate() {
+  const code = values.file ? readFileSync(resolve(values.file), "utf8") : positionals[1]
+  if (!code) throw new Error("eval needs JS as an argument or --file <path>")
+  const value = await withZen((zen) => zen.run(code))
+  finish({ ok: true, command: "eval", environment: "headless Zen, temporary profile", value }, JSON.stringify(value, null, 2) ?? "undefined")
+}
+
+async function media() {
+  const dir = resolve(positionals[1] ?? join(ROOT, "docs", "media"))
+  const files = await withZen((zen) => captureMedia(zen, dir))
+  finish({ ok: true, command: "media", environment: "headless Zen, temporary profile", files }, files.join("\n"))
+}
+
+async function release() {
+  const dryRun = values["dry-run"]
+  const bump = values.bump
+  if (bump !== undefined && !isBump(bump)) throw new Error("--bump must be patch, minor or major")
+  const dirty = spawnSync("git", ["status", "--porcelain", "--untracked-files=no"], { cwd: ROOT, encoding: "utf8" }).stdout.trim()
+  if (dirty && !dryRun) return finish({ ok: false, command: "release", error: "uncommitted changes", dirty }, `Commit or stash first:\n${dirty}`)
+
+  const bumped = bump ? await bumpSource(ROOT, bump, dryRun) : null
+  if (!runBuild()) return finish({ ok: false, command: "release", error: "build failed" }, "Build failed")
+  // The version commit and tag go first, so a published build always has its source on GitHub.
+  if (bumped && !dryRun && spawnSync("git", ["push", "--quiet", "--atomic", "origin", "HEAD", `v${bumped}`], { cwd: ROOT, stdio: "inherit" }).status !== 0)
+    return finish({ ok: false, command: "release", error: "pushing the version commit failed" }, `Could not push v${bumped}`)
+  const result = await publish(ROOT, DIST, { dryRun, push: true })
+  const version = bumped ?? result.version
+  finish(
+    { ok: true, command: "release", branch: RELEASE_BRANCH, ...result, version, dryRun },
+    [
+      `${dryRun ? "Would release" : "Released"} Zencast ${version} from ${result.source}${dryRun && bumped ? " (version bump not written)" : ""}`,
+      `  ${RELEASE_BRANCH} ${result.commit ?? ""}  updatedAt ${result.updatedAt}`,
+      result.pushed ? `  Install or update from ${REPO_URL}/tree/${RELEASE_BRANCH}` : "  Not pushed",
+    ].join("\n"),
+  )
+}
+
 const command = positionals[0]
 if (values.help || !command) console.log(HELP)
 else if (command === "build") build()
@@ -251,6 +308,9 @@ else if (command === "install") await install()
 else if (command === "doctor") await doctor()
 else if (command === "e2e") await e2e()
 else if (command === "bench") await bench()
+else if (command === "eval") await evaluate()
+else if (command === "media") await media()
+else if (command === "release") await release()
 else {
   console.error(`Unknown command: ${command}\n\n${HELP}`)
   process.exitCode = 2

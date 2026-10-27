@@ -1,46 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Zencast">
-  <!-- A glossy peach tile with a bold Z and a cast spark. Plays once on load, then rests. -->
+  <!-- A dark Vesper tile: a peach Z typed before a mint caret, as in a command input. The Z draws in, then the caret blinks twice and rests. -->
   <style>
-    .mark { animation: mark 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.05s both; }
-    .spark { transform-origin: 101px 27px; animation: spark 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) 0.4s both; }
-    .shine { animation: shine 0.9s ease-in-out 0.55s both; }
-    @keyframes mark { from { opacity: 0; transform: translate(-6px, 6px); } }
-    @keyframes spark { from { opacity: 0; transform: scale(0.2) rotate(-90deg); } }
-    @keyframes shine { from { transform: translateX(-150px); } to { transform: translateX(150px); } }
+    .z { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.8s cubic-bezier(0.65, 0, 0.35, 1) 0.1s forwards; }
+    .glow { opacity: 0; animation: glow 0.6s ease-out 0.8s forwards; }
+    .caret { animation: blink 1s steps(1) 0.9s 2; }
+    @keyframes draw { to { stroke-dashoffset: 0; } }
+    @keyframes glow { to { opacity: 0.45; } }
+    @keyframes blink { 50% { opacity: 0; } }
     @media (prefers-reduced-motion: reduce) {
-      .mark, .spark, .shine { animation: none; }
-      .shine { display: none; }
+      .z { animation: none; stroke-dashoffset: 0; }
+      .glow { animation: none; opacity: 0.45; }
+      .caret { animation: none; }
     }
   </style>
   <defs>
-    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffb889" />
-      <stop offset="0.5" stop-color="#ff8466" />
-      <stop offset="1" stop-color="#e8475a" />
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1c1c" />
+      <stop offset="1" stop-color="#0c0c0c" />
     </linearGradient>
-    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.35" />
-      <stop offset="0.5" stop-color="#fff" stop-opacity="0" />
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe2c8" />
+      <stop offset="1" stop-color="#ffb57a" />
     </linearGradient>
-    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#fff" stop-opacity="0" />
-      <stop offset="0.5" stop-color="#fff" stop-opacity="0.5" />
-      <stop offset="1" stop-color="#fff" stop-opacity="0" />
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.16" />
+      <stop offset="1" stop-color="#fff" stop-opacity="0.04" />
     </linearGradient>
-    <clipPath id="clip"><rect x="4" y="4" width="120" height="120" rx="30" /></clipPath>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7" /></filter>
   </defs>
 
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#tile)" />
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#gloss)" />
-  <rect x="4.75" y="4.75" width="118.5" height="118.5" rx="29.25" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="1.5" />
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#tile)" />
+  <rect x="4.5" y="4.5" width="119" height="119" rx="27.5" fill="none" stroke="url(#rim)" />
 
-  <g class="mark"><g transform="translate(-2 0) skewX(-10) translate(7 0)">
-    <path d="M38 37h52v13L59 79h31v13H36V79l31-29H38z" fill="#8c1f35" fill-opacity="0.3" transform="translate(0 4)" stroke="#8c1f35" stroke-opacity="0.3" stroke-width="5" stroke-linejoin="round" />
-    <path d="M38 37h52v13L59 79h31v13H36V79l31-29H38z" fill="#fff" stroke="#fff" stroke-width="5" stroke-linejoin="round" />
-  </g></g>
-  <path class="spark" d="M101 15c1.2 7 4.9 10.8 12 12-7.1 1.2-10.8 5-12 12-1.2-7-4.9-10.8-12-12 7.1-1.2 10.8-5 12-12z" fill="#fff" />
-
-  <g clip-path="url(#clip)">
-    <rect class="shine" x="14" y="-20" width="34" height="170" fill="url(#band)" transform="rotate(20 64 64)" />
-  </g>
+  <path class="glow" d="M33 43H77L33 85H77" fill="none" stroke="#ffc799" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#blur)" />
+  <path class="z" pathLength="1" d="M33 43H77L33 85H77" fill="none" stroke="url(#ink)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+  <path class="caret" d="M95 39V89" stroke="#99ffe4" stroke-width="7" stroke-linecap="round" />
 </svg>

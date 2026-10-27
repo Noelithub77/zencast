@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Zencast">
+  <!-- A dark Vesper tile holding a keycap with a peach Z legend. It presses once: the cap bottoms out over its own sides, the legend glows, and it springs back. The mint bar is the homing bump on F and J, where your fingers rest. -->
+  <style>
+    .cap { animation: press 0.8s linear 0.35s both; }
+    .glow { opacity: 0; animation: glow 0.8s ease-out 0.35s both; }
+    @keyframes press {
+      0% { transform: translateY(0); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+      28% { transform: translateY(7px); animation-timing-function: linear; }
+      42% { transform: translateY(7px); animation-timing-function: cubic-bezier(0.2, 0.8, 0.3, 1); }
+      72% { transform: translateY(-1.5px); animation-timing-function: ease-in-out; }
+      100% { transform: translateY(0); }
+    }
+    @keyframes glow { 28%, 42% { opacity: 0.6; } 100% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .cap, .glow { animation: none; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1c1c1c" />
+      <stop offset="1" stop-color="#0c0c0c" />
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.16" />
+      <stop offset="1" stop-color="#fff" stop-opacity="0.04" />
+    </linearGradient>
+    <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262626" />
+      <stop offset="1" stop-color="#151515" />
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2e2e2e" />
+      <stop offset="1" stop-color="#222" />
+    </linearGradient>
+    <!-- Canvas units: a bounding-box gradient paints nothing on a stroke with zero height. -->
+    <linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="20" y1="20" x2="108" y2="108">
+      <stop offset="0" stop-color="#ffe2c8" />
+      <stop offset="1" stop-color="#ffb57a" />
+    </linearGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" /></filter>
+  </defs>
+
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#tile)" />
+  <rect x="4.5" y="4.5" width="119" height="119" rx="27.5" fill="none" stroke="url(#rim)" />
+
+  <rect x="25" y="27" width="78" height="80" rx="20" fill="#070707" />
+  <g class="cap">
+    <rect x="25" y="22" width="78" height="78" rx="20" fill="url(#cap)" stroke="#fff" stroke-opacity="0.08" />
+    <rect x="31" y="26" width="66" height="62" rx="15" fill="url(#face)" />
+    <path class="glow" d="M50 44H78L50 70H78" fill="none" stroke="#ffc799" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#blur)" />
+    <path d="M50 44H78L50 70H78" fill="none" stroke="url(#ink)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M58 80H70" stroke="#99ffe4" stroke-width="3.5" stroke-linecap="round" />
+  </g>
+</svg>

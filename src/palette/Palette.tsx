@@ -367,7 +367,7 @@ export function Palette() {
       }}
     >
       {/* Fixed height, centred a little above the middle, so the input never moves as results change. */}
-      <div className="absolute top-[46%] left-1/2 w-[min(920px,94vw)] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
+      <div className="absolute top-1/2 left-1/2 w-[min(920px,94vw)] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
         <Command
           shouldFilter={false}
           vimBindings={false}

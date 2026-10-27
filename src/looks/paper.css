@@ -1,0 +1,52 @@
+/* Paper: a cream notebook with ink outlines and a serif face. */
+:root {
+  --paper: #f3ecdc;
+  --paper-ink: #2b2620;
+  --zen-primary-color: #c96f4a !important;
+  color-scheme: light !important;
+}
+/* Zen paints its window background on these layers, with the colour set inline on #browser. */
+.zen-browser-generic-background::before,
+.zen-browser-generic-background::after,
+#zen-main-app-wrapper {
+  background: var(--paper) !important;
+}
+#navigator-toolbox,
+#tabbrowser-tabs {
+  color: var(--paper-ink) !important;
+  font-family: "Iowan Old Style", "Palatino", Georgia, serif !important;
+  font-size: 1.05em;
+}
+.tabbrowser-tab .tab-background {
+  background: transparent !important;
+  border-bottom: 1.5px solid rgb(43 38 32 / 0.25) !important;
+  border-radius: 0 !important;
+}
+.tabbrowser-tab[selected] .tab-background {
+  background: #fffaf0 !important;
+  border: 1.5px solid var(--paper-ink) !important;
+  border-radius: 4px !important;
+  box-shadow: 3px 3px 0 var(--paper-ink) !important;
+}
+#urlbar-background {
+  background: #fffaf0 !important;
+  border: 1.5px solid var(--paper-ink) !important;
+  box-shadow: 3px 3px 0 var(--paper-ink) !important;
+}
+.browserSidebarContainer {
+  border: 1.5px solid var(--paper-ink) !important;
+  box-shadow: 6px 6px 0 var(--paper-ink) !important;
+}
+/* A multiply layer over the page tints white pages too, which hue filters cannot. */
+.browserStack {
+  position: relative;
+}
+.browserStack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #efdcb6;
+  mix-blend-mode: multiply;
+  opacity: 0.9;
+  pointer-events: none;
+}

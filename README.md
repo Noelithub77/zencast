@@ -128,6 +128,19 @@ Change any of them in settings (`Ctrl+,`, or the gear on Zencast's card in Sine)
 
 ![The settings page: shortcuts, Zen settings, folders and general](docs/media/settings.png)
 
+### Make it look like anything
+
+A look is one CSS file for Zen's own window. These four are real Zen, restyled by the files in [`src/looks/`](src/looks) and captured by `pnpm ops look`:
+
+<p>
+  <img src="docs/media/looks/candy.webp" width="49%" alt="Candy: a pastel gradient browser with rounded tabs" />
+  <img src="docs/media/looks/pink.webp" width="49%" alt="Pink: sidebar, tabs and pages all in pink" />
+  <img src="docs/media/looks/terminal.webp" width="49%" alt="Terminal: black, phosphor green and monospace" />
+  <img src="docs/media/looks/paper.webp" width="49%" alt="Paper: cream pages, ink outlines and a serif face" />
+</p>
+
+Ask your agent for a look; the `restyle` skill has it write the CSS, preview it headless and ship it.
+
 ### Fork it
 
 Zencast is a template for customising Zen, or any Firefox, from the inside. A Sine mod runs with full browser access, so anything the browser's own UI can do, a fork can do. Fork the repository and point your agent at it; everything it needs to start is here:
@@ -135,8 +148,8 @@ Zencast is a template for customising Zen, or any Firefox, from the inside. A Si
 | | |
 | --- | --- |
 | [`AGENTS.md`](AGENTS.md) | Map of the code and its conventions |
-| [`.claude/skills/`](.claude/skills) | Add a command, find Zen and Firefox internals, ship a release |
-| `pnpm ops` | Build, install into a profile, probe a live Zen with `eval`, run e2e and benchmarks headless |
+| [`.claude/skills/`](.claude/skills) | Add a command, restyle Zen, find Zen and Firefox internals, ship a release |
+| `pnpm ops` | Build, install into a profile, probe a live Zen with `eval`, preview looks, run e2e and benchmarks headless |
 | [`scripts/install/`](scripts/install) | The one-line setup, ready to point at your fork |
 | [`docs/distribution.md`](docs/distribution.md) | How the mod ships and updates through Sine |
 

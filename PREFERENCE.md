@@ -48,6 +48,12 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 
 ## Claims and sources
 
+- **Why build on an existing engine (owner's point, checked):**
+  - Only a few engines keep up with the web. Most new features land in Chromium first and Firefox follows; building or maintaining your own engine and tracking changing standards is very hard for anyone else.
+  - Compiling a browser is itself slow and heavy: Chromium asks for 8 GB RAM (16 GB+ recommended) and 100 GB of disk, and its checkout alone takes about 30 minutes; Firefox asks for 30 GB of disk ([Chromium Linux build](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/build_instructions.md), [Firefox Linux build](https://firefox-source-docs.mozilla.org/setup/linux_build.html)).
+  - Most other projects patch a browser's source and rebuild it (Zen itself patches Firefox). Sine never patches: it uses Firefox's startup hook (AutoConfig) to load the JavaScript and CSS you give it.
+  - Correction kept in the copy: there are three maintained engines, not two. WebKit (Safari) is well maintained too, but it is Apple's, and Ladybird is a new engine still in development. Not every feature lands in Chromium first, so say "most", not "every".
+
 - Always cross-check the owner's claims; they may be wrong. Every claim on the README, landing page, video and blog needs a source.
 - Research each point and state honestly whether a better alternative exists, for Chromium or any of its forks.
 - Back the ideology with sources: Ink & Switch on malleable software, Chromium docs, Chrome extension docs, Mozilla and fx-autoconfig, Sine, Zen's mod loader, the Omarchy manual, and the Forrester study for Google on browser time.
@@ -159,6 +165,10 @@ Use Zen's native toast, the one that says "URL copied" on Ctrl+Shift+C, for mess
   - no rebrand or packaging tooling: agents can rename a fork themselves;
   - more skills.
 - **Priority:** the creative work (video and blog) comes before more tooling.
+- **Visual customization, not just commands.** Show that a prompt can make the browser look like anything: a candy pastel browser, a full pink browser, entirely different kinds of UI. Show it in the video and on the landing page.
+  - Back it with a workflow: looks as CSS files (`src/looks/`), `pnpm ops look` to preview them in a headless Zen, shipping through `src/features/*.css`, and a `restyle` skill. Cover custom CSS, Sine mods and everything visual.
+  - The aim is a proper set of skills plus a full template repo with scripts for customizing the browser in any way.
+  - The looks are our own CSS, rendered in a real Zen, rather than screenshots of other people's Sine mods.
 
 ## Working with the owner
 

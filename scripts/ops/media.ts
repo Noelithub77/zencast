@@ -10,6 +10,7 @@ import type { Zen } from "./zen.ts"
 const execute = promisify(execFile)
 const GIF_WIDTH = 1000
 const GIF_FPS = 15
+const VIDEO_FPS = 30
 const SETTING = "zen.view.compact.animate-sidebar"
 
 // Demo spaces in order. The first is Zen's default space, renamed.
@@ -42,7 +43,7 @@ interface Frame {
 const READY = String.raw`await until(() => window.Zencast && document.getElementById("zencast-host"), 20000)`
 
 // Opens the palette from a clean state: closes it, returns to the first space and selects GitHub.
-const RESET = String.raw`${READY}
+export const RESET = String.raw`${READY}
   if (paletteOpen()) await dismiss()
   const first = gZenWorkspaces.getWorkspaces()[0]
   if (gZenWorkspaces.activeWorkspace !== first.uuid) await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
@@ -62,7 +63,7 @@ function key(combo: string, after = 120): string {
   return `press(${JSON.stringify(combo)}); await sleep(${after})`
 }
 
-const SETUP = String.raw`${READY}
+export const SETUP = String.raw`${READY}
   const spaces = ${JSON.stringify(SPACES)}
   const initial = gBrowser.tabs[0]
   const first = gZenWorkspaces.getWorkspaces()[0]
@@ -181,9 +182,23 @@ async function record(zen: Zen, steps: Step[]): Promise<Array<{ png: Buffer; sec
   })
 }
 
-/** Assembles timed PNG frames into a looping GIF with a per-clip palette. */
-async function encodeGif(frames: Array<{ png: Buffer; seconds: number }>, output: string) {
-  const work = await mkdtemp(join(tmpdir(), "zencast-gif-"))
+// Copies the tab as a Markdown link through the example feature module in src/features/.
+const FEATURE_CLIP: Step[] = [
+  { body: RESET, hold: 400 },
+  { body: OPEN, hold: 450 },
+  ...typing("markdown", 150),
+  {
+    body: String.raw`const first = [...shadow().querySelectorAll("[cmdk-item]")][0]?.getAttribute("data-value")
+    if (first !== "tab.copyMarkdownLink") throw new Error("Expected the Markdown command first, got " + first)
+    await sleep(60)`,
+    hold: 700,
+  },
+  { body: key("enter", 150), hold: 2200 },
+]
+
+/** Assembles timed PNG frames into a looping GIF with a per-clip palette, or an H.264 clip for films. */
+async function encode(frames: Array<{ png: Buffer; seconds: number }>, output: string) {
+  const work = await mkdtemp(join(tmpdir(), "zencast-clip-"))
   try {
     const lines: string[] = []
     let last = ""
@@ -196,6 +211,11 @@ async function encodeGif(frames: Array<{ png: Buffer; seconds: number }>, output
     lines.push(`file '${last}'`)
     await writeFile(join(work, "frames.txt"), lines.join("\n"))
     const input = ["-f", "concat", "-safe", "0", "-i", join(work, "frames.txt")]
+    if (output.endsWith(".mp4")) {
+      const video = ["-vf", `fps=${VIDEO_FPS},format=yuv420p`, "-c:v", "libx264", "-crf", "14", "-preset", "slow", "-movflags", "+faststart"]
+      await execute("ffmpeg", ["-v", "error", "-y", ...input, ...video, output])
+      return
+    }
     const scale = `fps=${GIF_FPS},scale=${GIF_WIDTH}:-2:flags=lanczos`
     const palette = join(work, "palette.png")
     await execute("ffmpeg", ["-v", "error", "-y", ...input, "-vf", `${scale},palettegen=max_colors=160:stats_mode=diff`, palette])
@@ -217,8 +237,8 @@ async function encodeGif(frames: Array<{ png: Buffer; seconds: number }>, output
   }
 }
 
-/** Sets up the demo spaces and tabs, then writes the GIFs and screenshots into `dir`. */
-export async function captureMedia(zen: Zen, dir: string): Promise<string[]> {
+/** Sets up the demo spaces and tabs, then writes the GIFs and screenshots into `dir`, or MP4 clips with `video`. */
+export async function captureMedia(zen: Zen, dir: string, video = false): Promise<string[]> {
   await mkdir(dir, { recursive: true })
   const written: string[] = []
 
@@ -226,19 +246,22 @@ export async function captureMedia(zen: Zen, dir: string): Promise<string[]> {
   console.error("Demo tabs:", JSON.stringify(titles))
 
   const clips: Array<[string, Step[]]> = [
-    ["hero.gif", HERO],
-    ["spaces.gif", SPACES_CLIP],
-    ["hints.gif", HINTS],
-    ["settings.gif", SETTINGS_CLIP],
+    ["hero", HERO],
+    ["spaces", SPACES_CLIP],
+    ["hints", HINTS],
+    ["settings", SETTINGS_CLIP],
+    ...(video ? [["feature", FEATURE_CLIP] satisfies [string, Step[]]] : []),
   ]
-  for (const [name, steps] of clips) {
+  for (const [clip, steps] of clips) {
     const frames = await record(zen, steps)
+    const name = `${clip}.${video ? "mp4" : "gif"}`
     const output = join(dir, name)
-    await encodeGif(frames, output)
+    await encode(frames, output)
     written.push(output)
     console.error(`${name}: ${frames.length} frames`)
   }
   await zen.run(String.raw`Services.prefs.clearUserPref("${SETTING}")`)
+  if (video) return written
 
   const shot = async (name: string) => {
     const path = join(dir, name)

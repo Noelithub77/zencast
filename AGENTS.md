@@ -11,6 +11,7 @@ Read `PREFERENCE.md` before changing the project's direction, wording, design or
 | `src/main.ts` | Mod entry: mounts the palette, keybinding engine and toasts per window, and undoes it all on unload |
 | `src/browser/` | Thin wrappers over Zen and Firefox internals (tabs, folders, workspaces, containers, session, toasts), plus the settings button on Zencast's card in Sine |
 | `src/features/` | Drop-in features: each `.ts` exports `commands`, each `.css` restyles Zen. The way to mod Zen without touching the core |
+| `src/looks/` | Example looks (candy, pink, terminal, paper): CSS for Zen's own window, previewed with `pnpm ops look`, shipped by copying into `src/features/`. The `restyle` skill covers the workflow |
 | `src/commands/` | The command catalog, Zen's native commands and shared types |
 | `src/keys/` | Keybinding engine: matching, chords and `when` contexts |
 | `src/palette/` | Palette UI in a shadow root, its store, search (uFuzzy) and result sources |
@@ -37,6 +38,7 @@ Use `pnpm ops`; run `pnpm ops --help` for commands and options. Every command ta
 - `eval`: run JavaScript in the browser window of an isolated headless Zen and print the result as JSON, to probe internals before wrapping them.
 - `media`: re-record the README's GIFs and screenshots into `docs/media` with demo spaces and sites. Needs ffmpeg and network.
 - `bench`: open, search and keystroke latency against p95 budgets, with 300 lazy tabs by default.
+- `look`: screenshot Zen restyled by each stylesheet in `src/looks/` (or the files given), beside the default look.
 - `release`: build and publish to the `release` branch, which Sine installs and updates from. `--bump` raises the version, commits and tags it.
 - `site`: typecheck and build the landing page.
 - `deploy`: build the landing page, deploy it with wrangler and check the live page. It uses `CLOUDFLARE_API_TOKEN`, or the `cf` CLI's login.

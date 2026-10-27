@@ -1,0 +1,47 @@
+/* Pink: everything pink, from the sidebar to the tab outlines. */
+:root {
+  --pink-deep: #d6337f;
+  --pink-ink: #4a0d2c;
+  --zen-primary-color: #ff4fa3 !important;
+  color-scheme: light !important;
+}
+/* Zen paints its window background on these layers, with the colour set inline on #browser. */
+.zen-browser-generic-background::before,
+.zen-browser-generic-background::after,
+#zen-main-app-wrapper {
+  background: #ff9ccc !important;
+}
+#navigator-toolbox,
+#tabbrowser-tabs {
+  color: var(--pink-ink) !important;
+}
+.tabbrowser-tab .tab-background {
+  background: #ffc2e0 !important;
+  outline: 2px solid #ff7ab8 !important;
+}
+.tabbrowser-tab[selected] .tab-background {
+  background: var(--pink-deep) !important;
+}
+.tabbrowser-tab[selected] .tab-label {
+  color: #fff !important;
+}
+#urlbar-background {
+  background: #ffd6ea !important;
+  border: 2px solid var(--pink-deep) !important;
+}
+.browserSidebarContainer {
+  outline: 4px solid var(--pink-deep) !important;
+}
+/* A multiply layer over the page tints white pages too, which hue filters cannot. */
+.browserStack {
+  position: relative;
+}
+.browserStack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #ff6fb1;
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+  pointer-events: none;
+}

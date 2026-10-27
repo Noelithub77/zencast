@@ -1,0 +1,49 @@
+/* Terminal: black, phosphor green and monospace, with square corners. */
+:root {
+  --term-green: #4af626;
+  --zen-primary-color: #4af626 !important;
+  --zen-border-radius: 0px !important;
+  color-scheme: dark !important;
+}
+/* Zen paints its window background on these layers, with the colour set inline on #browser. */
+.zen-browser-generic-background::before,
+.zen-browser-generic-background::after,
+#zen-main-app-wrapper {
+  background: #050805 !important;
+}
+#navigator-toolbox,
+#tabbrowser-tabs {
+  color: var(--term-green) !important;
+  font-family: "JetBrains Mono", "Geist Mono", ui-monospace, monospace !important;
+}
+.tabbrowser-tab .tab-background {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border: 1px dashed rgb(74 246 38 / 0.35) !important;
+}
+.tabbrowser-tab[selected] .tab-background {
+  background: rgb(74 246 38 / 0.14) !important;
+  border: 1px solid var(--term-green) !important;
+}
+.tab-label::before {
+  content: "> ";
+}
+#urlbar-background {
+  background: #000 !important;
+  border-radius: 0 !important;
+  border: 1px solid var(--term-green) !important;
+}
+#urlbar {
+  color: var(--term-green) !important;
+}
+.browserSidebarContainer {
+  border-radius: 0 !important;
+  outline: 1px solid var(--term-green) !important;
+}
+.tab-label {
+  color: var(--term-green) !important;
+}
+/* Dark pages in phosphor green. */
+#tabbrowser-tabpanels browser {
+  filter: invert(1) hue-rotate(180deg) sepia(1) hue-rotate(60deg) saturate(4) brightness(0.85);
+}

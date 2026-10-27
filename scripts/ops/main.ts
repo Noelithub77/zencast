@@ -1,11 +1,12 @@
 // Operator entry point: `pnpm ops <command>`. Run `pnpm ops --help` for commands.
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { cp, rm } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 
 import { captureScreens, runBench, runScenarios } from "./e2e.ts"
+import { captureLooks } from "./look.ts"
 import { captureMedia } from "./media.ts"
 import { defaultProfile, isRunning, MOD_ID, modsDir, readMods, readPref, writeMods, type ModEntry } from "./profile.ts"
 import { bumpSource, isBump, publish, RELEASE_BRANCH, REPO_URL } from "./release.ts"
@@ -25,6 +26,7 @@ Commands
   bench              Measure open, search and keystroke latency in an isolated headless Zen
   eval <js>          Run chrome-privileged JS in an isolated headless Zen and print what it returns
   media [dir]        Record the README's GIFs and screenshots in an isolated headless Zen (default docs/media)
+  look [css…]        Screenshot Zen restyled by each stylesheet, in an isolated headless Zen (default src/looks/*.css)
   release            Build and publish the mod to the release branch, which Sine installs and updates from
   site               Typecheck and build the landing page into site/dist
   deploy             Build the landing page, deploy it to zencast.allpyq.in and check it is live
@@ -36,7 +38,9 @@ Options
   --tabs <n>         bench: lazy tabs to open first (default 300)
   --opens <n>        bench: palette opens to measure (default 40)
   --file <path>      eval: read the JS from a file instead of the argument
-  --keep             e2e, bench, eval, media: keep the temporary profile for inspection
+  --out <dir>        look: where to write the screenshots (default docs/media/looks)
+  --keep             e2e, bench, eval, media, look: keep the temporary profile for inspection
+  --video            media: record 1920x1080 MP4 clips for films instead of the README's GIFs
   --bump <part>      release: raise the version first (patch, minor or major), commit and tag it
   --json             Print one JSON result on stdout; progress goes to stderr
   -h, --help         Show this help
@@ -44,7 +48,7 @@ Options
 Effects
   install writes <profile>/chrome/sine-mods/zencast and the zencast entry in mods.json.
   It never changes prefs. Restart Zen afterwards; Sine rebuilds chrome.css at startup.
-  e2e, bench, eval and media copy Sine from the profile into a temporary profile and never touch
+  e2e, bench, eval, media and look copy Sine from the profile into a temporary profile and never touch
   the original. They need a current build (pnpm ops build). media loads real sites and needs ffmpeg.
   eval runs its JS as an async function body in the browser window, with gBrowser, Zen's managers,
   Services and the test helpers (until, sleep, press); return a JSON-serialisable value.
@@ -62,6 +66,7 @@ Examples
   pnpm --silent ops bench --json
   pnpm ops eval "return gZenWorkspaces.getWorkspaces().map((w) => w.name)"
   pnpm ops media
+  pnpm ops look src/looks/candy.css --out /tmp/looks
   pnpm ops release --bump patch
   pnpm --silent ops deploy --json`
 
@@ -76,6 +81,8 @@ const { values, positionals } = parseArgs({
     keep: { type: "boolean", default: false },
     bump: { type: "string" },
     file: { type: "string" },
+    out: { type: "string" },
+    video: { type: "boolean", default: false },
     json: { type: "boolean", default: false },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -217,10 +224,10 @@ function count(name: "tabs" | "opens"): number {
 }
 
 /** Runs work against a fresh headless Zen and always shuts it down. */
-async function withZen<T>(work: (zen: Zen) => Promise<T>): Promise<T> {
+async function withZen<T>(work: (zen: Zen) => Promise<T>, size?: { width: number; height: number }): Promise<T> {
   if (!readTheme(DIST)) throw new Error("dist/zencast is missing; run pnpm ops build")
   log("Starting headless Zen…")
-  const zen = await launchZen({ sourceProfile: profileDir(), dist: DIST })
+  const zen = await launchZen({ sourceProfile: profileDir(), dist: DIST, ...size })
   try {
     return await work(zen)
   } finally {
@@ -279,8 +286,18 @@ async function evaluate() {
 
 async function media() {
   const dir = resolve(positionals[1] ?? join(ROOT, "docs", "media"))
-  const files = await withZen((zen) => captureMedia(zen, dir))
+  const video = values.video
+  // Film clips are recorded at the film's frame size.
+  const files = await withZen((zen) => captureMedia(zen, dir, video), video ? { width: 1920, height: 1080 } : undefined)
   finish({ ok: true, command: "media", environment: "headless Zen, temporary profile", files }, files.join("\n"))
+}
+
+async function look() {
+  const looks = join(ROOT, "src", "looks")
+  const files = positionals.length > 1 ? positionals.slice(1).map((file) => resolve(file)) : readdirSync(looks).filter((file) => file.endsWith(".css")).map((file) => join(looks, file))
+  const dir = resolve(values.out ?? join(ROOT, "docs", "media", "looks"))
+  const shots = await withZen((zen) => captureLooks(zen, files, dir))
+  finish({ ok: true, command: "look", environment: "headless Zen, temporary profile", files: shots }, shots.join("\n"))
 }
 
 async function release() {
@@ -331,6 +348,7 @@ else if (command === "e2e") await e2e()
 else if (command === "bench") await bench()
 else if (command === "eval") await evaluate()
 else if (command === "media") await media()
+else if (command === "look") await look()
 else if (command === "release") await release()
 else if (command === "site") site()
 else if (command === "deploy") await deploy()

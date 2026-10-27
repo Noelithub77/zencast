@@ -1,0 +1,55 @@
+/* Candy: a pastel gradient browser with soft, rounded tabs. */
+:root {
+  --candy-pink: #ffb8d9;
+  --candy-lilac: #d9c2ff;
+  --candy-mint: #b8f2e0;
+  --candy-ink: #5a3d6b;
+  --zen-primary-color: #ff8fc8 !important;
+  --zen-border-radius: 18px !important;
+  color-scheme: light !important;
+}
+/* Zen paints its window background on these layers, with the colour set inline on #browser. */
+.zen-browser-generic-background::before,
+.zen-browser-generic-background::after,
+#zen-main-app-wrapper {
+  background: linear-gradient(160deg, var(--candy-pink), var(--candy-lilac) 55%, var(--candy-mint)) !important;
+}
+#navigator-toolbox,
+#tabbrowser-tabs {
+  color: var(--candy-ink) !important;
+  font-family: "Nunito", "Quicksand", system-ui, sans-serif !important;
+  font-weight: 600;
+}
+.tabbrowser-tab .tab-background {
+  background: rgb(255 255 255 / 0.35) !important;
+  border-radius: 16px !important;
+}
+.tabbrowser-tab[selected] .tab-background {
+  background: #fff !important;
+  box-shadow: 0 4px 14px rgb(255 120 190 / 0.35) !important;
+}
+#urlbar-background {
+  background: rgb(255 255 255 / 0.6) !important;
+  border-radius: 999px !important;
+  border: 2px solid #fff !important;
+}
+.browserSidebarContainer {
+  border-radius: 22px !important;
+  box-shadow: 0 10px 40px rgb(160 90 200 / 0.3) !important;
+}
+:root {
+  --zen-element-separation: 16px !important;
+}
+/* A multiply layer over the page tints white pages too, which hue filters cannot. */
+.browserStack {
+  position: relative;
+}
+.browserStack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, var(--candy-pink), var(--candy-lilac) 55%, var(--candy-mint));
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+  pointer-events: none;
+}

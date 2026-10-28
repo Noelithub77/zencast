@@ -106,12 +106,8 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
           {hint ? (
             <kbd
               data-hint=""
-              className="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 font-mono text-[17px] font-semibold animate-in fade-in-0 zoom-in-90 duration-150"
-              style={{
-                color: hint.color,
-                backgroundColor: `color-mix(in srgb, ${hint.color} 16%, transparent)`,
-                boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${hint.color} 35%, transparent)`,
-              }}
+              className="flex h-8 min-w-8 items-center justify-center font-mono text-[17px] font-semibold animate-in fade-in-0 zoom-in-90 duration-150"
+              style={{ color: hint.color }}
             >
               {hint.letter.toUpperCase()}
             </kbd>

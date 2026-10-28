@@ -39,6 +39,8 @@ export interface PaletteState {
   space: SpaceTarget | null
   recording: Recording | null
   chord: ChordHint | null
+  /** The sheet of every Zencast key, shown until a key or click dismisses it. */
+  keySheet: boolean
 }
 
 /** Id of the shadow host element; focus inside the palette reports this as the active element. */
@@ -56,6 +58,7 @@ let state: PaletteState = {
   space: null,
   recording: null,
   chord: null,
+  keySheet: false,
 }
 const listeners = new Set<Listener>()
 
@@ -72,6 +75,8 @@ function subscribe(listener: Listener) {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
+
+export const toggleKeySheet = () => setState((current) => ({ keySheet: !current.keySheet }))
 
 export function usePalette<T>(select: (state: PaletteState) => T): T {
   return useSyncExternalStore(subscribe, () => select(state))

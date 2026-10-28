@@ -38,7 +38,11 @@ function start(win: Window): () => void {
       index: () => index,
       context: commandContext,
       paused: () => recording || getState().open,
-      dispatch: (command) => void runCommand(command),
+      // The engine stops a bound key before the key sheet sees it, so running another command hides it here.
+      dispatch: (command) => {
+        if (command.id !== "zencast.keys") setState({ keySheet: false })
+        void runCommand(command)
+      },
       onChord: (chord) => setState({ chord }),
     }),
   )

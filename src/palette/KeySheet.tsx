@@ -1,14 +1,13 @@
-// Holding Ctrl+Shift shows every Zencast key at once, grouped like the palette, and hides on release.
-import { useEffect, useState } from "react"
+// Ctrl+/ shows every Zencast key at once, grouped like the palette. Any other key, a click or leaving
+// the window hides it; Escape hides it without reaching the page.
+import { useEffect } from "react"
 
 import { allCommands } from "@/commands/jumps"
 import { Keys } from "@/components/keys"
 import { effectiveBindings } from "@/keys/bindings"
 import { readConfig } from "@/shared/config"
-import { getState } from "./store"
-
-// Longer than a quick Ctrl+Shift+T, so the sheet only shows when the keys are held on purpose.
-const HOLD_MS = 450
+import { comboFromEvent } from "@/shared/keys"
+import { setState, usePalette } from "./store"
 
 interface SheetRow {
   title: string
@@ -58,41 +57,36 @@ function sheetSections(): Array<[string, SheetRow[]]> {
   return [...sections].map(([section, rows]) => [section, rows.flatMap((row) => (Array.isArray(row) ? familyRows(row) : [row]))])
 }
 
-function useCtrlShiftHold(win: Window): boolean {
-  const [held, setHeld] = useState(false)
+const hide = () => setState({ keySheet: false })
+
+/** Dismisses the sheet on the next key, except the keys that toggle it, and on leaving the window. */
+function useDismiss(win: Window, shown: boolean) {
   useEffect(() => {
-    let timer = 0
-    const hide = () => {
-      win.clearTimeout(timer)
-      timer = 0
-      setHeld(false)
-    }
+    if (!shown) return
     const down = (event: KeyboardEvent) => {
-      const modifier = event.key === "Control" || event.key === "Shift"
-      if (!modifier || event.altKey || event.metaKey || !event.ctrlKey || !event.shiftKey || getState().open) return hide()
-      if (!timer && !event.repeat) timer = win.setTimeout(() => setHeld(true), HOLD_MS)
-    }
-    const up = (event: KeyboardEvent) => {
-      if (event.key === "Control" || event.key === "Shift") hide()
+      const combo = comboFromEvent(event)
+      if (!combo || effectiveBindings(readConfig()).get("zencast.keys")?.includes(combo)) return
+      if (combo === "escape") {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+      }
+      hide()
     }
     win.addEventListener("keydown", down, true)
-    win.addEventListener("keyup", up, true)
     win.addEventListener("blur", hide)
     return () => {
-      hide()
       win.removeEventListener("keydown", down, true)
-      win.removeEventListener("keyup", up, true)
       win.removeEventListener("blur", hide)
     }
-  }, [win])
-  return held
+  }, [win, shown])
 }
 
 export function KeySheet({ win }: { win: Window }) {
-  const held = useCtrlShiftHold(win)
-  if (!held) return null
+  const shown = usePalette((state) => state.keySheet)
+  useDismiss(win, shown)
+  if (!shown) return null
   return (
-    <div data-keysheet="" className="pointer-events-none fixed inset-0 bg-black/30 animate-in fade-in-0 duration-150">
+    <div data-keysheet="" onClick={hide} className="fixed inset-0 bg-black/30 animate-in fade-in-0 duration-150">
       <div className="absolute top-1/2 left-1/2 max-h-[86vh] w-[min(1100px,94vw)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px] border bg-popover p-7 shadow-2xl shadow-black/60 animate-in zoom-in-[0.98] duration-150">
         <div className="columns-3 gap-10">
           {sheetSections().map(([section, rows]) => (

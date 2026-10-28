@@ -63,7 +63,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Holding Ctrl marks a letter in every result](docs/media/hints.gif)
 
-**Key sheet.** Hold `Ctrl+Shift` for a moment, anywhere in Zen, to see every Zencast key at once, grouped like the palette. Let go to hide it.
+**Key sheet.** `Ctrl+/`, anywhere in Zen, shows every Zencast key at once, grouped like the palette. Any other key, `Esc` or a click hides it.
 
 **Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart. `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
 
@@ -108,8 +108,9 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Ctrl+,` | Zen settings |
 | `Ctrl+Shift+,` | Zencast settings |
 | `Ctrl+B` | Bookmark the tab, or edit its bookmark |
-| `Ctrl+1…9` | Switch to space 1…9 |
-| `Ctrl+Shift+1…9` | Move the tab to space 1…9 |
+| `Ctrl+/` | Every Zencast key |
+| `Alt+1…9` | Switch to space 1…9 |
+| `Alt+Shift+1…9` | Move the tab to space 1…9 |
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |
 | `Ctrl+Shift+N` | New folder, or a subfolder of the current tab's folder |
 | `Ctrl+C` | Open in a container, when nothing is selected to copy |
@@ -143,7 +144,7 @@ These defaults are my own setup, built around how I use Zen, and some of them re
 
 | Key | Zen's own action, replaced |
 | --- | --- |
-| `Ctrl+1…9` | Select tab 1…9 on Windows (Zencast switches space, only while that space exists) |
+| `Alt+1…9` | Select tab 1…9 on Linux (Zencast switches space, only while that space exists) |
 | `Ctrl+K` | Focus web search |
 | `Ctrl+Shift+N` | New unsynced window |
 | `Ctrl+C` | Copy, only when nothing is selected |

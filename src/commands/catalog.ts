@@ -11,6 +11,7 @@ import {
   FolderOpenIcon,
   FolderTransferIcon,
   GhostIcon,
+  KeyboardIcon,
   Layers01Icon,
   Link01Icon,
   PencilEdit01Icon,
@@ -36,6 +37,7 @@ import { editPinnedUrl, replacePinnedUrl, resetPinnedTab, toggleEssential, toggl
 import { transferSession, wipeTab } from "@/browser/session"
 import { canCopy, isPageFocused, pageHasSelection } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
+import { toggleKeySheet } from "@/palette/store"
 import { bookmarkFolderCommands } from "./bookmark-folders"
 import { bookmarkCommands } from "./bookmarks"
 import { askCommands } from "./ask"
@@ -128,7 +130,7 @@ const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   section: "Spaces",
   icon: Layers01Icon,
   hidden: true,
-  defaultKeys: [`ctrl+shift+${i + 1}`],
+  defaultKeys: [`alt+shift+${i + 1}`],
   when: (ctx) => listWorkspaces(ctx.win).length > i,
   run: async (ctx) => {
     const ws = listWorkspaces(ctx.win)[i]
@@ -137,14 +139,14 @@ const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   },
 }))
 
-// Takes Ctrl+N from Firefox's "select tab N" only while space N exists.
+// Takes Alt+N from Zen's "select tab N" only while space N exists.
 const switchToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   id: `space.switch.${i + 1}`,
   title: `Switch to space ${i + 1}`,
   section: "Spaces",
   icon: Layers01Icon,
   hidden: true,
-  defaultKeys: [`ctrl+${i + 1}`],
+  defaultKeys: [`alt+${i + 1}`],
   when: (ctx) => listWorkspaces(ctx.win).length > i,
   run: (ctx) => switchWorkspace(ctx.win, listWorkspaces(ctx.win)[i].uuid),
 }))
@@ -167,6 +169,15 @@ const CORE: Command[] = [
     keywords: "preferences keybindings shortcuts config",
     defaultKeys: ["ctrl+shift+,"],
     run: ({ win }) => openSettings(win),
+  },
+  {
+    id: "zencast.keys",
+    title: "Keyboard shortcuts",
+    section: "Palette",
+    icon: KeyboardIcon,
+    keywords: "keys keybindings cheat sheet help hotkeys",
+    defaultKeys: ["ctrl+/"],
+    run: () => toggleKeySheet(),
   },
   {
     id: "browser.settings",

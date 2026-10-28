@@ -231,13 +231,13 @@ const SCENARIOS: Scenario[] = [
       return { ok: isRoot && nested, detail: (isRoot ? "root folder" : "not root") + ", then " + (nested ? "subfolder inside it" : "folder outside it") }`,
   },
   {
-    name: "ctrl+shift+2 moves the tab to space 2, follows it, and shows a Zen toast",
+    name: "alt+shift+2 moves the tab to space 2, follows it, and shows a Zen toast",
     body: String.raw`${READY}
       if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
       const [first, target] = gZenWorkspaces.getWorkspaces()
       const tab = newTab()
       await sleep(50)
-      press("ctrl+shift+2", document.documentElement)
+      press("alt+shift+2", document.documentElement)
       await until(() => tab.getAttribute("zen-workspace-id") === target.uuid)
       await until(() => gZenWorkspaces.activeWorkspace === target.uuid && gBrowser.selectedTab === tab, 4000)
       const text = await until(() => toastText().includes("Moved to") && toastText(), 4000)
@@ -247,18 +247,18 @@ const SCENARIOS: Scenario[] = [
       return { ok, detail: "followed to " + target.name + "; toast: " + text }`,
   },
   {
-    name: "ctrl+2 switches to space 2, and ctrl+n passes through when space n does not exist",
+    name: "alt+2 switches to space 2, and alt+n passes through when space n does not exist",
     body: String.raw`${READY}
       if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
       const spaces = gZenWorkspaces.getWorkspaces()
       await gZenWorkspaces.changeWorkspaceWithID(spaces[0].uuid)
-      press("ctrl+2", document.documentElement)
+      press("alt+2", document.documentElement)
       const switched = await until(() => gZenWorkspaces.activeWorkspace === spaces[1].uuid, 3000).catch(() => false)
       const missing = spaces.length + 1
-      const event = press("ctrl+" + missing, document.documentElement)
+      const event = press("alt+" + missing, document.documentElement)
       const passed = !event.defaultPrevented
       await gZenWorkspaces.changeWorkspaceWithID(spaces[0].uuid)
-      return { ok: Boolean(switched) && passed, detail: (switched ? "switched to " + spaces[1].name : "did not switch") + "; ctrl+" + missing + (passed ? " passed through" : " was taken") }`,
+      return { ok: Boolean(switched) && passed, detail: (switched ? "switched to " + spaces[1].name : "did not switch") + "; alt+" + missing + (passed ? " passed through" : " was taken") }`,
   },
   {
     name: "ctrl+, opens Zen's settings",
@@ -383,33 +383,28 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "holding ctrl+shift shows every key, and a quick ctrl+shift+key does not",
+    name: "ctrl+/ toggles every key, any other key hides it, and holding ctrl+shift shows nothing",
     body: String.raw`${READY}
       const root = document.documentElement
-      const ctrl = { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }
-      const shift = { key: "Shift", code: "ShiftLeft", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }
       const sheet = () => shadow().querySelector("[data-keysheet]")
-      const hold = () => {
-        root.dispatchEvent(new KeyboardEvent("keydown", ctrl))
-        root.dispatchEvent(new KeyboardEvent("keydown", shift))
-      }
-      const release = () => {
-        root.dispatchEvent(new KeyboardEvent("keyup", { ...shift, shiftKey: false }))
-        root.dispatchEvent(new KeyboardEvent("keyup", { ...ctrl, ctrlKey: false }))
-      }
-      hold()
-      root.dispatchEvent(new KeyboardEvent("keydown", { key: "x", code: "KeyX", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }))
+      root.dispatchEvent(new KeyboardEvent("keydown", { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }))
+      root.dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", code: "ShiftLeft", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }))
       await sleep(700)
-      const quick = !!sheet()
-      release()
-      hold()
+      const held = !!sheet()
+      root.dispatchEvent(new KeyboardEvent("keyup", { key: "Shift", code: "ShiftLeft", ctrlKey: true, bubbles: true, composed: true }))
+      root.dispatchEvent(new KeyboardEvent("keyup", { key: "Control", code: "ControlLeft", bubbles: true, composed: true }))
+      press("ctrl+/", root)
       const text = await until(() => sheet()?.textContent, 2000).catch(() => "")
-      release()
+      press("ctrl+/", root)
+      const toggled = await until(() => !sheet(), 2000).catch(() => false)
+      press("ctrl+/", root)
+      await until(() => sheet(), 2000)
+      const escape = press("escape", root)
       const hidden = await until(() => !sheet(), 2000).catch(() => false)
       const listed = text.includes("Open Zencast") && text.includes("Move tab to space 1…9") && text.includes("Switch to space 1…9")
       return {
-        ok: !quick && listed && hidden,
-        detail: (quick ? "showed on a quick key" : "quick key: no sheet") + "; " + (listed ? "lists the palette and the 1…9 families" : "missing rows: " + text.slice(0, 200)) + (hidden ? "; hidden on release" : "; still shown"),
+        ok: !held && listed && toggled && hidden && escape.defaultPrevented,
+        detail: (held ? "showed on a ctrl+shift hold" : "no sheet on hold") + "; " + (listed ? "lists the palette and the 1…9 families" : "missing rows: " + text.slice(0, 200)) + (toggled ? "; ctrl+/ hides it" : "; ctrl+/ left it") + (hidden && escape.defaultPrevented ? "; escape hides it" : "; escape: " + hidden + ", consumed " + escape.defaultPrevented),
       }`,
   },
   {
@@ -1257,12 +1252,10 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette-spaces")
   await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Alt", code: "AltLeft", bubbles: true, composed: true }))
     await dismiss()
-    document.documentElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }))
-    document.documentElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", code: "ShiftLeft", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }))
-    await sleep(700)`)
+    press("ctrl+/", document.documentElement)
+    await sleep(400)`)
   await shot("keysheet")
-  await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Shift", code: "ShiftLeft", ctrlKey: true, bubbles: true, composed: true }))
-    document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Control", code: "ControlLeft", bubbles: true, composed: true }))
+  await zen.run(String.raw`press("escape", document.documentElement)
     press("ctrl+shift+,", document.documentElement)
     const browser = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings") && gBrowser.selectedBrowser)
     await until(() => browser.contentDocument?.querySelector("nav a"))

@@ -73,7 +73,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
   - 2026-10-28: holding a modifier also lists every key it takes in the palette, so a user needs to learn nothing.
   - 2026-10-28: Ctrl and Alt look the same: the letter underlined in the title and a matching letter badge at the row's end, in the same pastel colour. Alt no longer replaces the icon.
 - **The open key closes (2026-10-28).** Whatever opened the palette (Ctrl+K, Ctrl+T when on) closes it again. The actions panel moved from Ctrl+K to Ctrl+J; the owner first picked Tab, then changed to Ctrl+J.
-- **Key sheet (2026-10-28).** Holding Ctrl+Shift anywhere shows every Zencast key at once, grouped by section; numbered families show as one row ("Switch to space 1…9").
+- **Key sheet (2026-10-28).** Ctrl+/ anywhere shows every Zencast key at once, grouped by section; numbered families show as one row ("Switch to space 1…9"). Any other key, Esc or a click hides it. It first opened on holding Ctrl+Shift; the owner dropped the hold the same day.
 - **Mod overlap (2026-10-28).** A report of enabled Sine mods that claim Zencast's keys or do the palette's job, with a way to turn each off. A Zen command Zencast also has shows once, as Zencast's.
 - **While the palette is open:**
   - its keybindings override everything else;
@@ -104,8 +104,9 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | Key | Action |
 | --- | --- |
 | Ctrl+K | Find anything: tabs, spaces, history, commands, settings |
-| Ctrl+1…9 | Switch to that space |
-| Ctrl+Shift+1…9 | Send the tab to that space and follow it (back from Alt+1…9 on 2026-10-28, which now goes to Zen again) |
+| Ctrl+/ | Every Zencast key |
+| Alt+1…9 | Switch to that space, only while it exists (moved from Ctrl+1…9 on 2026-10-28) |
+| Alt+Shift+1…9 | Send the tab to that space and follow it (moved from Ctrl+Shift+1…9 on 2026-10-28) |
 | Alt+P | Pin or unpin the tab |
 | Alt+Shift+P | Change the pin to the current URL |
 | Ctrl+Shift+N | New folder in the space, or a subfolder when the tab is already in a folder |

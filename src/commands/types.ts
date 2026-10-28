@@ -12,6 +12,9 @@ export type ItemIcon =
   | { kind: "chrome"; url: string }
   | { kind: "dot"; color: string }
 
+/** The kinds of root result a typed prefix narrows to ("@" tabs, "/" commands, …). */
+export type ScopeId = "tabs" | "commands" | "bookmarks" | "settings" | "mods"
+
 /** A nested list pushed onto the palette stack (pickers, confirmations). */
 export interface ListView {
   id: string
@@ -59,6 +62,7 @@ export interface PaletteItem {
   boost?: number
   /** Not ranked by usage because the id does not survive a restart (tabs, web results). */
   transient?: boolean
+  scope?: ScopeId
 }
 
 export interface PaletteControls {

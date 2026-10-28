@@ -53,6 +53,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Everything is one search away.** Every tab in every space and folder, including pinned, essential and sleeping ones, plus history, bookmarks, folders, commands and every Zen setting. Loaded and recent tabs rank first; typos are forgiven. Type a key, like `alt s` or `ctrl space`, to see what it runs.
 
+**Prefixes.** Start with `@` for tabs, `/` for commands, `#` for bookmarks, `$` for settings or `*` for mods, and the search keeps to that kind. `*` lists every Sine mod, on or off, and `Enter` toggles it. `Backspace` on an empty search drops the prefix.
+
 **Open anywhere.** In the palette, `Alt+1…9` aims results at a space and `Ctrl+1…9` at a container. The palette takes that space's colour and name, and `Enter` on an open tab moves it there. Press the key again to clear.
 
 ![Alt+2 tints the palette to a space, Ctrl+1 picks a container](docs/media/spaces.gif)
@@ -127,6 +129,7 @@ In the palette:
 | Hold `Ctrl` or `Alt` | Letter hints on results and a list of that modifier's keys; numbers on containers or spaces |
 | `Alt+1…9`, `Ctrl+1…9` | Open results in that space or container |
 | `Ctrl+.` | Record a shortcut, or assign a key to a tab, folder or site |
+| `@`, `/`, `#`, `$`, `*` first | Search only tabs, commands, bookmarks, settings or mods |
 | `Tab`, `→` | Accept the inline completion |
 | `Esc` | Back, then close |
 

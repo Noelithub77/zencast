@@ -9,6 +9,7 @@ import { jumpId, readConfig, recordUsage, updateConfig, writeConfig } from "@/sh
 import { displaySequence } from "@/shared/keys"
 import { markOpenStart } from "./perf"
 import { bookmarkItems } from "./bookmarks"
+import { inScope } from "./scopes"
 import { keybindingsItem, loadEngineName, rootItems } from "./sources"
 import { getState, HOST_ID, setState } from "./store"
 
@@ -66,7 +67,7 @@ function buildRoot(ctx: CommandContext): PaletteItem[] {
   // A Zen command loses the key a Zencast binding has taken, so the palette shows who owns it.
   const taken = new Set([...bindings.values()].flat())
   const native = nativeCache.map((item) => (item.keys && taken.has(item.keys) ? { ...item, keys: undefined } : item))
-  return [...rootItems(ctx, bindings, native), ...bookmarkItems(ctx, bindings), keybindingsItem(ctx)]
+  return [...rootItems(ctx, bindings, native), ...inScope("bookmarks", bookmarkItems(ctx, bindings)), ...inScope("settings", [keybindingsItem(ctx)])]
 }
 
 export function openPalette(view?: ListView) {

@@ -89,6 +89,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - **History completion and favicons (2026-10-28).** The inline completion must cover every site in history, not only the DNS cache (typing "instagram" completes instagram.com). Results show real favicons, including the typed-URL row.
 - **Localhost switcher (2026-10-28).** Alt+L lists the dev servers listening on this machine, found from open ports, and jumps to the tab already on one or opens it.
 - **Search everything (2026-10-28).** Search covers each result's title, description and keys: typing a key ("ctrl j", "alt s") lists what it runs.
+- **Prefixes (2026-10-28).** Like a chat box's "@ files, $ skills, / commands": a first character narrows the search. The owner left the set to the agent: `@` tabs, `/` commands, `#` bookmarks, `$` settings, `*` mods (every Sine mod, toggled with Enter). The placeholder lists them; the prefix becomes a chip that Backspace removes.
 - Best fuzzy search for speed and typo tolerance.
 
 ### Keys (the owner's current personal setup)

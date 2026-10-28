@@ -23,6 +23,8 @@ import { isBrowserShortcut, ItemGlyph } from "./parts"
 import { markOpenPainted, record, timed } from "./perf"
 import { buildIndex, isStrongMatch, search } from "./search"
 import { quickLink } from "./bookmarks"
+import { modItems } from "@/commands/mods"
+import { scopeFor, SCOPES, type Scope } from "./scopes"
 import { queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
@@ -276,6 +278,25 @@ function typedIcon(url: string, web: WebResult[]): string {
   return `page-icon:${page ?? new URL(url).origin + "/"}`
 }
 
+const SCOPE_HINT = SCOPES.map((scope) => `${scope.prefix} ${scope.name.toLowerCase()}`).join("  ")
+
+// Loaded when the "*" scope opens, and again after a keep-open action rebuilds the root.
+function useMods(context: CommandContext | null, enabled: boolean, root: PaletteItem[]): PaletteItem[] {
+  const [mods, setMods] = useState<PaletteItem[]>([])
+  const [version, setVersion] = useState(0)
+  useEffect(() => {
+    if (!context || !enabled) return
+    let live = true
+    modItems(context, () => setVersion((v) => v + 1))
+      .then((items) => live && setMods(items))
+      .catch((error: unknown) => console.error("[zencast] mods", error))
+    return () => {
+      live = false
+    }
+  }, [context, enabled, root, version])
+  return mods
+}
+
 function caretAtEnd(target: EventTarget | undefined): boolean {
   return target instanceof HTMLInputElement && target.selectionStart === target.value.length
 }
@@ -299,25 +320,31 @@ export function Palette() {
   const [panel, setPanel] = useState(false)
   // Inline completion is offered only while the user types forward, as in the URL bar.
   const [fill, setFill] = useState(false)
+  // A prefix typed first ("@", "/", …) narrows the root search to one kind of result.
+  const [scope, setScope] = useState<Scope | null>(null)
   if (seenKey !== viewKey) {
     setSeenKey(viewKey)
     setQuery(view?.prompt?.initial ?? "")
     setSelected("")
     setPanel(false)
     setFill(false)
+    setScope(null)
   }
 
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const config = readConfig()
   const q = query.trim()
-  const wantsSettings = !view && q.length >= 2
+  const wantsSettings = !view && !scope && q.length >= 2
+  const mods = useMods(context, scope?.id === "mods", root)
 
   const index = useMemo(() => {
     if (view) return buildIndex(view.items)
+    if (scope?.id === "mods") return buildIndex(mods)
+    if (scope) return buildIndex((context ? rootWithSettings(context, root).items : root).filter((item) => item.scope === scope.id))
     if (!wantsSettings || !context) return buildIndex(root)
     return rootWithSettings(context, root)
-  }, [view, root, wantsSettings, context])
+  }, [view, root, wantsSettings, context, scope, mods])
 
   // Builds the settings index while idle so the second typed character doesn't pay for it.
   useEffect(() => {
@@ -325,7 +352,7 @@ export function Palette() {
     const handle = context.win.requestIdleCallback(() => rootWithSettings(context, root))
     return () => context.win.cancelIdleCallback(handle)
   }, [open, context, root])
-  const web = useWebResults(context, view ? "" : q, config.urlResults)
+  const web = useWebResults(context, view || scope ? "" : q, config.urlResults)
   const domains = useDnsDomains(open)
 
   const { groups, suffix } = useMemo(() => timed("search", () => {
@@ -342,7 +369,7 @@ export function Palette() {
       return { groups: [{ section: view.title, items: [item] }], suffix: "" }
     }
     const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
-    if (view || !context || !q) return { groups: groupBySection(found), suffix: "" }
+    if (view || scope || !context || !q) return { groups: groupBySection(found), suffix: "" }
 
     const out: Group[] = []
     // A typed keyword leads with its quick link, and its bookmark's own row steps aside.
@@ -361,7 +388,7 @@ export function Palette() {
     if (url || strong) webList.unshift(...searchItems)
     if (webList.length) out.push({ section: "Web", items: webList })
     return { groups: out, suffix }
-  }), [index, q, query, view, context, wantsSettings, web, domains, fill, config.maxResults])
+  }), [index, q, query, view, scope, context, wantsSettings, web, domains, fill, config.maxResults])
 
   const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])
@@ -483,7 +510,13 @@ export function Palette() {
       consume()
       if (query) setQuery("")
       else if (stack.length) popView()
+      else if (scope) setScope(null)
       else closePalette(true)
+      return
+    }
+    if (combo === "backspace" && !query && !view && scope) {
+      consume()
+      setScope(null)
       return
     }
     if (combo === "backspace" && !query && (stack.length || openIn || space)) {
@@ -562,7 +595,9 @@ export function Palette() {
   }, [open, context])
 
   const targets = [space?.name, openIn?.name].filter(Boolean).join(" · ")
-  const placeholder = view?.placeholder ?? (targets ? `Open in ${targets}` : "Search or type a URL")
+  const placeholder =
+    view?.placeholder ??
+    (scope ? `Search ${scope.name.toLowerCase()}` : targets ? `Open in ${targets}` : `Search or type a URL · ${SCOPE_HINT}`)
   const primary = active?.actions[0]
   const accent = space?.color ?? openIn?.color
 
@@ -597,6 +632,15 @@ export function Palette() {
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-3.5" />
               </button>
+            ) : scope ? (
+              <span
+                data-scope=""
+                className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pr-3 pl-2.5 text-sm font-medium animate-in fade-in-0 zoom-in-90 duration-150"
+                style={{ backgroundColor: `color-mix(in srgb, ${scope.color} 18%, transparent)`, color: `color-mix(in srgb, ${scope.color} 70%, var(--foreground))` }}
+              >
+                <HugeiconsIcon icon={scope.icon} strokeWidth={2} className="size-4" />
+                {scope.name}
+              </span>
             ) : (
               <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-6 shrink-0 text-faint" />
             )}
@@ -604,6 +648,13 @@ export function Palette() {
               ref={inputRef}
               value={query + suffix}
               onValueChange={(value) => {
+                const typed = !view && !scope && !query ? scopeFor(value.charAt(0)) : undefined
+                if (typed) {
+                  setScope(typed)
+                  setQuery(value.slice(1))
+                  setSelected("")
+                  return
+                }
                 setFill(value.length > query.length)
                 setQuery(value)
                 setSelected("")

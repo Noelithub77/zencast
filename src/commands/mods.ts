@@ -1,8 +1,8 @@
-// The mod overlap report: enabled Sine mods that claim a key Zencast uses, or do a job Zencast
-// already does, each with a way to turn it off through Sine.
+// Installed Sine mods to turn on and off, and the overlap report: enabled mods that claim a key
+// Zencast uses, or do a job Zencast already does, each with a way to turn it off through Sine.
 import { PuzzleIcon } from "@hugeicons/core-free-icons"
 
-import { enabledMods, modKeys, toggleMod, type SineMod } from "@/browser/sine-mods"
+import { enabledMods, installedMods, modKeys, toggleMod, type SineMod } from "@/browser/sine-mods"
 import { effectiveBindings } from "@/keys/bindings"
 import { readConfig } from "@/shared/config"
 import { allCommands } from "./jumps"
@@ -52,6 +52,31 @@ function overlapItem(ctx: CommandContext, mod: SineMod, clashes: Array<[string, 
       },
     ],
   }
+}
+
+/** Every installed mod as a row that turns it on or off, for the "*" scope. */
+export async function modItems(ctx: CommandContext, onChange: () => void): Promise<PaletteItem[]> {
+  return (await installedMods()).map((mod) => ({
+    id: `mod:${mod.id}`,
+    title: mod.name,
+    section: "Mods",
+    scope: "mods",
+    icon: { kind: "icon", icon: PuzzleIcon },
+    accessory: mod.enabled ? "On" : "Off",
+    accessoryColor: mod.enabled ? "var(--mint)" : "var(--faint)",
+    actions: [
+      {
+        id: "toggle",
+        title: mod.enabled ? "Turn off" : "Turn on",
+        keepOpen: true,
+        run: async () => {
+          await toggleMod(mod.id)
+          ctx.ui.toast(`${mod.name} ${mod.enabled ? "off" : "on"}`)
+          onChange()
+        },
+      },
+    ],
+  }))
 }
 
 async function overlapView(ctx: CommandContext): Promise<ListView | void> {

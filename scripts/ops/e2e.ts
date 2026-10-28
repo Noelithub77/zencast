@@ -435,6 +435,44 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "a typed prefix narrows search to tabs, commands or settings, and backspace clears it",
+    body: String.raw`${READY}
+      const tab = newTab("data:text/html,<title>Zebra scope</title>x")
+      await until(() => tab.label === "Zebra scope", 3000).catch(() => false)
+      // The palette leaves out the current tab.
+      gBrowser.selectedTab = gBrowser.tabs.find((t) => t !== tab)
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      const chip = () => shadow().querySelector("[data-scope]")?.textContent ?? ""
+      const headings = () => [...shadow().querySelectorAll("[cmdk-group-heading]:not([hidden])")].map((h) => h.textContent)
+      const step = async (text) => {
+        typeQuery(text)
+        await sleep(150)
+        return { chip: chip(), first: resultTitles()[0] ?? "", headings: headings() }
+      }
+      const tabs = await step("@zebra")
+      typeQuery("")
+      await sleep(50)
+      press("backspace")
+      await sleep(80)
+      const cleared = chip() === ""
+      const commands = await step("/sessions")
+      typeQuery("")
+      await sleep(50)
+      press("backspace")
+      await sleep(80)
+      const settings = await step("$vertical tabs")
+      await dismiss()
+      gBrowser.removeTab(tab)
+      const ok = tabs.chip === "Tabs" && tabs.first.startsWith("Zebra scope") && !tabs.headings.includes("Web") && !tabs.headings.includes("Search")
+        && cleared && commands.chip === "Commands" && commands.first.startsWith("Sessions")
+        && settings.chip === "Settings" && settings.headings.every((h) => h === "Settings")
+      return {
+        ok,
+        detail: "@zebra → " + tabs.chip + ": " + tabs.first + " [" + tabs.headings + "]; " + (cleared ? "cleared" : "not cleared") + "; /sessions → " + commands.chip + ": " + commands.first + "; $vertical tabs → " + settings.chip + ": " + settings.first + " [" + settings.headings + "]",
+      }`,
+  },
+  {
     name: "typing a key finds what it runs",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)
@@ -871,9 +909,20 @@ const SCENARIOS: Scenario[] = [
         const toast = await until(() => toastText().includes("Turned off") && toastText(), 2000).catch(() => toastText())
         const pinner = rows.find((row) => row.startsWith("Fake pinner")) ?? ""
         const palette = rows.find((row) => row.startsWith("Fake tab palette")) ?? ""
+        // "*" lists every mod, off ones too, and Enter turns one back on in place.
+        await until(() => !paletteOpen(), 2000).catch(() => dismiss())
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("*fake pin")
+        const listed = await until(() => (resultTitles()[0] ?? "").startsWith("Fake pinnerOff") && resultTitles()[0], 4000).catch(() => resultTitles()[0] ?? "")
+        press("enter")
+        const shown = await until(() => (resultTitles()[0] ?? "").startsWith("Fake pinnerOn") && resultTitles()[0], 4000).catch(() => resultTitles()[0] ?? "")
+        const enabled = (await utils.getMods())["zc-pinner"]?.enabled === true
+        await dismiss()
         return {
-          ok: pinner.includes("Same key as Pin or unpin tab") && !pinner.includes("Open Zencast") && palette.includes("Same key as Open Zencast") && disabled,
-          detail: "pinner: " + pinner + " | palette: " + palette + " | " + (disabled ? "turned off" : "still on") + "; toast: " + toast,
+          ok: pinner.includes("Same key as Pin or unpin tab") && !pinner.includes("Open Zencast") && palette.includes("Same key as Open Zencast") && disabled
+            && listed.startsWith("Fake pinnerOff") && shown.startsWith("Fake pinnerOn") && enabled,
+          detail: "pinner: " + pinner + " | palette: " + palette + " | " + (disabled ? "turned off" : "still on") + "; toast: " + toast + " | *fake pin: " + listed + " → " + shown,
         }
       } finally {
         const mods = await utils.getMods()
@@ -931,6 +980,9 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette-search")
   await zen.run(String.raw`press("ctrl+j"); await sleep(300)`)
   await shot("palette-actions")
+  await zen.run(String.raw`press("escape"); typeQuery(""); await sleep(100); typeQuery("/"); await sleep(300)`)
+  await shot("palette-scope")
+  await zen.run(String.raw`press("backspace"); await sleep(100)`)
   await zen.run(String.raw`press("escape"); typeQuery(""); await sleep(100)
     if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second")
     press("alt+2"); press("ctrl+2"); await sleep(400)`)

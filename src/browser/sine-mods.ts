@@ -20,16 +20,23 @@ export interface SineMod {
   id: string
   name: string
   folder: string
+  enabled: boolean
 }
 
-/** Enabled mods other than Zencast. */
-export async function enabledMods(): Promise<SineMod[]> {
+/** Installed mods other than Zencast, on or off, by name. */
+export async function installedMods(): Promise<SineMod[]> {
   const utils = sine()
   const parsed = MODS.safeParse(await utils.getMods())
   if (!parsed.success) return []
   return Object.entries(parsed.data)
-    .filter(([id, mod]) => mod.enabled && id !== "zencast")
-    .map(([id, mod]) => ({ id, name: mod.name || id, folder: utils.getModFolder(id) }))
+    .filter(([id]) => id !== "zencast")
+    .map(([id, mod]) => ({ id, name: mod.name || id, folder: utils.getModFolder(id), enabled: !!mod.enabled }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Enabled mods other than Zencast. */
+export async function enabledMods(): Promise<SineMod[]> {
+  return (await installedMods()).filter((mod) => mod.enabled)
 }
 
 async function scripts(folder: string, depth = 0): Promise<string[]> {

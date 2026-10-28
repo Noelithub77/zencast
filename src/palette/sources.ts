@@ -31,6 +31,7 @@ import { chooseContainer, COMMANDS, containerItems, openSettings } from "@/comma
 import type { CommandContext, ItemAction, ListView, PaletteItem } from "@/commands/types"
 import { paletteOnCtrlT, setPaletteOnCtrlT } from "@/keys/bindings"
 import { jumpId, readConfig, RESULT_LIMITS, updateConfig, type Jump } from "@/shared/config"
+import { inScope } from "./scopes"
 import { buildIndex, type SearchIndex } from "./search"
 import { getState } from "./store"
 
@@ -195,16 +196,14 @@ function spaceItems(ctx: CommandContext): PaletteItem[] {
 /** Everything searchable without a query-specific source; built synchronously on open. */
 export function rootItems(ctx: CommandContext, bindings: Map<string, string[]>, native: PaletteItem[]): PaletteItem[] {
   return [
-    ...commandItems(ctx, bindings),
-    ...native,
-    ...tabItems(ctx, bindings),
-    ...folderItems(ctx, bindings),
-    ...spaceItems(ctx),
+    ...inScope("commands", commandItems(ctx, bindings)),
+    ...inScope("commands", native),
+    ...inScope("tabs", [...tabItems(ctx, bindings), ...folderItems(ctx, bindings), ...spaceItems(ctx)]),
     ...containerItems(
       ctx,
       { title: "Open next in container", keepOpen: true, run: (id) => chooseContainer(ctx, id) },
       { title: "Open blank tab", run: (id) => placeInSpace(ctx, openInContainer(ctx.win, id)) },
-    ).map((item) => ({ ...item, keywords: "container" })),
+    ).map((item): PaletteItem => ({ ...item, keywords: "container", scope: "commands" })),
   ]
 }
 
@@ -258,7 +257,7 @@ export function settingsItems(ctx: CommandContext): PaletteItem[] {
       ],
     }
   })
-  return [...panes, ...prefs, ...valueItems(ctx), ...zencastItems(ctx)]
+  return inScope("settings", [...panes, ...prefs, ...valueItems(ctx), ...zencastItems(ctx)])
 }
 
 function promptView(title: string, initial: string, submit: (value: string) => void): ListView {

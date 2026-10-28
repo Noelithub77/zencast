@@ -51,7 +51,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ## Features
 
-**Everything is one search away.** Every tab in every space and folder, including pinned, essential and sleeping ones, plus history, bookmarks, folders, commands and every Zen setting. Loaded and recent tabs rank first; typos are forgiven.
+**Everything is one search away.** Every tab in every space and folder, including pinned, essential and sleeping ones, plus history, bookmarks, folders, commands and every Zen setting. Loaded and recent tabs rank first; typos are forgiven. Type a key, like `alt s` or `ctrl space`, to see what it runs.
 
 **Open anywhere.** In the palette, `Alt+1…9` aims results at a space and `Ctrl+1…9` at a container. The palette takes that space's colour and name, and `Enter` on an open tab moves it there. Press the key again to clear.
 
@@ -64,6 +64,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 **Key sheet.** Hold `Ctrl+Shift` for a moment, anywhere in Zen, to see every Zencast key at once, grouped like the palette. Let go to hide it.
 
 **Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart. `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
+
+**Localhost.** `Alt+L` lists the dev servers running on your machine, by page title and port. `Enter` switches to the tab already on one, or opens it.
 
 **Settings in place.** Type a setting's name: switches flip right in the list, and numbers or text open a prompt.
 
@@ -112,6 +114,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Alt+M` | Move the tab's session to another container |
 | `Alt+Shift+W` | Wipe the site's data and history |
 | `Alt+S` | Past sessions |
+| `Alt+L` | Local dev servers |
 | `Ctrl+Space` then `E`, `F`, `W` | Toggle essential, move to a folder, move to a space |
 
 In the palette:

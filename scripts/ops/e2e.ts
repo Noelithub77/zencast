@@ -1,5 +1,6 @@
 // End-to-end checks and interaction benchmarks, run against an isolated headless Zen.
 import { mkdir, writeFile } from "node:fs/promises"
+import { createServer } from "node:http"
 import { join } from "node:path"
 
 import type { Zen } from "./zen.ts"
@@ -19,7 +20,7 @@ interface Scenario {
 
 const READY = String.raw`await until(() => window.Zencast && document.getElementById("zencast-host"), 20000)`
 
-// Places for the bookmark scenarios; its calls are async, which until() does not poll.
+// Places for the bookmark scenarios; poll() gives up quietly where until() throws.
 const PLACES = String.raw`const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs")
       const poll = async (fn, ms = 3000) => {
         const end = Date.now() + ms
@@ -30,6 +31,9 @@ const PLACES = String.raw`const { PlacesUtils } = ChromeUtils.importESModule("re
         }
       }
       const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""`
+
+// A dev server the runner starts on a free port, written into scenario bodies in place of this token.
+const LOCAL_PORT = "__LOCAL_PORT__"
 
 const SCENARIOS: Scenario[] = [
   {
@@ -401,6 +405,52 @@ const SCENARIOS: Scenario[] = [
       return {
         ok: !!saved && first.startsWith("Today") && !!reopened,
         detail: (saved ? "saved " + saved.windows.length + " window(s)" : "not saved") + "; first row " + first + "; " + (reopened ? "reopened" : "not reopened"),
+      }`,
+  },
+  {
+    name: "alt+l lists a local dev server, opens it, then switches to its tab",
+    body: String.raw`${READY}
+      const url = "http://localhost:${LOCAL_PORT}/"
+      const pick = async () => {
+        press("alt+l", document.documentElement)
+        await until(paletteOpen, 4000)
+        const listed = await until(() => resultTitles().some((title) => title.startsWith("Kiwi dev server")), 4000).catch(() => false)
+        typeQuery("kiwi dev")
+        await sleep(150)
+        press("enter")
+        return listed
+      }
+      const listed = await pick()
+      const tab = await until(() => gBrowser.tabs.find((t) => t.linkedBrowser?.currentURI.spec === url), 4000).catch(() => null)
+      const count = gBrowser.tabs.length
+      gBrowser.selectedTab = gBrowser.tabs.find((t) => t !== tab)
+      await pick()
+      const switched = await until(() => tab && gBrowser.selectedTab === tab, 3000).catch(() => false)
+      const same = gBrowser.tabs.length === count
+      await dismiss()
+      if (tab) gBrowser.removeTab(tab)
+      return {
+        ok: listed && !!tab && switched && same,
+        detail: (listed ? "listed" : "not listed") + "; " + (tab ? "opened" : "not opened") + "; " + (switched && same ? "switched to its tab" : "did not switch"),
+      }`,
+  },
+  {
+    name: "typing a key finds what it runs",
+    body: String.raw`${READY}
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      const firstFor = async (text) => {
+        typeQuery(text)
+        await sleep(150)
+        return resultTitles()[0] ?? ""
+      }
+      const sessions = await firstFor("alt s")
+      const plus = await firstFor("Alt + L")
+      const chord = await firstFor("ctrl space")
+      await dismiss()
+      return {
+        ok: sessions.startsWith("Sessions") && plus.startsWith("Localhost") && chord !== "" && !chord.startsWith("Search"),
+        detail: "alt s → " + sessions + "; Alt + L → " + plus + "; ctrl space → " + chord,
       }`,
   },
   {
@@ -838,12 +888,16 @@ const SCENARIOS: Scenario[] = [
 ]
 
 export async function runScenarios(zen: Zen): Promise<ScenarioResult[]> {
+  const server = createServer((_, response) => response.writeHead(200, { "content-type": "text/html" }).end("<title>Kiwi dev server</title>"))
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  const address = server.address()
+  const port = String(typeof address === "object" && address ? address.port : 0)
   const results: ScenarioResult[] = []
   for (const scenario of SCENARIOS) {
     console.error(`… ${scenario.name}`)
     const start = performance.now()
     try {
-      const value = await zen.run(scenario.body)
+      const value = await zen.run(scenario.body.replaceAll(LOCAL_PORT, port))
       const ok = typeof value === "object" && value !== null && "ok" in value && value.ok === true
       const detail = typeof value === "object" && value !== null && "detail" in value ? String(value.detail) : ""
       results.push({ name: scenario.name, ok, detail, ms: Math.round(performance.now() - start) })
@@ -852,6 +906,7 @@ export async function runScenarios(zen: Zen): Promise<ScenarioResult[]> {
       results.push({ name: scenario.name, ok: false, detail: message, ms: Math.round(performance.now() - start) })
     }
   }
+  server.close()
   return results
 }
 

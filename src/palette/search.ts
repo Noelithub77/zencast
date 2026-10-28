@@ -2,6 +2,7 @@ import uFuzzy from "@leeoniya/ufuzzy"
 
 import type { PaletteItem } from "@/commands/types"
 import type { Usage } from "@/shared/config"
+import { sequenceFromText } from "@/shared/keys"
 
 // Single-error mode tolerates one typo per term (swap, missing, extra or wrong letter), which covers
 // most fast-typing mistakes without the noise of fully fuzzy matching.
@@ -38,11 +39,23 @@ export function usageScore(usage: Usage, id: string, now = Date.now()): number {
   return Math.log2(1 + count) / (1 + days / 7)
 }
 
-/** Title starts with the query, or with each of its words in order. */
+// Parsed once per query; isStrongMatch runs for every ranked item.
+let parsed = { text: "", sequence: null as string | null }
+function typedSequence(text: string): string | null {
+  if (parsed.text !== text) parsed = { text, sequence: sequenceFromText(text) }
+  return parsed.sequence
+}
+
+/** The item runs on this key sequence, or on a chord that starts with it. */
+const bindsTo = (item: PaletteItem, sequence: string) => !!item.keys && (item.keys === sequence || item.keys.startsWith(`${sequence} `))
+
+/** Title starts with the query, or with each of its words in order, or the query is the item's key. */
 export function isStrongMatch(item: PaletteItem, query: string): boolean {
   const title = item.title.toLowerCase()
   const q = query.trim().toLowerCase()
   if (!q) return false
+  const sequence = typedSequence(q)
+  if (sequence && bindsTo(item, sequence)) return true
   if (title.startsWith(q)) return true
   const words = title.split(/\s+/)
   return q.split(/\s+/).every((term) => words.some((word) => word.startsWith(term)))
@@ -67,9 +80,12 @@ export function search(index: SearchIndex, query: string, usage: Usage, limit: n
       .slice(0, limit)
   }
 
+  // A typed key ("ctrl j") lists what it runs first, including chords that start with it.
+  const sequence = typedSequence(q.toLowerCase())
+  const bound = sequence ? index.items.filter((item) => bindsTo(item, sequence)) : []
+  const ranked: Ranked[] = bound.map((item) => ({ item, score: 100 + (item.keys === sequence ? 1 : 0) }))
   const [idxs, info, order] = fuzzy.search(index.haystack, q, OUT_OF_ORDER)
-  if (!idxs) return []
-  const ranked: Ranked[] = []
+  if (!idxs) return ranked.slice(0, limit)
   if (info && order) {
     // Matches uFuzzy scores the same (same position, gaps and terms) share a rank, so boosts such as
     // "loaded tab" decide between them instead of uFuzzy's final tiebreak on text length.
@@ -92,7 +108,8 @@ export function search(index: SearchIndex, query: string, usage: Usage, limit: n
       ranked.push({ item, score: score(item, q, rank, idxs.length, usage, now) })
     }
   }
-  return ranked.sort((a, b) => b.score - a.score).slice(0, limit)
+  const unique = ranked.filter((entry, i) => i < bound.length || !bound.includes(entry.item))
+  return unique.sort((a, b) => b.score - a.score).slice(0, limit)
 }
 
 function score(item: PaletteItem, query: string, rank: number, total: number, usage: Usage, now: number): number {

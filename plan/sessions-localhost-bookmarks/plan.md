@@ -8,7 +8,7 @@ Owner's choices (2026-10-28):
 
 ## Shape
 
-- `src/browser/sessions.ts`: one JSON file per session in `<profile>/zencast/sessions/<start>.json`. The most recent window writes all windows after SessionStore writes (at most every 30 s) and at quit; windows closed earlier keep their last tabs. Old files are deleted at start.
+- `src/browser/sessions.ts`: one JSON file per session in `<profile>/zencast/sessions/<start>.json`. The most recent window writes all windows after each SessionStore write and at quit; windows closed earlier keep their last tabs. Old files are deleted at start.
 - `src/commands/sessions.ts`: sessions → windows → tabs, opening tabs into this window.
 - `src/settings/sections/SessionsSection.tsx`: the same list in settings.
 - `src/browser/localhost.ts`: listening ports from `ss`, then `lsof`, then `netstat`, probed over HTTP for a page title.

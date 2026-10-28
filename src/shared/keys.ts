@@ -92,6 +92,39 @@ export function hasModifier(combo: string): boolean {
   return combo.includes("+")
 }
 
+const MODIFIER_WORDS: Record<string, Modifier> = {
+  ctrl: "ctrl",
+  control: "ctrl",
+  alt: "alt",
+  option: "alt",
+  shift: "shift",
+  meta: "meta",
+  super: "meta",
+  cmd: "meta",
+}
+const KEY_WORDS = new Set([...Object.values(CODE_KEYS), "esc"])
+
+/**
+ * Typed text that names a key, so a search for "ctrl j", "Ctrl + Shift + K" or "ctrl+space f" can
+ * find what it runs. The first combo needs a modifier; otherwise null.
+ */
+export function sequenceFromText(text: string): string | null {
+  const combos: string[] = []
+  let mods: Modifier[] = []
+  for (const word of text.trim().toLowerCase().split(/\s*\+\s*|\s+/).filter(Boolean)) {
+    const mod = MODIFIER_WORDS[word]
+    if (mod) {
+      mods.push(mod)
+      continue
+    }
+    if (word.length !== 1 && !KEY_WORDS.has(word) && !/^f\d{1,2}$/.test(word)) return null
+    if (!combos.length && !mods.length) return null
+    combos.push(normalizeCombo([...mods, word === "esc" ? "escape" : word].join("+")))
+    mods = []
+  }
+  return combos.length && !mods.length ? combos.join(" ") : null
+}
+
 /** Display parts for one sequence, e.g. [["Ctrl","Space"],["W"]]. */
 export function displaySequence(sequence: string): string[][] {
   return sequence

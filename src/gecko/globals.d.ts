@@ -271,6 +271,7 @@ declare global {
     }
     io: { newURI(spec: string): nsIURI }
     startup: { getStartupInfo(): { process?: Date } }
+    appinfo: { processID: number }
     eTLD: { getBaseDomain(uri: nsIURI): string; getBaseDomainFromHost(host: string): string; getSchemelessSite(uri: nsIURI): string }
     scriptSecurityManager: {
       getSystemPrincipal(): nsIPrincipal

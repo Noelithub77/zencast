@@ -87,6 +87,8 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - **Google account containers (2026-10-28).** Find the Google accounts signed in to Zen and give each its own container named after its email, signed in once per container with the email filled in. Cache the account list, never the cookies, and offer a container when a new account signs in.
 - **Sessions (2026-10-28).** Every run of Zen is a session named by its start time, in 24-hour time with relative days (Today, Yesterday, weekday, then the date), and each window is kept apart. Picking restores tabs into the current window, not a new one. Kept for 7 days, then cleared. Alt+S and a Sessions page in settings.
 - **History completion and favicons (2026-10-28).** The inline completion must cover every site in history, not only the DNS cache (typing "instagram" completes instagram.com). Results show real favicons, including the typed-URL row.
+- **Localhost switcher (2026-10-28).** Alt+L lists the dev servers listening on this machine, found from open ports, and jumps to the tab already on one or opens it.
+- **Search everything (2026-10-28).** Search covers each result's title, description and keys: typing a key ("ctrl j", "alt s") lists what it runs.
 - Best fuzzy search for speed and typo tolerance.
 
 ### Keys (the owner's current personal setup)

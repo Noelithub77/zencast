@@ -1,0 +1,17 @@
+{
+  "name": "zencast-blog",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "diagrams": "node scripts/diagrams.ts",
+    "medium": "node scripts/medium.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "roughjs": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "~6.0.2"
+  }
+}

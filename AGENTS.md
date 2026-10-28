@@ -24,6 +24,7 @@ Read `PREFERENCE.md` before changing the project's direction, wording, design or
 | `scripts/install/` | The public setup scripts, `install.sh` and its Windows twin `install.ps1` |
 | `docs/` | Distribution reference and the README's media |
 | `site/` | The landing page at zencast.allpyq.in: Vite, rough.js scenes, GSAP and an OGL shader, deployed as a static-assets Worker (`site/wrangler.jsonc`) |
+| `blog/` | The Medium article, its rough.js figures and the Medium export; `blog/README.md` covers the workflow |
 | `PREFERENCE.md` | The owner's intent and every stated preference |
 | `.github/workflows/release.yml` | Hand-triggered release, running `pnpm ops release` |
 

@@ -23,7 +23,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['scripts/**/*.ts', 'vite.config.ts', 'site/vite.config.ts'],
+    files: ['scripts/**/*.ts', 'blog/scripts/**/*.ts', 'vite.config.ts', 'site/vite.config.ts'],
     languageOptions: {
       globals: globals.node,
     },

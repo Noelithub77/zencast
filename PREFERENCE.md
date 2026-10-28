@@ -68,14 +68,18 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - Search every Zen setting, and show each one's keybinding. Change settings from the palette itself.
 - Fuzzy-search every tab: active, unloaded and pinned, in all folders, plus folder names. Active tabs rank above unloaded ones.
 - **DNS cache fill.** Typing "allpyq" fills "allpyq.in" from the DNS cache plus history. When the DNS cache has a match, it always wins Enter.
-- **Hold Ctrl for hints:** numbers for options and a letter marked in each title, vim-style.
+- **Hold Ctrl or Alt for hints:** a letter marked in each title, vim-style, and numbers for containers (Ctrl) or spaces (Alt).
+  - 2026-10-28: bigger, many pastel colours (one per row). Ctrl shows a coloured key badge at the row's right end; Alt shows just the big coloured letter, no background, in place of the icon on the left.
+  - 2026-10-28: holding a modifier also lists every key it takes in the palette, so a user needs to learn nothing.
+- **The open key closes (2026-10-28).** Whatever opened the palette (Ctrl+K, Ctrl+T when on) closes it again. The actions panel moved from Ctrl+K to Ctrl+J; the owner first picked Tab, then changed to Ctrl+J.
+- **Mod overlap (2026-10-28).** A report of enabled Sine mods that claim Zencast's keys or do the palette's job, with a way to turn each off. A Zen command Zencast also has shows once, as Zencast's.
 - **While the palette is open:**
   - its keybindings override everything else;
   - Alt+1/2/3 tints the palette to that space, names it, and opens the result there;
   - Ctrl+1/2/3 does the same for containers, with container colour and name;
   - both are toggles: pressing again reverts. Transitions are smooth.
 - Ideas the owner chose: record keys from the palette, all settings in the palette, keys for tabs and sites, and hold-to-reveal strips.
-- A bit bigger, and centred on screen.
+- A bit bigger, and centred on screen. Made bigger again on 2026-10-28 (wider, taller rows, larger type).
 - **Bookmarks (2026-10-28).** Bookmark search and bookmark keys must work. Bookmarking is keyboard-first on Ctrl+B, filled in the palette with an optional keyword; Ctrl+D stays the owner's duplicate key. Quick links are Firefox bookmark keywords, one source of truth with the address bar, and a starter set is offered by a command, never added unasked.
 - **Ask an assistant (2026-10-28).** Any query can go to ChatGPT or Claude as a prompt, offered right under the web search row.
 - **Google account containers (2026-10-28).** Find the Google accounts signed in to Zen and give each its own container named after its email, signed in once per container with the email filled in. Cache the account list, never the cookies, and offer a container when a new account signs in.
@@ -87,7 +91,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | --- | --- |
 | Ctrl+K | Find anything: tabs, spaces, history, commands, settings |
 | Ctrl+1…9 | Switch to that space |
-| Alt+1…9 | Send the tab to that space and follow it (replaced Ctrl+Shift+1…9) |
+| Ctrl+Shift+1…9 | Send the tab to that space and follow it (back from Alt+1…9 on 2026-10-28, which now goes to Zen again) |
 | Alt+P | Pin or unpin the tab |
 | Alt+Shift+P | Change the pin to the current URL |
 | Ctrl+Shift+N | New folder in the space, or a subfolder when the tab is already in a folder |

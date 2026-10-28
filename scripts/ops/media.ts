@@ -273,7 +273,7 @@ export async function captureMedia(zen: Zen, dir: string, video = false): Promis
   await zen.run(OPEN + "\n  await sleep(300)")
   await shot("palette.png")
 
-  await zen.run(String.raw`typeQuery("github"); await sleep(150); press("ctrl+k"); await sleep(300)`)
+  await zen.run(String.raw`typeQuery("github"); await sleep(150); press("ctrl+j"); await sleep(300)`)
   await shot("actions.png")
 
   await zen.run(String.raw`await dismiss(); ${OPEN}

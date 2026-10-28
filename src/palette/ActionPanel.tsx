@@ -14,12 +14,12 @@ interface ActionPanelProps {
 
 export function ActionPanel({ item, numbered, onRun }: ActionPanelProps) {
   return (
-    <div className="absolute right-2.5 bottom-14 z-10 w-88 rounded-xl border bg-popover shadow-2xl shadow-black/60">
+    <div className="absolute right-2.5 bottom-16 z-10 w-88 rounded-xl border bg-popover shadow-2xl shadow-black/60">
       <Command
         vimBindings={false}
         loop
         className="rounded-xl bg-transparent p-1"
-        // Escape, Ctrl+K and Ctrl+digit are handled by the palette; keep list keys to the panel.
+        // Escape, Ctrl+J and Ctrl+digit are handled by the palette; keep list keys to the panel.
         onKeyDown={(event) => event.stopPropagation()}
       >
         <CommandList className="max-h-64 p-0.5">

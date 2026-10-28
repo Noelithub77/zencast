@@ -39,6 +39,7 @@ import { canCopy, isPageFocused, pageHasSelection } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { bookmarkCommands } from "./bookmarks"
 import { googleCommands } from "./google"
+import { modCommands } from "./mods"
 import type { Command, CommandContext, ListView, PaletteItem } from "./types"
 
 export const SETTINGS_URL = "chrome://sine/content/zencast/settings/index.html"
@@ -120,7 +121,7 @@ const moveToSpaceN: Command[] = Array.from({ length: 9 }, (_, i) => ({
   section: "Spaces",
   icon: Layers01Icon,
   hidden: true,
-  defaultKeys: [`alt+${i + 1}`],
+  defaultKeys: [`ctrl+shift+${i + 1}`],
   when: (ctx) => listWorkspaces(ctx.win).length > i,
   run: async (ctx) => {
     const ws = listWorkspaces(ctx.win)[i]
@@ -462,6 +463,6 @@ const CORE: Command[] = [
 // Each file in src/features/ exports `commands`; forks add features there instead of editing this list.
 const FEATURES = import.meta.glob<Command[]>("../features/*.ts", { eager: true, import: "commands" })
 
-export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...googleCommands, ...Object.values(FEATURES).flat()]
+export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...googleCommands, ...modCommands, ...Object.values(FEATURES).flat()]
 
 export const COMMANDS_BY_ID = new Map(COMMANDS.map((command) => [command.id, command]))

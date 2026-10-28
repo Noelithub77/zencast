@@ -57,7 +57,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Alt+2 tints the palette to a space, Ctrl+1 picks a container](docs/media/spaces.gif)
 
-**Hold to reveal.** Hold `Ctrl` and each visible result shows a letter; `Ctrl+letter` runs it. Hold `Alt` to number the spaces.
+**Hold to reveal.** Hold `Ctrl` or `Alt` and each visible result shows a letter in its own colour; the same key plus the letter runs it. A strip lists every other key that modifier takes in the palette, and numbers the containers (`Ctrl`) or spaces (`Alt`), so nothing has to be learned first.
 
 ![Holding Ctrl marks a letter in every result](docs/media/hints.gif)
 
@@ -74,6 +74,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 **Your own shortcuts.** `Ctrl+.` records a shortcut for any command, or gives a tab, folder or site its own key. Shortcuts can be chords, like `Ctrl+Space` then `F`.
 
 **Containers and privacy.** Open or reopen a tab in a container, start a throwaway container that deletes its data on close, move a signed-in session to another container, or wipe a site's data and history from a tab.
+
+**Mod overlap.** Lists the Sine mods you have on that claim one of Zencast's keys or do a job the palette already does, each with a way to turn it off.
 
 **Google account containers.** Zencast finds the Google accounts you're signed in to and gives each one its own container, named after its email. You sign in once in each, with the email already filled in. Signing in to another account offers a container for it. Only the list of emails is kept, never your cookies.
 
@@ -97,7 +99,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Ctrl+Shift+,` | Zencast settings |
 | `Ctrl+B` | Bookmark the tab, or edit its bookmark |
 | `Ctrl+1…9` | Switch to space 1…9 |
-| `Alt+1…9` | Move the tab to space 1…9 |
+| `Ctrl+Shift+1…9` | Move the tab to space 1…9 |
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |
 | `Ctrl+Shift+N` | New folder, or a subfolder of the current tab's folder |
 | `Ctrl+C` | Open in a container, when nothing is selected to copy |
@@ -112,9 +114,9 @@ In the palette:
 | Key | Action |
 | --- | --- |
 | `Enter`, `Ctrl+Enter` | Run the result's first or second action |
-| `Ctrl+K` | All actions for the result |
-| Hold `Ctrl` | Letter hints on results; numbers on containers |
-| Hold `Alt` | Numbers on spaces |
+| `Ctrl+J` | All actions for the result |
+| `Ctrl+K` | Close; whichever key opened the palette closes it |
+| Hold `Ctrl` or `Alt` | Letter hints on results and a list of that modifier's keys; numbers on containers or spaces |
 | `Alt+1…9`, `Ctrl+1…9` | Open results in that space or container |
 | `Ctrl+.` | Record a shortcut, or assign a key to a tab, folder or site |
 | `Tab`, `→` | Accept the inline completion |
@@ -128,7 +130,6 @@ These defaults are my own setup, built around how I use Zen, and some of them re
 
 | Key | Zen's own action, replaced |
 | --- | --- |
-| `Alt+1…9` | Select tab 1…9 on Linux (Zencast moves the tab to that space) |
 | `Ctrl+1…9` | Select tab 1…9 on Windows (Zencast switches space, only while that space exists) |
 | `Ctrl+K` | Focus web search |
 | `Ctrl+Shift+N` | New unsynced window |

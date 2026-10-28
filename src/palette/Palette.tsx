@@ -10,10 +10,11 @@ import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
 import { Kbd } from "@/components/ui/kbd"
+import { paletteKeys } from "@/keys/bindings"
 import { CHORD_WAIT_MS, recordKey } from "@/keys/record"
 import { cn } from "@/lib/utils"
 import { readConfig, readUsage } from "@/shared/config"
-import { comboFromEvent } from "@/shared/keys"
+import { comboFromEvent, displaySequence } from "@/shared/keys"
 import { ActionPanel } from "./ActionPanel"
 import { closePalette, popView, runAction, saveRecording, toggleContainerTarget, toggleSpaceTarget } from "./controller"
 import { Keys } from "@/components/keys"
@@ -62,40 +63,68 @@ function firstScreen(fresh: Entry[], stale: Entry[]): Entry[] {
 interface RowProps {
   item: PaletteItem
   heading: string | undefined
-  /** Letter shown while Ctrl is held; Ctrl+letter runs the row. */
+  /** Letter shown while Ctrl or Alt is held; that modifier plus the letter runs the row. */
   hint: Hint | undefined
+  /** Alt shows the letter in place of the icon, Ctrl at the row's end. */
+  hintAt: Modifier | null
   onRun: (item: PaletteItem, action: ItemAction | undefined) => void
 }
 
 // Memoized so rows whose item is unchanged skip rendering, including cmdk's per-item registration.
 // Optional parts stay mounted and empty, so reusing a row for another item only patches text.
-const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
+const Row = memo(function Row({ item, heading, hint, hintAt, onRun }: RowProps) {
+  const left = hint && hintAt === "alt" ? hint : undefined
+  const right = hint && hintAt === "ctrl" ? hint : undefined
   return (
     <>
-      <div cmdk-group-heading="" hidden={!heading} className="px-3.5 pt-3.5 pb-1.5 text-[12.5px] font-medium text-faint">
+      <div cmdk-group-heading="" hidden={!heading} className="px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint">
         {heading}
       </div>
-      <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-12 gap-3.5 rounded-xl px-3.5 text-base font-normal">
-        <span className="flex w-6 shrink-0 justify-center [&>img]:size-[18px] [&>svg]:size-[18px]">
-          {hint ? <Kbd className="bg-peach/15 text-peach animate-in fade-in-0 duration-150">{hint.letter}</Kbd> : <ItemGlyph icon={item.icon} />}
+      <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-13 gap-4 rounded-xl px-4 text-[17px] font-normal">
+        <span className="flex w-7 shrink-0 justify-center [&>img]:size-5 [&>svg]:size-5">
+          {left ? (
+            <span data-hint="" className="font-mono text-[22px] leading-none font-bold animate-in fade-in-0 zoom-in-75 duration-150" style={{ color: left.color }}>
+              {left.letter.toUpperCase()}
+            </span>
+          ) : (
+            <ItemGlyph icon={item.icon} />
+          )}
         </span>
         <span className="shrink-0 truncate">
           {hint ? (
             <>
               {item.title.slice(0, hint.index)}
-              <span className="text-peach underline decoration-2 underline-offset-4">{item.title[hint.index]}</span>
+              <span className="underline decoration-2 underline-offset-4" style={{ color: hint.color }}>
+                {item.title[hint.index]}
+              </span>
               {item.title.slice(hint.index + 1)}
             </>
           ) : (
             item.title
           )}
         </span>
-        <span className="min-w-0 truncate text-[13px] text-faint">{item.subtitle}</span>
+        <span className="min-w-0 truncate text-sm text-faint">{item.subtitle}</span>
         <span data-slot="command-shortcut" className="ml-auto flex shrink-0 items-center gap-2 pl-3">
-          <span className="text-[13px] empty:hidden" style={{ color: item.accessoryColor ?? "var(--muted-foreground)" }}>
-            {item.accessory}
-          </span>
-          {item.keys && <Keys sequence={item.keys} />}
+          {right ? (
+            <kbd
+              data-hint=""
+              className="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 font-mono text-[17px] font-semibold animate-in fade-in-0 zoom-in-90 duration-150"
+              style={{
+                color: right.color,
+                backgroundColor: `color-mix(in srgb, ${right.color} 16%, transparent)`,
+                boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${right.color} 35%, transparent)`,
+              }}
+            >
+              {right.letter.toUpperCase()}
+            </kbd>
+          ) : (
+            <>
+              <span className="text-sm empty:hidden" style={{ color: item.accessoryColor ?? "var(--muted-foreground)" }}>
+                {item.accessory}
+              </span>
+              {item.keys && <Keys sequence={item.keys} />}
+            </>
+          )}
         </span>
       </CommandItem>
     </>
@@ -166,6 +195,23 @@ interface StripEntry {
   name: string
   color: string
   active: boolean
+}
+
+interface LegendEntry {
+  key: string
+  label: string
+}
+
+/** Every key the palette takes with the held modifier, so none has to be learned. */
+function legend(held: Modifier, active: PaletteItem | undefined, hinted: boolean, closeKeys: string[]): LegendEntry[] {
+  const prefix = `${held}+`
+  const entry = (keys: string, label: string) => ({ key: displaySequence(keys)[0]?.at(-1) ?? keys, label })
+  const out = (active?.actions ?? []).flatMap((action) => (action.keys?.startsWith(prefix) ? [entry(action.keys, action.title)] : []))
+  if (held === "ctrl" && (active?.actions.length ?? 0) > 1) out.push(entry("ctrl+j", "Actions"))
+  if (hinted) out.push({ key: "A–Z", label: "Run the marked result" })
+  out.push({ key: "1–9", label: held === "alt" ? "Open in space" : "Open in container" })
+  out.push(...closeKeys.filter((keys) => keys.startsWith(prefix)).map((keys) => entry(keys, "Close")))
+  return out
 }
 
 /** Held Ctrl numbers the containers, held Alt the spaces; the number toggles that target. */
@@ -341,7 +387,7 @@ export function Palette() {
   useModifierHold(open && context ? context.win : null, (modifier) => {
     setHeld(modifier)
     const list = listRef.current
-    if (modifier !== "ctrl" || panel || recording || view?.prompt || !list) return setHints(null)
+    if (!modifier || panel || recording || view?.prompt || !list) return setHints(null)
     const bounds = list.getBoundingClientRect()
     const visible = [...list.querySelectorAll("[cmdk-item]")].flatMap((element, index) => {
       const rect = element.getBoundingClientRect()
@@ -349,7 +395,10 @@ export function Palette() {
       const entry = shown[index]
       return entry && middle > bounds.top && middle < bounds.bottom ? [entry.item] : []
     })
-    const taken = (active?.actions ?? []).flatMap((action) => /^ctrl\+([a-z])$/.exec(action.keys ?? "")?.[1] ?? [])
+    const own = new RegExp(`^${modifier}\\+([a-z])$`)
+    const taken = [...(active?.actions ?? []).map((action) => action.keys ?? ""), ...paletteKeys(readConfig())].flatMap(
+      (keys) => own.exec(keys)?.[1] ?? [],
+    )
     const assigned = assignHints(visible.map((item) => item.title), taken)
     setHints(new Map(visible.flatMap((item, i) => {
       const hint = assigned[i]
@@ -357,6 +406,7 @@ export function Palette() {
     })))
   })
   const strip = useStrip(panel || recording ? null : held, context?.win ?? null, space?.id, openIn?.id)
+  const legendEntries = held && !panel && !recording ? legend(held, active, !!hints?.size, paletteKeys(readConfig())) : null
 
   // A recorded sequence ends after a pause, as in the settings page.
   const recorded = recording?.combos
@@ -398,10 +448,17 @@ export function Palette() {
       return
     }
 
+    // The key that opened the palette closes it again, from any view.
+    if (paletteKeys(readConfig()).includes(combo)) {
+      consume()
+      closePalette(true)
+      return
+    }
+
     if (panel) {
       const digit = /^ctrl\+([1-9])$/.exec(combo)
       const numbered = digit && active ? active.actions[Number(digit[1]) - 1] : undefined
-      if (combo === "escape" || combo === "ctrl+k") {
+      if (combo === "escape" || combo === "ctrl+j") {
         consume()
         setPanel(false)
         inputRef.current?.focus()
@@ -433,7 +490,7 @@ export function Palette() {
       else setState(openIn ? { openIn: null } : { space: null })
       return
     }
-    if (combo === "ctrl+k" || (combo === "right" && caretAtEnd(event.composedPath()[0]) && (active?.actions.length ?? 0) > 1)) {
+    if (combo === "ctrl+j" || (combo === "right" && caretAtEnd(event.composedPath()[0]) && (active?.actions.length ?? 0) > 1)) {
       consume()
       if (active) setPanel(true)
       return
@@ -451,7 +508,7 @@ export function Palette() {
       if (active) run(active, active.actions[0])
       return
     }
-    const letter = /^ctrl\+([a-z])$/.exec(combo)?.[1]
+    const letter = held ? new RegExp(`^${held}\\+([a-z])$`).exec(combo)?.[1] : undefined
     const hinted = letter && hints ? rows.find((item) => hints.get(item.id)?.letter === letter) : undefined
     if (hinted) {
       consume()
@@ -516,19 +573,19 @@ export function Palette() {
       }}
     >
       {/* Fixed height, centred a little above the middle, so the input never moves as results change. */}
-      <div className="absolute top-1/2 left-1/2 w-[min(920px,94vw)] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
+      <div className="absolute top-1/2 left-1/2 w-[min(1000px,95vw)] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
         <Command
           shouldFilter={false}
           vimBindings={false}
           loop
           value={active?.id ?? ""}
           onValueChange={setSelected}
-          className="relative isolate flex h-[min(680px,82vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60 transition-[border-color] duration-300 ease-out"
+          className="relative isolate flex h-[min(760px,86vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60 transition-[border-color] duration-300 ease-out"
           style={{ borderColor: accent ? `color-mix(in srgb, ${accent} 45%, var(--border))` : undefined }}
         >
           <TargetWash target={space} corner="left" />
           <TargetWash target={openIn} corner="right" />
-          <div className="flex h-16 shrink-0 items-center gap-3.5 border-b px-6">
+          <div className="flex h-18 shrink-0 items-center gap-4 border-b px-6">
             {view ? (
               <button
                 type="button"
@@ -539,7 +596,7 @@ export function Palette() {
                 <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-3.5" />
               </button>
             ) : (
-              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-5.5 shrink-0 text-faint" />
+              <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-6 shrink-0 text-faint" />
             )}
             <CommandPrimitive.Input
               ref={inputRef}
@@ -550,7 +607,7 @@ export function Palette() {
                 setSelected("")
               }}
               placeholder={placeholder}
-              className="h-full min-w-0 flex-1 bg-transparent text-lg outline-hidden placeholder:text-faint"
+              className="h-full min-w-0 flex-1 bg-transparent text-xl outline-hidden placeholder:text-faint"
             />
             <TargetChip target={space} kind="space" onClear={() => setState({ space: null })} />
             <TargetChip target={openIn} kind="container" onClear={() => setState({ openIn: null })} />
@@ -565,12 +622,24 @@ export function Palette() {
                 item={entry.item}
                 heading={entry.section === shown[index - 1]?.section ? undefined : entry.section}
                 hint={hints?.get(entry.item.id)}
+                hintAt={held}
                 onRun={run}
               />
             ))}
           </CommandList>
 
-          <div className="flex h-12 shrink-0 items-center gap-3 border-t px-5 text-[13px] text-muted-foreground">
+          {legendEntries && (
+            <div data-legend="" className="absolute inset-x-0 bottom-14 flex flex-wrap items-center gap-x-5 gap-y-2 border-t bg-popover/95 px-5 py-3 text-sm text-muted-foreground backdrop-blur animate-in fade-in-0 duration-150">
+              <span className="text-faint">{held === "alt" ? "Alt" : "Ctrl"} +</span>
+              {legendEntries.map(({ key, label }) => (
+                <span key={key + label} className="flex items-center gap-2">
+                  <kbd className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-muted px-1.5 font-mono text-[15px] font-semibold text-foreground">{key}</kbd>
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex h-14 shrink-0 items-center gap-3 border-t px-5 text-sm text-muted-foreground">
             {recording ? (
               <div key="recording" className="flex min-w-0 flex-1 items-center gap-3 animate-in fade-in-0 duration-150">
                 <span className="size-2 shrink-0 rounded-full bg-rose" />
@@ -590,11 +659,15 @@ export function Palette() {
                   strip.map((entry, index) => (
                     <span
                       key={entry.key}
-                      className={cn("flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 transition-colors duration-200", entry.active && "bg-muted text-foreground")}
+                      className={cn("flex shrink-0 items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors duration-200", entry.active && "bg-muted text-foreground")}
                     >
-                      <Kbd>{index + 1}</Kbd>
-                      <span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                      <span className="max-w-32 truncate">{entry.name}</span>
+                      <kbd
+                        className="flex h-7 min-w-7 items-center justify-center rounded-lg px-1.5 font-mono text-[15px] font-semibold"
+                        style={{ color: entry.color, backgroundColor: `color-mix(in srgb, ${entry.color} 16%, transparent)` }}
+                      >
+                        {index + 1}
+                      </kbd>
+                      <span className="max-w-36 truncate">{entry.name}</span>
                     </span>
                   ))
                 ) : (
@@ -613,7 +686,7 @@ export function Palette() {
                 {active && active.actions.length > 1 && (
                   <span className="flex items-center gap-1.5 border-l pl-3">
                     Actions
-                    <Keys sequence="ctrl+k" />
+                    <Keys sequence="ctrl+j" />
                   </span>
                 )}
               </div>

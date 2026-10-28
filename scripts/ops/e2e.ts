@@ -227,22 +227,20 @@ const SCENARIOS: Scenario[] = [
       return { ok: isRoot && nested, detail: (isRoot ? "root folder" : "not root") + ", then " + (nested ? "subfolder inside it" : "folder outside it") }`,
   },
   {
-    name: "alt+2 moves the tab to space 2, follows it, and shows a Zen toast",
+    name: "ctrl+shift+2 moves the tab to space 2, follows it, and shows a Zen toast",
     body: String.raw`${READY}
       if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
       const [first, target] = gZenWorkspaces.getWorkspaces()
       const tab = newTab()
       await sleep(50)
-      press("alt+2", document.documentElement)
+      press("ctrl+shift+2", document.documentElement)
       await until(() => tab.getAttribute("zen-workspace-id") === target.uuid)
       await until(() => gZenWorkspaces.activeWorkspace === target.uuid && gBrowser.selectedTab === tab, 4000)
       const text = await until(() => toastText().includes("Moved to") && toastText(), 4000)
       const ok = text.includes("Moved to " + target.name)
       gBrowser.removeTab(tab)
       await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
-      const native = document.getElementById("key_selectTab2")
-      const shadowed = native ? native.getAttribute("modifiers") + "+" + native.getAttribute("key") : "none"
-      return { ok, detail: "followed to " + target.name + "; toast: " + text + "; overrides native " + shadowed }`,
+      return { ok, detail: "followed to " + target.name + "; toast: " + text }`,
   },
   {
     name: "ctrl+2 switches to space 2, and ctrl+n passes through when space n does not exist",
@@ -293,22 +291,59 @@ const SCENARIOS: Scenario[] = [
       return { ok, detail: value + " (selected " + JSON.stringify(selected) + "), first row " + first + "; pin → " + pin + ", first row " + pinFirst }`,
   },
   {
-    name: "holding ctrl labels visible rows with letters",
+    name: "holding ctrl or alt labels visible rows with letters and lists the keys",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)
       await until(paletteOpen)
       const init = { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }
       document.documentElement.dispatchEvent(new KeyboardEvent("keydown", init))
-      const hints = () => [...shadow().querySelectorAll("[cmdk-item] kbd.text-peach")].map((kbd) => kbd.textContent)
+      const hints = () => [...shadow().querySelectorAll("[cmdk-item] [data-hint]")].map((kbd) => kbd.textContent.toLowerCase())
       const shown = await until(() => hints().length && hints(), 2000)
-      // Each row marks its letter inside the title.
-      const marked = [...shadow().querySelectorAll("[cmdk-item]")].filter((item) => item.querySelector("kbd.text-peach"))
-        .every((item) => item.querySelector("span.underline")?.textContent.toLowerCase() === item.querySelector("kbd.text-peach").textContent)
+      // Each row marks its letter inside the title, in the badge's colour.
+      const marked = [...shadow().querySelectorAll("[cmdk-item]")].filter((item) => item.querySelector("[data-hint]"))
+        .every((item) => {
+          const letter = item.querySelector("span.underline")
+          const badge = item.querySelector("[data-hint]")
+          return letter?.textContent.toLowerCase() === badge.textContent.toLowerCase() && letter.style.color === badge.style.color
+        })
+      const colors = new Set([...shadow().querySelectorAll("[data-hint]")].map((kbd) => kbd.style.color)).size
+      const legend = shadow().querySelector("[data-legend]")?.textContent ?? ""
       document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...init, ctrlKey: false }))
+      await until(() => hints().length === 0 && !shadow().querySelector("[data-legend]"), 2000)
+      // Alt labels the same rows, and Alt+letter runs one.
+      const alt = { key: "Alt", code: "AltLeft", altKey: true, bubbles: true, composed: true }
+      document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
+      const altShown = await until(() => hints().length && hints(), 2000).catch(() => [])
+      const altLegend = shadow().querySelector("[data-legend]")?.textContent ?? ""
+      document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
       await until(() => hints().length === 0, 2000)
       await dismiss()
-      const unique = new Set(shown).size === shown.length && !shown.some((l) => "acvxzkqw".includes(l))
-      return { ok: shown.length > 3 && unique && marked, detail: shown.join(" ") + (marked ? "; marked in titles" : "; titles not marked") + "; cleared on release" }`,
+      const unique = new Set(shown).size === shown.length && !shown.some((l) => "acjvxzkqw".includes(l))
+      const listed = legend.includes("Close") && legend.includes("Open in container") && altLegend.includes("Open in space")
+      return {
+        ok: shown.length > 3 && unique && marked && colors > 3 && listed && altShown.length > 3,
+        detail: shown.join(" ") + "; " + colors + " colours" + (marked ? "; marked in titles" : "; titles not marked") + "; legend: " + legend + "; alt: " + altShown.join(" ") + "; cleared on release",
+      }`,
+  },
+  {
+    name: "the open key closes the palette and ctrl+j opens actions",
+    body: String.raw`${READY}
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("settings")
+      await until(() => resultTitles().length > 0)
+      const panel = () => shadow().querySelectorAll("[cmdk-root]").length > 1
+      press("ctrl+j")
+      const actions = await until(panel, 2000).catch(() => false)
+      press("ctrl+j")
+      const backToList = await until(() => !panel(), 2000).catch(() => false)
+      press("ctrl+k")
+      const closed = await until(() => !paletteOpen(), 2000).catch(() => false)
+      if (paletteOpen()) await dismiss()
+      return {
+        ok: actions && backToList && closed,
+        detail: "actions: " + (actions ? "opened" : "not opened") + "; again: " + (backToList ? "closed panel" : "still open") + "; ctrl+k: " + (closed ? "closed palette" : "still open"),
+      }`,
   },
   {
     name: "alt+n and ctrl+n target a space and a container, and pressing again clears them",
@@ -673,6 +708,55 @@ const SCENARIOS: Scenario[] = [
         Services.prefs.clearUserPref("zencast.googleAccounts")
       }`,
   },
+  {
+    name: "mod overlap finds mods on Zencast's keys and turns one off through Sine",
+    body: String.raw`${READY}
+      const utils = ChromeUtils.importESModule("chrome://userscripts/content/core/utils.sys.mjs").default
+      const fake = async (id, name, files) => {
+        const folder = utils.getModFolder(id)
+        await IOUtils.makeDirectory(folder, { ignoreExisting: true })
+        for (const [file, text] of Object.entries(files)) await IOUtils.writeUTF8(PathUtils.join(folder, file), text)
+        const mods = await utils.getMods()
+        mods[id] = { id, name, enabled: true }
+        await IOUtils.writeJSON(utils.modsDataFile, mods)
+      }
+      // A live shortcut setting wins over the default in its script; a mod without one is read from its script.
+      await fake("zc-pinner", "Fake pinner", {
+        "pinner.uc.js": 'const DEFAULT = "Ctrl+K"; Services.prefs.getStringPref("zc.pinner.shortcut", DEFAULT)',
+        "preferences.json": JSON.stringify([{ type: "string", property: "zc.pinner.shortcut", defaultValue: "Ctrl+K" }]),
+      })
+      Services.prefs.setStringPref("zc.pinner.shortcut", "Alt+P")
+      await fake("zen-tab-palette", "Fake tab palette", { "palette.uc.js": 'const OPEN = "Ctrl+K"; const HINT = "Ctrl+Enter"' })
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("Mod overlap")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Mod overlap"), 2000)
+        press("enter")
+        const rows = await until(() => resultTitles().length >= 2 && resultTitles()[0].startsWith("Fake") && resultTitles(), 4000).catch(() => resultTitles())
+        press("enter")
+        let disabled = false
+        for (let i = 0; i < 40 && !disabled; i++) {
+          disabled = (await utils.getMods())["zc-pinner"]?.enabled === false
+          if (!disabled) await sleep(50)
+        }
+        const toast = await until(() => toastText().includes("Turned off") && toastText(), 2000).catch(() => toastText())
+        const pinner = rows.find((row) => row.startsWith("Fake pinner")) ?? ""
+        const palette = rows.find((row) => row.startsWith("Fake tab palette")) ?? ""
+        return {
+          ok: pinner.includes("Same key as Pin or unpin tab") && !pinner.includes("Open Zencast") && palette.includes("Same key as Open Zencast") && disabled,
+          detail: "pinner: " + pinner + " | palette: " + palette + " | " + (disabled ? "turned off" : "still on") + "; toast: " + toast,
+        }
+      } finally {
+        const mods = await utils.getMods()
+        for (const id of ["zc-pinner", "zen-tab-palette"]) {
+          delete mods[id]
+          await IOUtils.remove(utils.getModFolder(id), { recursive: true, ignoreAbsent: true })
+        }
+        await IOUtils.writeJSON(utils.modsDataFile, mods)
+        Services.prefs.clearUserPref("zc.pinner.shortcut")
+      }`,
+  },
 ]
 
 export async function runScenarios(zen: Zen): Promise<ScenarioResult[]> {
@@ -712,7 +796,7 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette")
   await zen.run(String.raw`typeQuery("sett"); await sleep(300)`)
   await shot("palette-search")
-  await zen.run(String.raw`press("ctrl+k"); await sleep(300)`)
+  await zen.run(String.raw`press("ctrl+j"); await sleep(300)`)
   await shot("palette-actions")
   await zen.run(String.raw`press("escape"); typeQuery(""); await sleep(100)
     if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second")

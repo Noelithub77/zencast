@@ -450,6 +450,17 @@ declare global {
   }
 
   interface GeckoModuleMap {
+    "chrome://userscripts/content/core/utils.sys.mjs": {
+      default: {
+        /** mods.json as Sine keeps it. */
+        getMods(): Promise<unknown>
+        getModFolder(id: string): string
+      }
+    }
+    "chrome://userscripts/content/core/manager.sys.mjs": {
+      /** Flips a mod's `enabled`, writes mods.json and reloads mods, as Sine's own toggle does. */
+      default: { toggleTheme(installedMods: unknown, id: string): Promise<unknown> }
+    }
     "resource://gre/modules/NetUtil.sys.mjs": {
       NetUtil: {
         newChannel(options: { uri: string; loadUsingSystemPrincipal: true }): HttpChannel
@@ -532,6 +543,9 @@ declare global {
     readJSON(path: string): Promise<unknown>
     writeJSON(path: string, value: unknown, options?: { tmpPath?: string }): Promise<number>
     exists(path: string): Promise<boolean>
+    readUTF8(path: string): Promise<string>
+    getChildren(path: string, options?: { ignoreAbsent?: boolean }): Promise<string[]>
+    stat(path: string): Promise<{ type: "regular" | "directory" | "other" }>
     makeDirectory(path: string, options?: { ignoreExisting?: boolean }): Promise<void>
   }
   var PathUtils: {

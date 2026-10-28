@@ -78,6 +78,11 @@ export function bindSequence(id: string, sequence: string, mode: "replace" | "ad
 
 const PALETTE = "zencast.palette"
 
+/** The palette's single-key bindings, which also close it while it is open. */
+export function paletteKeys(config: Config): string[] {
+  return (effectiveBindings(config).get(PALETTE) ?? []).filter((sequence) => !sequence.includes(" "))
+}
+
 export function paletteOnCtrlT(config: Config): boolean {
   return (effectiveBindings(config).get(PALETTE) ?? []).includes("ctrl+t")
 }

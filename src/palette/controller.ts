@@ -58,8 +58,11 @@ export function commandContext(): CommandContext {
 }
 
 function buildRoot(ctx: CommandContext): PaletteItem[] {
-  nativeCache ??= nativeItems(ctx.win)
-  const bindings = effectiveBindings(readConfig())
+  const config = readConfig()
+  // A Zen command that Zencast also has ("Expand All Folders") shows once, as Zencast's.
+  const own = new Set(allCommands(config).map((command) => command.title.toLowerCase()))
+  nativeCache ??= nativeItems(ctx.win).filter((item) => !own.has(item.title.toLowerCase()))
+  const bindings = effectiveBindings(config)
   // A Zen command loses the key a Zencast binding has taken, so the palette shows who owns it.
   const taken = new Set([...bindings.values()].flat())
   const native = nativeCache.map((item) => (item.keys && taken.has(item.keys) ? { ...item, keys: undefined } : item))

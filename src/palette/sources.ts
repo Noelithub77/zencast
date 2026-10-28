@@ -24,7 +24,8 @@ import {
 } from "@/browser/settings-index"
 import { allFolders, folderPath, isFolder, openFolder } from "@/browser/folders"
 import { closeTab, duplicateTab, listTabs, selectTab, tabKey, tabUrl } from "@/browser/tabs"
-import { defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
+import { fillQuery } from "@/browser/bookmarks"
+import { ASSISTANTS, defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
 import { openUrl } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { chooseContainer, COMMANDS, containerItems, openSettings } from "@/commands/catalog"
@@ -383,8 +384,8 @@ export function loadEngineName() {
   void defaultEngine().then((engine) => (engineName = engine.name))
 }
 
-/** The typed URL and the web search fallback for a query. */
-export function queryItems(ctx: CommandContext, query: string): { url: PaletteItem | null; search: PaletteItem } {
+/** The typed URL, and the web search and assistant prompts that follow it, for a query. */
+export function queryItems(ctx: CommandContext, query: string): { url: PaletteItem | null; search: PaletteItem[] } {
   const url = typedUrl(query)
   return {
     url: url
@@ -397,15 +398,26 @@ export function queryItems(ctx: CommandContext, query: string): { url: PaletteIt
           actions: [...openActions(ctx, () => url), assignAction(ctx, { kind: "url", target: url, title: url.replace(/^https?:\/\//, "") })],
         }
       : null,
-    search: {
-      id: "web-search",
-      transient: true,
-      title: query,
-      subtitle: engineName ? `Search ${engineName}` : "Search the web",
-      section: "Search",
-      icon: { kind: "icon", icon: Search01Icon },
-      actions: openActions(ctx, () => searchUrl(query)),
-    },
+    search: [
+      {
+        id: "web-search",
+        transient: true,
+        title: query,
+        subtitle: engineName ? `Search ${engineName}` : "Search the web",
+        section: "Search",
+        icon: { kind: "icon", icon: Search01Icon },
+        actions: openActions(ctx, () => searchUrl(query)),
+      },
+      ...ASSISTANTS.map((assistant): PaletteItem => ({
+        id: `ask:${assistant.keyword}`,
+        transient: true,
+        title: query,
+        subtitle: `Ask ${assistant.title}`,
+        section: "Search",
+        icon: { kind: "favicon", url: `page-icon:${new URL(assistant.url).origin}/` },
+        actions: openActions(ctx, () => fillQuery(assistant.url, query)),
+      })),
+    ],
   }
 }
 

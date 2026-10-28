@@ -77,6 +77,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - Ideas the owner chose: record keys from the palette, all settings in the palette, keys for tabs and sites, and hold-to-reveal strips.
 - A bit bigger, and centred on screen.
 - **Bookmarks (2026-10-28).** Bookmark search and bookmark keys must work. Bookmarking is keyboard-first on Ctrl+B, filled in the palette with an optional keyword; Ctrl+D stays the owner's duplicate key. Quick links are Firefox bookmark keywords, one source of truth with the address bar, and a starter set is offered by a command, never added unasked.
+- **Ask an assistant (2026-10-28).** Any query can go to ChatGPT or Claude as a prompt, offered right under the web search row.
 - Best fuzzy search for speed and typo tolerance.
 
 ### Keys (the owner's current personal setup)

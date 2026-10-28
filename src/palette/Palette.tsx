@@ -304,13 +304,13 @@ export function Palette() {
     const strong = ranked.some((item) => isStrongMatch(item, q))
     const host = fill && query === q && !quick ? completion(q, web, domains, strong) : null
     const suffix = host ? host.slice(q.length) : ""
-    const { url, search: searchItem } = queryItems(context, q + suffix)
+    const { url, search: searchItems } = queryItems(context, q + suffix)
     if (url) out.push({ section: "Open", items: [url] })
-    else if (!strong) out.push({ section: "Search", items: [searchItem] })
+    else if (!strong) out.push({ section: "Search", items: searchItems })
     if (wantsSettings && q.length >= 3) ranked.push(settingsSearchItem(context, q))
     out.push(...groupBySection(ranked))
     const webList = webItems(context, web, q)
-    if (url || strong) webList.unshift(searchItem)
+    if (url || strong) webList.unshift(...searchItems)
     if (webList.length) out.push({ section: "Web", items: webList })
     return { groups: out, suffix }
   }), [index, q, query, view, context, wantsSettings, web, domains, fill, config.maxResults])

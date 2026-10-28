@@ -103,6 +103,12 @@ export async function searchUrl(query: string): Promise<string> {
   return engine.getSubmission(query).uri.spec
 }
 
+/** Chat assistants whose URL takes a prompt: offered under web search and as starter quick links. */
+export const ASSISTANTS = [
+  { keyword: "gpt", title: "ChatGPT", url: "https://chatgpt.com/?q=%s" },
+  { keyword: "claude", title: "Claude", url: "https://claude.ai/new?q=%s" },
+]
+
 /** Turns typed text into a URL when it clearly is one ("github.com", "localhost:3000", "https://…"). */
 export function typedUrl(text: string): string | null {
   const value = text.trim()

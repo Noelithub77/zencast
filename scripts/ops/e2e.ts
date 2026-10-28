@@ -543,6 +543,31 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "a query can go to ChatGPT or Claude as a prompt",
+    body: String.raw`${READY}
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("plan a quiet weekend")
+      const rows = await until(() => resultTitles().some((title) => title.endsWith("Ask Claude")) && resultTitles(), 3000).catch(() => resultTitles())
+      const gpt = rows.some((title) => title === "plan a quiet weekendAsk ChatGPT")
+      // Each step lets React commit the new selection before the next key.
+      for (let i = rows.findIndex((title) => title.endsWith("Ask Claude")); i > 0; i--) {
+        press("down")
+        await sleep(50)
+      }
+      press("enter")
+      const url = await until(() => {
+        const browser = gBrowser.selectedBrowser
+        const spec = browser.currentURI?.spec ?? ""
+        return spec.startsWith("https://claude.ai/") ? spec : (browser.userTypedValue ?? "").startsWith("https://claude.ai/") ? browser.userTypedValue : ""
+      }, 3000).catch(() => "")
+      if (url) gBrowser.removeTab(gBrowser.selectedTab)
+      return {
+        ok: gpt && url === "https://claude.ai/new?q=plan%20a%20quiet%20weekend",
+        detail: (gpt ? "ChatGPT row shown" : "no ChatGPT row in " + rows.join(" | ").slice(0, 120)) + "; Claude opened " + (url || "nothing"),
+      }`,
+  },
+  {
     name: "ctrl+b fills a bookmark's name, folder and keyword, then edits it",
     body: String.raw`${READY}
       ${PLACES}

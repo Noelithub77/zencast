@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { paletteOnCtrlT, setPaletteOnCtrlT } from "@/keys/bindings"
-import { resetConfig, RESULT_LIMITS, updateConfig } from "@/shared/config"
+import { ASSISTANTS, resetConfig, RESULT_LIMITS, updateConfig } from "@/shared/config"
 import { useConfig } from "../hooks"
 import { SectionHeader } from "../parts"
 
@@ -56,6 +56,26 @@ export function GeneralSection() {
             {RESULT_LIMITS.map((limit) => (
               <SelectItem key={limit} value={String(limit)}>
                 {limit}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field label="AI">
+        <Select
+          value={config.assistant}
+          onValueChange={(value) => {
+            const assistant = ASSISTANTS.find((item) => item.keyword === value)
+            if (assistant) updateConfig((c) => ({ ...c, assistant: assistant.keyword }))
+          }}
+        >
+          <SelectTrigger size="sm" className="w-24" aria-label="AI">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ASSISTANTS.map((assistant) => (
+              <SelectItem key={assistant.keyword} value={assistant.keyword}>
+                {assistant.title}
               </SelectItem>
             ))}
           </SelectContent>

@@ -23,13 +23,13 @@ import {
 import { allFolders, breadcrumb, folderPath, openFolder } from "@/browser/folders"
 import { closeTab, duplicateTab, listTabs, pageTitle, selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { fillQuery } from "@/browser/bookmarks"
-import { ASSISTANTS, defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
+import { defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
 import { openUrl } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { chooseContainer, COMMANDS, containerItems, openSettings } from "@/commands/catalog"
-import type { CommandContext, ItemAction, ListView, PaletteItem } from "@/commands/types"
+import type { CommandContext, ItemAction, ItemIcon, ListView, PaletteItem } from "@/commands/types"
 import { paletteOnCtrlT, setPaletteOnCtrlT } from "@/keys/bindings"
-import { jumpId, readConfig, RESULT_LIMITS, updateConfig, type Jump } from "@/shared/config"
+import { ASSISTANTS, jumpId, preferredAssistant, readConfig, RESULT_LIMITS, updateConfig, type Jump } from "@/shared/config"
 import { inScope } from "./scopes"
 import { buildIndex, type SearchIndex } from "./search"
 import { getState } from "./store"
@@ -355,6 +355,34 @@ function zencastItems(ctx: CommandContext): PaletteItem[] {
         },
       ],
     },
+    {
+      id: "zencast:assistant",
+      title: "AI",
+      subtitle: "Zencast",
+      section: "Settings",
+      icon: { kind: "icon", icon: SlidersHorizontalIcon },
+      keywords: "zencast assistant chatgpt claude ai chat",
+      accessory: preferredAssistant(config).title,
+      accessoryColor: "var(--faint)",
+      actions: [
+        {
+          id: "pick",
+          title: "Change",
+          run: (): ListView => ({
+            id: "assistant",
+            title: "AI",
+            items: ASSISTANTS.map((assistant) => ({
+              id: `assistant:${assistant.keyword}`,
+              title: assistant.title,
+              section: "AI",
+              icon: assistantIcon(assistant),
+              accessory: assistant.keyword === config.assistant ? "Current" : undefined,
+              actions: [{ id: "set", title: "Set", run: () => updateConfig((c) => ({ ...c, assistant: assistant.keyword })) }],
+            })),
+          }),
+        },
+      ],
+    },
   ]
 }
 
@@ -376,7 +404,23 @@ export function loadEngineName() {
   void defaultEngine().then((engine) => (engineName = engine.name))
 }
 
-/** The typed URL, and the web search and assistant prompts that follow it, for a query. */
+/** Asks the preferred assistant from settings, in a new tab. */
+export function assistantItem(ctx: CommandContext, query: string): PaletteItem {
+  const assistant = preferredAssistant(readConfig())
+  return {
+    id: "ask",
+    transient: true,
+    title: query,
+    subtitle: `Ask ${assistant.title}`,
+    section: "Search",
+    icon: assistantIcon(assistant),
+    actions: openActions(ctx, () => fillQuery(assistant.url, query)),
+  }
+}
+
+export const assistantIcon = (assistant: { url: string }): ItemIcon => ({ kind: "favicon", url: `page-icon:${new URL(assistant.url).origin}/` })
+
+/** The typed URL, and the web search and assistant prompt that follow it, for a query. */
 export function queryItems(
   ctx: CommandContext,
   query: string,
@@ -404,15 +448,7 @@ export function queryItems(
         icon: { kind: "icon", icon: Search01Icon },
         actions: openActions(ctx, () => searchUrl(query)),
       },
-      ...ASSISTANTS.map((assistant): PaletteItem => ({
-        id: `ask:${assistant.keyword}`,
-        transient: true,
-        title: query,
-        subtitle: `Ask ${assistant.title}`,
-        section: "Search",
-        icon: { kind: "favicon", url: `page-icon:${new URL(assistant.url).origin}/` },
-        actions: openActions(ctx, () => fillQuery(assistant.url, query)),
-      })),
+      assistantItem(ctx, query),
     ],
   }
 }

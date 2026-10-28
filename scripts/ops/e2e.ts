@@ -171,6 +171,32 @@ const SCENARIOS: Scenario[] = [
       return { ok: all && byPage && here, detail: wombats.length + " wombat tabs, first " + wombats[0] + "; " + scoped + " in the tabs scope; numbat: " + numbat.slice(0, 2).join(" | ") + "; current tab: " + wallaby.slice(0, 3).join(" | ") }`,
   },
   {
+    // gBrowser.tabs holds only the current space's pinned tabs and one level of folders.
+    name: "search finds a pinned tab in a nested folder of another space, ahead of the web rows",
+    body: String.raw`${READY}
+      if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
+      const [first, second] = gZenWorkspaces.getWorkspaces()
+      await gZenWorkspaces.changeWorkspaceWithID(second.uuid)
+      const tab = newTab("data:text/html,<title>Koala-db console</title>x")
+      await until(() => tab.label === "Koala-db console")
+      gBrowser.pinTab(tab)
+      const outer = gZenFolders.createFolder([], { label: "Koala outer" })
+      gZenFolders.createFolder([tab], { label: "Koala inner", insertAfter: outer.groupContainer.lastElementChild })
+      await gZenWorkspaces.changeWorkspaceWithID(first.uuid)
+      await sleep(300)
+      const nested = tab.group?.group === outer && !gBrowser.tabs.includes(tab)
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("koala db")
+      await sleep(300)
+      const titles = resultTitles()
+      await dismiss()
+      await outer.delete()
+      const first3 = titles.slice(0, 3)
+      const found = titles[0]?.startsWith("Koala-db console")
+      return { ok: nested && found, detail: (nested ? "nested, outside gBrowser.tabs" : "not nested as expected") + "; koala db: " + first3.join(" | ") }`,
+  },
+  {
     name: "a palette closed before anything runs keeps the typed text for the next open",
     body: String.raw`${READY}
       const target = newTab("data:text/html,<title>Draftling page</title>x")
@@ -1096,32 +1122,48 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "a query can go to ChatGPT or Claude as a prompt",
+    name: "a query goes to the preferred AI, ChatGPT by default, and ctrl+shift+escape opens it",
     body: String.raw`${READY}
-      press("ctrl+k", document.documentElement)
-      await until(paletteOpen)
-      typeQuery("plan a quiet weekend")
-      const rows = await until(() => resultTitles().some((title) => title.endsWith("Ask Claude")) && resultTitles(), 3000).catch(() => resultTitles())
-      const gpt = rows.some((title) => title === "plan a quiet weekendAsk ChatGPT")
-      // Each step lets React commit the new selection before the next key.
-      for (let i = rows.findIndex((title) => title.endsWith("Ask Claude")); i > 0; i--) {
-        press("down")
-        await sleep(50)
-      }
-      press("enter")
-      const url = await until(() => {
+      const CONFIG = "zencast.config"
+      const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""
+      const opened = (host) => {
         const browser = gBrowser.selectedBrowser
         const spec = browser.currentURI?.spec ?? ""
-        return spec.startsWith("https://claude.ai/") ? spec : (browser.userTypedValue ?? "").startsWith("https://claude.ai/") ? browser.userTypedValue : ""
-      }, 3000).catch(() => "")
-      if (url) gBrowser.removeTab(gBrowser.selectedTab)
-      return {
-        ok: gpt && url === "https://claude.ai/new?q=plan%20a%20quiet%20weekend",
-        detail: (gpt ? "ChatGPT row shown" : "no ChatGPT row in " + rows.join(" | ").slice(0, 120)) + "; Claude opened " + (url || "nothing"),
+        return spec.startsWith(host) ? spec : (browser.userTypedValue ?? "").startsWith(host) ? browser.userTypedValue : ""
+      }
+      const askRows = async () => {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("plan a quiet weekend")
+        const rows = await until(() => resultTitles().some((title) => title.includes("Ask ")) && resultTitles(), 3000).catch(() => resultTitles())
+        await dismiss()
+        return rows.filter((title) => title.startsWith("plan a quiet weekendAsk "))
+      }
+      try {
+        const fallback = await askRows()
+        Services.prefs.setStringPref(CONFIG, JSON.stringify({ version: 1, assistant: "claude" }))
+        await sleep(100)
+        const chosen = await askRows()
+        press("ctrl+shift+escape", document.documentElement)
+        await until(paletteOpen, 2000)
+        const placeholder = await until(() => inputPlaceholder() === "Ask Claude" && inputPlaceholder(), 2000).catch(() => inputPlaceholder())
+        typeQuery("plan a quiet weekend")
+        await sleep(80)
+        press("enter")
+        const url = await until(() => opened("https://claude.ai/"), 3000).catch(() => "")
+        if (url) gBrowser.removeTab(gBrowser.selectedTab)
+        const one = (rows, title) => rows.length === 1 && rows[0].endsWith("Ask " + title)
+        return {
+          ok: one(fallback, "ChatGPT") && one(chosen, "Claude") && placeholder === "Ask Claude" && url === "https://claude.ai/new?q=plan%20a%20quiet%20weekend",
+          detail: "default: " + fallback.join(" | ") + "; claude set: " + chosen.join(" | ") + "; ctrl+shift+escape: " + placeholder + ", opened " + (url || "nothing"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        Services.prefs.clearUserPref(CONFIG)
       }`,
   },
   {
-    name: "ask about this page sends the question, the selection and the address to an assistant",
+    name: "ask about this page sends the question, the selection and the address to the preferred AI",
     body: String.raw`${READY}
       ${PLACES}
       const page = "https://example.com/ask-page"
@@ -1146,7 +1188,7 @@ const SCENARIOS: Scenario[] = [
         typeQuery("what is this")
         await until(() => (resultTitles()[0] ?? "") === "what is this", 2000)
         await sleep(80)
-        press("ctrl+enter")
+        press("enter")
         const url = await until(() => opened("https://chatgpt.com/"), 3000).catch(() => "")
         const prompt = new URL(url || "https://x/").searchParams.get("q")
         return {

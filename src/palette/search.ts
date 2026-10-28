@@ -49,7 +49,7 @@ function typedSequence(text: string): string | null {
 /** The item runs on this key sequence, or on a chord that starts with it. */
 const bindsTo = (item: PaletteItem, sequence: string) => !!item.keys && (item.keys === sequence || item.keys.startsWith(`${sequence} `))
 
-/** Title starts with the query, or with each of its words in order, or the query is the item's key. */
+/** Title starts with the query, or each query word starts a title word, or the query is the item's key. */
 export function isStrongMatch(item: PaletteItem, query: string): boolean {
   const title = item.title.toLowerCase()
   const q = query.trim().toLowerCase()
@@ -57,7 +57,8 @@ export function isStrongMatch(item: PaletteItem, query: string): boolean {
   const sequence = typedSequence(q)
   if (sequence && bindsTo(item, sequence)) return true
   if (title.startsWith(q)) return true
-  const words = title.split(/\s+/)
+  // "public db" finds "public-db": punctuation separates words like spaces do.
+  const words = title.split(/[^\p{L}\p{N}]+/u)
   return q.split(/\s+/).every((term) => words.some((word) => word.startsWith(term)))
 }
 

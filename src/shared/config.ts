@@ -31,11 +31,21 @@ const configSchema = z.object({
   jumps: z.array(jumpSchema).default([]),
   // Sites that always open in a container: bare host ("allpyq.in") -> container id.
   siteContainers: z.record(z.string(), z.number().int()).default({}),
+  // The chat assistant that typed text and Ctrl+Shift+Esc go to, by its keyword in ASSISTANTS.
+  assistant: z.enum(["gpt", "claude"]).default("gpt"),
 })
 
 export type Config = z.infer<typeof configSchema>
 
 export const RESULT_LIMITS = [30, 60, 100, 200]
+
+/** Chat assistants whose URL takes a prompt; both are starter quick links. */
+export const ASSISTANTS: Array<{ keyword: Config["assistant"]; title: string; url: string }> = [
+  { keyword: "gpt", title: "ChatGPT", url: "https://chatgpt.com/?q=%s" },
+  { keyword: "claude", title: "Claude", url: "https://claude.ai/new?q=%s" },
+]
+
+export const preferredAssistant = (config: Config) => ASSISTANTS.find((assistant) => assistant.keyword === config.assistant) ?? ASSISTANTS[0]
 
 const usageSchema = z.record(z.string(), z.tuple([z.number(), z.number()]))
 // command id -> [run count, last run epoch ms]

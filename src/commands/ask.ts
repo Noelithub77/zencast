@@ -1,13 +1,13 @@
-// Asks Claude or ChatGPT about the current page: the typed question goes in the prompt with the
-// page's address, and the selected text quoted when there is some.
+// Asks the preferred assistant from settings: about the current page, with the page's address and
+// the selected text quoted when there is some, or anything on Ctrl+Shift+Esc.
 import { AiChat02Icon } from "@hugeicons/core-free-icons"
 
 import { fillQuery } from "@/browser/bookmarks"
 import { tabUrl } from "@/browser/tabs"
-import { ASSISTANTS } from "@/browser/urlbar"
 import { selectedText } from "@/browser/window"
-import { openTarget } from "@/palette/sources"
-import type { Command, CommandContext, ItemAction, ListView } from "./types"
+import { assistantIcon, openActions } from "@/palette/sources"
+import { preferredAssistant, readConfig } from "@/shared/config"
+import type { Command, CommandContext, ListView } from "./types"
 
 // The finder gives at most this much of a selection, so a selection this long was cut.
 const SELECTION_LIMIT = 150
@@ -22,15 +22,7 @@ async function askView(ctx: CommandContext): Promise<ListView> {
   const url = tabUrl(ctx.tab)
   const selection = (await selectedText(ctx.win))?.trim() ?? ""
   const fallback = selection ? "Explain this" : "Summarize this page"
-  // Claude first: Enter asks it, Ctrl+Enter asks ChatGPT.
-  const assistants = [...ASSISTANTS].reverse()
-  const actions = (value: string) =>
-    assistants.map((assistant, i): ItemAction => ({
-      id: `ask-${assistant.keyword}`,
-      title: `Ask ${assistant.title}`,
-      keys: i === 1 ? "ctrl+enter" : undefined,
-      run: () => openTarget(ctx, fillQuery(assistant.url, pagePrompt(value.trim() || fallback, url, selection)), "tab"),
-    }))
+  const assistant = preferredAssistant(readConfig())
   return {
     id: "ask-page",
     title: selection ? "Ask about the selection" : "Ask about this page",
@@ -40,7 +32,23 @@ async function askView(ctx: CommandContext): Promise<ListView> {
       initial: "",
       label: (value) => value.trim() || fallback,
       icon: { kind: "icon", icon: AiChat02Icon, color: "var(--lilac)" },
-      actions,
+      actions: (value) => openActions(ctx, () => fillQuery(assistant.url, pagePrompt(value.trim() || fallback, url, selection))),
+    },
+  }
+}
+
+function assistantView(ctx: CommandContext): ListView {
+  const assistant = preferredAssistant(readConfig())
+  return {
+    id: "ask-ai",
+    title: `Ask ${assistant.title}`,
+    placeholder: `Ask ${assistant.title}`,
+    items: [],
+    prompt: {
+      initial: "",
+      label: (value) => value.trim() || `Open ${assistant.title}`,
+      icon: assistantIcon(assistant),
+      actions: (value) => openActions(ctx, () => fillQuery(assistant.url, value.trim())),
     },
   }
 }
@@ -54,5 +62,14 @@ export const askCommands: Command[] = [
     keywords: "ai claude chatgpt gpt chat summarize explain question selection",
     when: ({ tab }) => /^https?:/.test(tabUrl(tab)),
     run: askView,
+  },
+  {
+    id: "ai.ask",
+    title: "Ask AI",
+    section: "Tabs",
+    icon: AiChat02Icon,
+    keywords: "ai claude chatgpt gpt chat assistant prompt",
+    defaultKeys: ["ctrl+shift+escape"],
+    run: assistantView,
   },
 ]

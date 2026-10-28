@@ -1,4 +1,4 @@
-import { selectTab, tabKey } from "./tabs"
+import { listTabs, selectTab, tabKey } from "./tabs"
 import { listWorkspaces } from "./workspaces"
 
 export interface TabNode {
@@ -85,12 +85,12 @@ export async function openFolder(win: Window, folder: ZenFolder) {
 }
 
 export function spaceTrees(win: Window): SpaceTree[] {
-  const tabs = win.gBrowser.tabs
+  const tabs = listTabs(win)
   return listWorkspaces(win).map((workspace) => {
     const pinned: TabNode[] = []
     const loose: TabNode[] = []
     for (const tab of tabs) {
-      if (tab.group || tab.hasAttribute("zen-essential") || tab.hasAttribute("zen-empty-tab")) continue
+      if (tab.group || tab.hasAttribute("zen-essential")) continue
       if (tab.getAttribute("zen-workspace-id") !== workspace.uuid) continue
       ;(tab.pinned ? pinned : loose).push(tabNode(tab))
     }

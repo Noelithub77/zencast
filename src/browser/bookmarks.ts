@@ -1,7 +1,7 @@
 // Bookmarks, their folders and keywords, read with one Places query and kept current by Places
 // events, so the palette can search them synchronously on open. A keyword with "%s" in its URL is a
 // quick link: "gh zencast" fills the query in, as Zen's address bar does.
-import { ASSISTANTS } from "./urlbar"
+import { ASSISTANTS } from "@/shared/config"
 
 const places = () => ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs").PlacesUtils
 

@@ -68,9 +68,9 @@ export function pageTitle(win: Window, tab: XULTab): string | undefined {
   return currentEntry(win.SessionStore.getTabState(tab))?.title
 }
 
-/** Real tabs only: skips Zen's hidden placeholder tabs used inside empty folders. */
+/** Real tabs in every space: skips Zen's hidden placeholder tabs used inside empty folders. */
 export function listTabs(win: Window): XULTab[] {
-  return win.gBrowser.tabs.filter((tab) => !tab.hasAttribute("zen-empty-tab") && !tab.hasAttribute("zen-glance-tab"))
+  return win.gZenWorkspaces.allStoredTabs.filter((tab) => !tab.hasAttribute("zen-empty-tab") && !tab.hasAttribute("zen-glance-tab"))
 }
 
 export async function selectTab(win: Window, tab: XULTab) {

@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { loadedBrowser } from "./tabs"
+import { listTabs, loadedBrowser } from "./tabs"
 import { systemPrincipal } from "./window"
 
 const CIS_URL = "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs"
@@ -89,7 +89,7 @@ export function openTemporaryContainer(win: Window, url?: string): XULTab {
 
 function containerInUse(userContextId: number, closing: XULTab | null): boolean {
   for (const win of Services.wm.getEnumerator("navigator:browser"))
-    for (const tab of win.gBrowser.tabs) if (tab !== closing && tab.userContextId === userContextId) return true
+    for (const tab of listTabs(win)) if (tab !== closing && tab.userContextId === userContextId) return true
   return false
 }
 

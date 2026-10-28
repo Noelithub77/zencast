@@ -134,6 +134,8 @@ declare global {
 
   interface ZenWorkspaces {
     readonly activeWorkspace: string
+    /** Every tab in every space, nested folders included; gBrowser.tabs holds only the current space's. */
+    readonly allStoredTabs: XULTab[]
     getWorkspaces(): ZenWorkspace[]
     changeWorkspaceWithID(id: string): Promise<void>
     moveTabToWorkspace(tab: XULTab, id: string): void

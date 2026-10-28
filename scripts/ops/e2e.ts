@@ -291,6 +291,22 @@ const SCENARIOS: Scenario[] = [
       return { ok, detail: value + " (selected " + JSON.stringify(selected) + "), first row " + first + "; pin → " + pin + ", first row " + pinFirst }`,
   },
   {
+    name: "a visited host completes inline even below Firefox's autofill threshold, with its favicon",
+    body: String.raw`${READY}
+      // One visit is too few for the URL bar's own origin autofill, but the history row still comes back.
+      await PlacesUtils.history.insert({ url: "https://www.quokkagram.net/", title: "Quokkagram", visits: [{ transition: PlacesUtils.history.TRANSITIONS.TYPED, date: new Date() }] })
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      await sleep(100)
+      typeQuery("quokkag")
+      const input = shadow().querySelector("[cmdk-input]")
+      const value = await until(() => input.value !== "quokkag" && input.value, 3000).catch(() => input.value)
+      const icon = shadow().querySelector("[cmdk-item] img")?.getAttribute("src") ?? "none"
+      await dismiss()
+      await PlacesUtils.history.remove("https://www.quokkagram.net/")
+      return { ok: value === "quokkagram.net" && icon === "page-icon:https://www.quokkagram.net/", detail: value + "; icon " + icon }`,
+  },
+  {
     name: "holding ctrl or alt labels visible rows with letters and lists the keys",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)
@@ -353,6 +369,38 @@ const SCENARIOS: Scenario[] = [
       return {
         ok: !quick && listed && hidden,
         detail: (quick ? "showed on a quick key" : "quick key: no sheet") + "; " + (listed ? "lists the palette and the 1…9 families" : "missing rows: " + text.slice(0, 200)) + (hidden ? "; hidden on release" : "; still shown"),
+      }`,
+  },
+  {
+    name: "sessions save this window's tabs, and alt+s reopens one",
+    body: String.raw`${READY}
+      const url = "data:text/html,<title>Session kiwi</title>x"
+      const tab = newTab(url)
+      await until(() => tab.label === "Session kiwi", 3000).catch(() => false)
+      const start = Services.startup.getStartupInfo().process.getTime()
+      const path = PathUtils.join(PathUtils.profileDir, "zencast", "sessions", start + ".json")
+      Services.obs.notifyObservers(null, "sessionstore-state-write-complete")
+      const saved = await until(async () => {
+        if (!(await IOUtils.exists(path))) return false
+        const session = await IOUtils.readJSON(path)
+        return session.windows.some((win) => win.tabs.some((t) => t.title === "Session kiwi")) && session
+      }, 4000).catch(() => null)
+      gBrowser.removeTab(tab)
+      await sleep(100)
+      press("alt+s", document.documentElement)
+      await until(paletteOpen)
+      const first = await until(() => resultTitles()[0], 2000).catch(() => "")
+      press("enter")
+      await sleep(200)
+      typeQuery("kiwi")
+      await sleep(150)
+      press("enter")
+      const reopened = await until(() => gBrowser.tabs.find((t) => t.linkedBrowser?.currentURI.spec === url || t.label === "Session kiwi"), 3000).catch(() => null)
+      await dismiss()
+      if (reopened) gBrowser.removeTab(reopened)
+      return {
+        ok: !!saved && first.startsWith("Today") && !!reopened,
+        detail: (saved ? "saved " + saved.windows.length + " window(s)" : "not saved") + "; first row " + first + "; " + (reopened ? "reopened" : "not reopened"),
       }`,
   },
   {
@@ -494,7 +542,7 @@ const SCENARIOS: Scenario[] = [
       const tabsTab = tabs.find((tab) => tab.textContent.trim() === "Tabs")
       tabsTab.focus()
       const vertical = await until(() => [...doc.querySelectorAll("[role=tabpanel] [role=switch]")].some((s) => s.getAttribute("aria-label") === "Vertical tabs"), 2000).catch(() => false)
-      const ok = nav.length === 4 && columns === spaces && icon.includes("logo") && tabs.length === 8 && vertical
+      const ok = nav.length === 5 && columns === spaces && icon.includes("logo") && tabs.length === 8 && vertical
       return { ok, detail: nav.join(", ") + "; " + columns + " space columns; favicon " + (icon.split("/").pop() || "missing") + "; settings tabs " + tabs.map((t) => t.textContent.trim()).join(" ") + (vertical ? "; Vertical tabs under Tabs" : "") }`,
   },
   {

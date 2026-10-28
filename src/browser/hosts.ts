@@ -1,5 +1,5 @@
 // Inline host completion ("allpyq" → "allpyq.in") from Firefox's live DNS cache. The URL bar's own
-// history autofill is the other source; it arrives with the web results.
+// history autofill and its history results are the other sources; they arrive with the web results.
 
 /** Registrable domains of every host in the DNS cache, skipping private-browsing lookups. */
 export function readDnsDomains(): Promise<string[]> {
@@ -36,4 +36,13 @@ export function completeDomain(typed: string, domains: string[]): string | null 
     if (domain.length > prefix.length && domain.startsWith(prefix) && (!best || domain.length < best.length)) best = domain
   }
   return best
+}
+
+/** A URL's host without "www.", or null when it has none. */
+export function bareHost(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") || null
+  } catch {
+    return null
+  }
 }

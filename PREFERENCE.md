@@ -84,6 +84,8 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - **Bookmarks (2026-10-28).** Bookmark search and bookmark keys must work. Bookmarking is keyboard-first on Ctrl+B, filled in the palette with an optional keyword; Ctrl+D stays the owner's duplicate key. Quick links are Firefox bookmark keywords, one source of truth with the address bar, and a starter set is offered by a command, never added unasked.
 - **Ask an assistant (2026-10-28).** Any query can go to ChatGPT or Claude as a prompt, offered right under the web search row.
 - **Google account containers (2026-10-28).** Find the Google accounts signed in to Zen and give each its own container named after its email, signed in once per container with the email filled in. Cache the account list, never the cookies, and offer a container when a new account signs in.
+- **Sessions (2026-10-28).** Every run of Zen is a session named by its start time, in 24-hour time with relative days (Today, Yesterday, weekday, then the date), and each window is kept apart. Picking restores tabs into the current window, not a new one. Kept for 7 days, then cleared. Alt+S and a Sessions page in settings.
+- **History completion and favicons (2026-10-28).** The inline completion must cover every site in history, not only the DNS cache (typing "instagram" completes instagram.com). Results show real favicons, including the typed-URL row.
 - Best fuzzy search for speed and typo tolerance.
 
 ### Keys (the owner's current personal setup)

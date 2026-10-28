@@ -270,6 +270,7 @@ declare global {
       notifyObservers(subject: unknown, topic: string, data?: string): void
     }
     io: { newURI(spec: string): nsIURI }
+    startup: { getStartupInfo(): { process?: Date } }
     eTLD: { getBaseDomain(uri: nsIURI): string; getBaseDomainFromHost(host: string): string; getSchemelessSite(uri: nsIURI): string }
     scriptSecurityManager: {
       getSystemPrincipal(): nsIPrincipal
@@ -309,6 +310,12 @@ declare global {
       getMostRecentWindow(type: string): Window | null
       getEnumerator(type: string): Iterable<Window>
     }
+  }
+
+  interface SubprocessProcess {
+    readonly stdout: { readString(): Promise<string> }
+    readonly exitCode: Promise<number>
+    wait(): Promise<{ exitCode: number }>
   }
 
   interface SearchEngine {
@@ -476,6 +483,12 @@ declare global {
         promiseDBConnection(): Promise<PlacesConnection>
       }
     }
+    "resource://gre/modules/Subprocess.sys.mjs": {
+      Subprocess: {
+        pathSearch(command: string): Promise<string>
+        call(options: { command: string; arguments: string[]; stderr?: "stdout" | "pipe" }): Promise<SubprocessProcess>
+      }
+    }
     "moz-src:///toolkit/components/search/SearchService.sys.mjs": {
       SearchService: { getDefault(): Promise<SearchEngine> }
     }
@@ -518,7 +531,12 @@ declare global {
     addUnloadListener?(callback: () => void): void
     /** Resolves once the window's delayed startup (gBrowser, Zen managers) has finished. */
     readonly delayedStartupPromise: Promise<void>
-    readonly SessionStore: { readonly promiseAllWindowsRestored: Promise<void> }
+    readonly SessionStore: {
+      readonly promiseAllWindowsRestored: Promise<void>
+      /** JSON of `{ windows: [window] }`, with each tab's history entries and Zen's tab fields. */
+      getCustomWindowValue(win: Window, key: string): string
+      setCustomWindowValue(win: Window, key: string, value: string): void
+    }
     /** Hooks installed by the mod for the settings page and benchmarks. */
     Zencast?: ZencastApi
   }
@@ -546,11 +564,13 @@ declare global {
     readUTF8(path: string): Promise<string>
     getChildren(path: string, options?: { ignoreAbsent?: boolean }): Promise<string[]>
     stat(path: string): Promise<{ type: "regular" | "directory" | "other" }>
-    makeDirectory(path: string, options?: { ignoreExisting?: boolean }): Promise<void>
+    makeDirectory(path: string, options?: { ignoreExisting?: boolean; createAncestors?: boolean }): Promise<void>
+    remove(path: string, options?: { ignoreAbsent?: boolean }): Promise<void>
   }
   var PathUtils: {
     readonly profileDir: string
     join(...parts: string[]): string
+    filename(path: string): string
   }
   var L10nRegistry: {
     getInstance(): {

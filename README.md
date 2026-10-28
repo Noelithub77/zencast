@@ -63,6 +63,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Key sheet.** Hold `Ctrl+Shift` for a moment, anywhere in Zen, to see every Zencast key at once, grouped like the palette. Let go to hide it.
 
+**Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart. `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
+
 **Settings in place.** Type a setting's name: switches flip right in the list, and numbers or text open a prompt.
 
 ![Typing a setting's name and switching it from the palette](docs/media/settings.gif)
@@ -109,6 +111,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Alt+Shift+T` | New tab in a throwaway container |
 | `Alt+M` | Move the tab's session to another container |
 | `Alt+Shift+W` | Wipe the site's data and history |
+| `Alt+S` | Past sessions |
 | `Ctrl+Space` then `E`, `F`, `W` | Toggle essential, move to a folder, move to a space |
 
 In the palette:
@@ -124,7 +127,7 @@ In the palette:
 | `Tab`, `→` | Accept the inline completion |
 | `Esc` | Back, then close |
 
-Typing the start of a site you visited recently completes it from the DNS cache and takes `Enter`, even over a command with the same start: `allpyq` becomes `allpyq.in`.
+Typing the start of a site completes it inline and takes `Enter`. A site you visited in the last few minutes completes from the DNS cache, even over a command with the same start (`allpyq` becomes `allpyq.in`); any other site completes from your history, as in Zen's address bar.
 
 ## Make it yours
 

@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react"
 import { browserWindow } from "@/browser/window"
 import { onConfigChange, readConfig, type Config } from "@/shared/config"
 
-export type SectionId = "keys" | "settings" | "folders" | "general"
+export type SectionId = "keys" | "settings" | "folders" | "sessions" | "general"
 
-const SECTIONS: SectionId[] = ["keys", "settings", "folders", "general"]
+const SECTIONS: SectionId[] = ["keys", "settings", "folders", "sessions", "general"]
 
 function parseHash(): { section: SectionId; param: string } {
   const [section = "", ...rest] = location.hash.slice(1).split("/")

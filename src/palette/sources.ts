@@ -1,6 +1,5 @@
 import {
   Folder01Icon,
-  Globe02Icon,
   KeyboardIcon,
   Layers01Icon,
   Search01Icon,
@@ -385,7 +384,11 @@ export function loadEngineName() {
 }
 
 /** The typed URL, and the web search and assistant prompts that follow it, for a query. */
-export function queryItems(ctx: CommandContext, query: string): { url: PaletteItem | null; search: PaletteItem[] } {
+export function queryItems(
+  ctx: CommandContext,
+  query: string,
+  icon: (url: string) => string,
+): { url: PaletteItem | null; search: PaletteItem[] } {
   const url = typedUrl(query)
   return {
     url: url
@@ -394,7 +397,7 @@ export function queryItems(ctx: CommandContext, query: string): { url: PaletteIt
           transient: true,
           title: url.replace(/^https?:\/\//, ""),
           section: "Open",
-          icon: { kind: "icon", icon: Globe02Icon },
+          icon: { kind: "favicon", url: icon(url) },
           actions: [...openActions(ctx, () => url), assignAction(ctx, { kind: "url", target: url, title: url.replace(/^https?:\/\//, "") })],
         }
       : null,

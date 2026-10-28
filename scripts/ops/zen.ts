@@ -109,7 +109,7 @@ const frame = () => new Promise((r) => requestAnimationFrame(() => r()))
 const until = async (fn, ms = 8000) => {
   const end = Date.now() + ms
   for (;;) {
-    const value = fn()
+    const value = await fn()
     if (value) return value
     if (Date.now() > end) throw new Error("Timed out waiting for " + fn.toString().slice(0, 120))
     await sleep(15)

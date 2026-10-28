@@ -1,4 +1,4 @@
-import { FolderLibraryIcon, KeyboardIcon, Settings02Icon, SlidersHorizontalIcon } from "@hugeicons/core-free-icons"
+import { Clock01Icon, FolderLibraryIcon, KeyboardIcon, Settings02Icon, SlidersHorizontalIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 
 import type { Icon } from "@/commands/types"
@@ -9,12 +9,14 @@ import { useRoute, type SectionId } from "./hooks"
 import { FoldersSection } from "./folders/FoldersSection"
 import { GeneralSection } from "./sections/GeneralSection"
 import { KeysSection } from "./sections/KeysSection"
+import { SessionsSection } from "./sections/SessionsSection"
 import { ZenSettingsSection } from "./sections/ZenSettingsSection"
 
 const NAV: Array<{ id: SectionId; label: string; icon: Icon }> = [
   { id: "keys", label: "Shortcuts", icon: KeyboardIcon },
   { id: "settings", label: "Zen settings", icon: SlidersHorizontalIcon },
   { id: "folders", label: "Folders", icon: FolderLibraryIcon },
+  { id: "sessions", label: "Sessions", icon: Clock01Icon },
   { id: "general", label: "General", icon: Settings02Icon },
 ]
 
@@ -48,6 +50,7 @@ export function App() {
             {section === "keys" && <KeysSection focusId={param} />}
             {section === "settings" && <ZenSettingsSection />}
             {section === "folders" && <FoldersSection />}
+            {section === "sessions" && <SessionsSection />}
             {section === "general" && <GeneralSection />}
           </div>
         </main>

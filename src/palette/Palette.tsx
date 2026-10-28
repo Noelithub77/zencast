@@ -4,7 +4,7 @@ import { Command as CommandPrimitive } from "cmdk"
 import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { listContainers } from "@/browser/containers"
-import { completeDomain, readDnsDomains } from "@/browser/hosts"
+import { bareHost, completeDomain, readDnsDomains } from "@/browser/hosts"
 import { queryWeb, type WebResult } from "@/browser/urlbar"
 import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
@@ -263,15 +263,27 @@ function useDnsDomains(open: boolean): string[] {
   return domains
 }
 
+// Pages the URL bar found in history or bookmarks.
+const visited = (web: WebResult[]) => web.filter((result) => result.source === "history" || result.source === "bookmark")
+
 /**
  * A host from the DNS cache wins, even over a command whose name starts with the query. The URL
- * bar's history autofill comes after, and yields to such a command.
+ * bar's history autofill comes after, then the host of its top history row (autofill skips origins
+ * below its frecency threshold); both yield to such a command.
  */
 function completion(typed: string, web: WebResult[], domains: string[], strong: boolean): string | null {
   const dns = completeDomain(typed, domains)
   if (dns || strong) return dns
-  const history = web.find((result) => result.heuristic && result.autofill)?.autofill
-  return history && history.length > typed.length && history.toLowerCase().startsWith(typed.toLowerCase()) ? history : null
+  const autofill = web.find((result) => result.heuristic && result.autofill)?.autofill
+  if (autofill && autofill.length > typed.length && autofill.toLowerCase().startsWith(typed.toLowerCase())) return autofill
+  return completeDomain(typed, visited(web).flatMap((result) => bareHost(result.url) ?? []))
+}
+
+/** The favicon for a typed URL: a visited page on the same host, else the site's root. */
+function typedIcon(url: string, web: WebResult[]): string {
+  const host = bareHost(url)
+  const page = visited(web).find((result) => bareHost(result.url) === host)?.url
+  return `page-icon:${page ?? new URL(url).origin + "/"}`
 }
 
 function caretAtEnd(target: EventTarget | undefined): boolean {
@@ -350,7 +362,7 @@ export function Palette() {
     const strong = ranked.some((item) => isStrongMatch(item, q))
     const host = fill && query === q && !quick ? completion(q, web, domains, strong) : null
     const suffix = host ? host.slice(q.length) : ""
-    const { url, search: searchItems } = queryItems(context, q + suffix)
+    const { url, search: searchItems } = queryItems(context, q + suffix, (target) => typedIcon(target, web))
     if (url) out.push({ section: "Open", items: [url] })
     else if (!strong) out.push({ section: "Search", items: searchItems })
     if (wantsSettings && q.length >= 3) ranked.push(settingsSearchItem(context, q))

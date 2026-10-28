@@ -723,7 +723,7 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette-spaces")
   await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Alt", code: "AltLeft", bubbles: true, composed: true }))
     await dismiss()
-    press("ctrl+,", document.documentElement)
+    press("ctrl+shift+,", document.documentElement)
     const browser = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings") && gBrowser.selectedBrowser)
     await until(() => browser.contentDocument?.querySelector("nav a"))
     browser.contentWindow.location.hash = "#keys"

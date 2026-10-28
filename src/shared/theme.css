@@ -112,4 +112,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Selected text, and the palette's inline completion, in Vesper's peach instead of the system blue. */
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    color: var(--foreground);
+  }
 }

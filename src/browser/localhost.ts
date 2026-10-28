@@ -97,13 +97,28 @@ async function probe(listener: Listener): Promise<LocalServer | null> {
   }
 }
 
-/** Servers on this machine that answer HTTP, by port; Zen's own listeners are left out. */
-export async function localServers(): Promise<LocalServer[]> {
+// The last scan, shown at once while the next one runs.
+let lastScan: LocalServer[] | null = null
+let scanning: Promise<LocalServer[]> | null = null
+
+/** The servers found by the last scan, or null before the first one finishes. */
+export const knownServers = () => lastScan
+
+/** Servers on this machine that answer HTTP, by port; Zen's own listeners are left out. Calls during a scan share it. */
+export function localServers(): Promise<LocalServer[]> {
+  scanning ??= scan().finally(() => {
+    scanning = null
+  })
+  return scanning
+}
+
+async function scan(): Promise<LocalServer[]> {
   const seen = new Set<number>()
   const own = Services.appinfo.processID
   const candidates = (await listeners()).filter((l) => l.pid !== own && !seen.has(l.port) && seen.add(l.port))
   const servers = await Promise.all(candidates.map(probe))
-  return servers.filter((server) => server !== null).sort((a, b) => a.port - b.port)
+  lastScan = servers.filter((server) => server !== null).sort((a, b) => a.port - b.port)
+  return lastScan
 }
 
 /** An open tab on that local port, in any space. */

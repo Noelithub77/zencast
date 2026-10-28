@@ -1,7 +1,7 @@
 // Dev servers running on this machine: switch to the tab already on one, or open it.
 import { ComputerTerminal01Icon } from "@hugeicons/core-free-icons"
 
-import { localServers, localTab, type LocalServer } from "@/browser/localhost"
+import { knownServers, localServers, localTab, type LocalServer } from "@/browser/localhost"
 import { selectTab } from "@/browser/tabs"
 import { openTarget } from "@/palette/sources"
 import type { Command, CommandContext, ListView, PaletteItem } from "./types"
@@ -27,10 +27,24 @@ function serverItem(ctx: CommandContext, server: LocalServer): PaletteItem {
   }
 }
 
+const view = (ctx: CommandContext, servers: LocalServer[]): ListView => ({
+  id: "localhost",
+  title: "Localhost",
+  placeholder: servers.length ? "Server" : "No local servers running",
+  items: servers.map((server) => serverItem(ctx, server)),
+})
+
+// Stale while revalidate: the last scan shows at once and the open list takes the fresh one when it lands.
 async function localhostView(ctx: CommandContext): Promise<ListView | void> {
-  const servers = await localServers()
+  const known = knownServers()
+  const fresh = localServers()
+  if (known) {
+    void fresh.then((servers) => ctx.ui.update(view(ctx, servers))).catch(() => {})
+    return view(ctx, known)
+  }
+  const servers = await fresh
   if (!servers.length) return ctx.ui.toast("No local servers running")
-  return { id: "localhost", title: "Localhost", placeholder: "Server", items: servers.map((server) => serverItem(ctx, server)) }
+  return view(ctx, servers)
 }
 
 export const localhostCommands: Command[] = [

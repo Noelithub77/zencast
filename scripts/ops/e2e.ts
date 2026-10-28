@@ -636,30 +636,32 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "alt+l lists a local dev server, opens it, then switches to its tab",
+    name: "alt+l lists a local dev server, opens it, then switches to its tab from the cached list at once",
     body: String.raw`${READY}
       const url = "http://localhost:${LOCAL_PORT}/"
       const pick = async () => {
+        const start = performance.now()
         press("alt+l", document.documentElement)
         await until(paletteOpen, 4000)
         const listed = await until(() => resultTitles().some((title) => title.startsWith("Kiwi dev server")), 4000).catch(() => false)
+        const ms = Math.round(performance.now() - start)
         typeQuery("kiwi dev")
         await sleep(150)
         press("enter")
-        return listed
+        return listed && ms
       }
       const listed = await pick()
       const tab = await until(() => gBrowser.tabs.find((t) => t.linkedBrowser?.currentURI.spec === url), 4000).catch(() => null)
       const count = gBrowser.tabs.length
       gBrowser.selectedTab = gBrowser.tabs.find((t) => t !== tab)
-      await pick()
+      const cachedMs = await pick()
       const switched = await until(() => tab && gBrowser.selectedTab === tab, 3000).catch(() => false)
       const same = gBrowser.tabs.length === count
       await dismiss()
       if (tab) gBrowser.removeTab(tab)
       return {
-        ok: listed && !!tab && switched && same,
-        detail: (listed ? "listed" : "not listed") + "; " + (tab ? "opened" : "not opened") + "; " + (switched && same ? "switched to its tab" : "did not switch"),
+        ok: !!listed && !!tab && switched && same && cachedMs !== false && cachedMs < 150,
+        detail: (listed ? "listed in " + listed + " ms, then " + cachedMs + " ms from the cache" : "not listed") + "; " + (tab ? "opened" : "not opened") + "; " + (switched && same ? "switched to its tab" : "did not switch"),
       }`,
   },
   {

@@ -72,6 +72,8 @@ export interface PaletteControls {
   toast(text: string, action?: ToastAction): void
   /** Opens the palette with a list (used by key-bound commands that need a picker). */
   show(view: ListView): void
+  /** Replaces a shown list with a newer version of itself, matched by id; does nothing once it is gone. */
+  update(view: ListView): void
   /** Sets the container that the next opened URL or search uses. */
   setOpenIn(container: { id: number; name: string; color: string } | null): void
   /** Records a shortcut in the palette for a command, or for a new jump when one is given. */

@@ -1,4 +1,5 @@
 import { listContainers } from "@/browser/containers"
+import { localServers } from "@/browser/localhost"
 import { notify } from "@/browser/toast"
 import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import { allCommands } from "@/commands/jumps"
@@ -21,6 +22,7 @@ let idleHandle = 0
 const ui: PaletteControls = {
   toast: (text, action) => win && notify(win, text, action),
   show: (view) => openPalette(view),
+  update: (view) => setState((current) => ({ stack: current.stack.map((shown) => (shown.id === view.id ? view : shown)) })),
   // Choosing a container returns to the root list so the next query opens in it.
   setOpenIn: (openIn) => setState({ openIn, stack: [] }),
   record: (id, title, jump) => setState({ recording: { id, title, jump, combos: [], hint: null } }),
@@ -35,6 +37,8 @@ export function initController(target: Window) {
   win = target
   loadEngineName()
   warmNative()
+  // A first scan once the window settles, so even the first Alt+L shows servers at once.
+  target.requestIdleCallback(() => void localServers().catch(() => {}), { timeout: 10_000 })
 }
 
 export function disposeController() {

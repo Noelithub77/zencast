@@ -71,7 +71,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Tab cleanup.** "Clean up tabs" lists the tabs you haven't selected for a week, oldest first; pinned and essential tabs stay. `Enter` on the top row closes them all into a dated bookmark folder under Other bookmarks / Tab cleanup, and `Ctrl+Enter` closes them without one. Undo brings them back asleep, in their spaces and containers. Switching to a tab from the list keeps it.
 
-**Localhost.** `Alt+L` lists the dev servers running on your machine, by page title and port. `Enter` switches to the tab already on one, or opens it.
+**Localhost.** `Alt+L` lists the dev servers running on your machine, by page title and port. `Enter` switches to the tab already on one, or opens it. The last list shows at once while a fresh scan updates it.
 
 **Settings in place.** Type a setting's name: switches flip right in the list, and numbers or text open a prompt.
 

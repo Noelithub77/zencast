@@ -1,8 +1,7 @@
 import { format } from "date-fns"
-import { z } from "zod"
 
 import { bookmarkPages, removeFolder } from "./bookmarks"
-import { listTabs } from "./tabs"
+import { currentEntry, listTabs } from "./tabs"
 
 // Tabs nobody has selected for a week, closed together into a dated bookmark folder.
 
@@ -22,16 +21,8 @@ export const idleDays = (tab: XULTab, now = Date.now()) => Math.floor((now - tab
 
 const bookmarkable = (url: string) => /^(https?|file):/.test(url)
 
-// The page a tab shows, from its SessionStore state; `index` is 1-based and absent on a fresh tab.
-const stateSchema = z.object({
-  entries: z.array(z.object({ url: z.string(), title: z.string().optional() })),
-  index: z.number().int().optional(),
-})
-
 function pageOf(state: string): { title: string; url: string } | null {
-  const parsed = stateSchema.safeParse(JSON.parse(state))
-  const entries = parsed.success ? parsed.data.entries : []
-  const entry = entries[(parsed.data?.index ?? entries.length) - 1]
+  const entry = currentEntry(state)
   return entry && bookmarkable(entry.url) ? { title: entry.title || entry.url, url: entry.url } : null
 }
 

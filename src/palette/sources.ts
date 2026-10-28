@@ -21,7 +21,7 @@ import {
   type ValuePref,
 } from "@/browser/settings-index"
 import { allFolders, breadcrumb, folderPath, openFolder } from "@/browser/folders"
-import { closeTab, duplicateTab, listTabs, selectTab, tabKey, tabUrl } from "@/browser/tabs"
+import { closeTab, duplicateTab, listTabs, pageTitle, selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { fillQuery } from "@/browser/bookmarks"
 import { ASSISTANTS, defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
 import { openUrl } from "@/browser/window"
@@ -120,8 +120,10 @@ function tabItem(ctx: CommandContext, tab: XULTab, bindings: Map<string, string[
     accessory: [place, container && containerName(container)].filter(Boolean).join(" · ") || undefined,
     accessoryColor: "var(--faint)",
     keys: bindings.get(jumpId(jump))?.[0],
+    // Searchable by its folder path and, once renamed, by the page's own title.
     keywords: [
       place,
+      pageTitle(ctx.win, tab),
       tab.pinned && "pinned",
       tab.hasAttribute("zen-essential") && "essential",
       !loaded && "unloaded",

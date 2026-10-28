@@ -93,6 +93,8 @@ declare global {
     readonly multiselected: boolean
     /** Epoch ms of the last time the tab was selected. */
     readonly lastAccessed: number
+    /** Zen's name for a tab the user renamed, shown in place of the page's title. */
+    readonly zenStaticLabel?: string
   }
 
   interface AddTabOptions {

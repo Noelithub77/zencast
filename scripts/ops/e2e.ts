@@ -130,6 +130,71 @@ const SCENARIOS: Scenario[] = [
       return { ok: both && byFolder, detail: "zebra: " + zebra.join(" | ") + "; quokka: " + quokka.slice(0, 2).join(" | ") }`,
   },
   {
+    name: "search lists every matching tab past the result limit, loaded first, and renamed tabs by their page",
+    body: String.raw`${READY}
+      const principal = Services.scriptSecurityManager.getSystemPrincipal()
+      const lazy = []
+      for (let i = 0; i < 70; i++) lazy.push(gBrowser.addTab("https://wombatlist.example/" + i, { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true }))
+      const live = newTab("data:text/html,<title>Wombatlist live</title>x")
+      await until(() => live.label === "Wombatlist live")
+      // A sleeping tab renamed by the user: only its saved page title holds "numbat".
+      const renamed = gBrowser.addTab("about:blank", { triggeringPrincipal: principal, inBackground: true })
+      SessionStore.setTabState(renamed, JSON.stringify({ entries: [{ url: "https://example.net/ledger", title: "Numbat ledger", triggeringPrincipal_base64: "" }], index: 1 }))
+      await until(() => renamed.hasAttribute("pending") && renamed.label === "Numbat ledger")
+      renamed.zenStaticLabel = "public-db"
+      gBrowser._setTabLabel(renamed, "public-db")
+      const current = newTab()
+      await sleep(300)
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("wombatlist")
+      await sleep(400)
+      const wombats = resultTitles().filter((t) => /^Wombatlist live|wombatlist\.example\/\d/.test(t))
+      typeQuery("numbat")
+      await sleep(150)
+      const numbat = resultTitles()
+      typeQuery("")
+      await sleep(50)
+      typeQuery("@wombatlist")
+      await sleep(400)
+      const scoped = resultTitles().filter((t) => /^Wombatlist live|wombatlist\.example\/\d/.test(t)).length
+      await dismiss()
+      for (const tab of [...lazy, live, renamed, current]) gBrowser.removeTab(tab)
+      const all = wombats.length === 71 && wombats[0].startsWith("Wombatlist live") && scoped === 71
+      const byPage = numbat.some((t) => t.startsWith("public-db"))
+      return { ok: all && byPage, detail: wombats.length + " wombat tabs, first " + wombats[0] + "; " + scoped + " in the tabs scope; numbat: " + numbat.slice(0, 2).join(" | ") }`,
+  },
+  {
+    name: "a palette closed before anything runs keeps the typed text for the next open",
+    body: String.raw`${READY}
+      const target = newTab("data:text/html,<title>Draftling page</title>x")
+      await until(() => target.label === "Draftling page")
+      const blank = newTab()
+      const input = () => shadow().querySelector("[cmdk-input]")
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      typeQuery("draftling")
+      await sleep(80)
+      press("ctrl+k", deepActive())
+      await until(() => !paletteOpen())
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      await sleep(80)
+      const kept = input().value
+      const selected = input().selectionStart === 0 && input().selectionEnd === kept.length
+      press("enter")
+      await until(() => !paletteOpen())
+      const switched = gBrowser.selectedTab === target
+      press("ctrl+k", document.documentElement)
+      await until(paletteOpen)
+      await sleep(80)
+      const after = input().value
+      await dismiss()
+      for (const tab of [target, blank]) gBrowser.removeTab(tab)
+      const ok = kept === "draftling" && selected && switched && after === ""
+      return { ok, detail: "kept " + JSON.stringify(kept) + (selected ? " selected" : " unselected") + ", switched " + switched + ", after run " + JSON.stringify(after) }`,
+  },
+  {
     name: "palette keys win over the browser's while it is open",
     body: String.raw`${READY}
       const target = newTab("data:text/html,<title>Close%20me%20please</title>x")
@@ -497,6 +562,8 @@ const SCENARIOS: Scenario[] = [
       document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
       const altShown = await until(() => hints().length && hints(), 2000).catch(() => [])
       const altLegend = shadow().querySelector("[data-legend]")?.textContent ?? ""
+      // Held past a tap, so letting go clears the hints instead of latching them.
+      await sleep(400)
       document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
       await until(() => hints().length === 0, 2000)
       await dismiss()
@@ -533,7 +600,7 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "a tap of alt latches the hints, a bare letter runs a marked row, and esc or another tap clears them",
+    name: "a tap of alt latches the hints, a bare letter runs a marked row, and esc, another tap or a long alt clears them",
     body: String.raw`${READY}
       const start = gBrowser.selectedTab
       const target = newTab("data:text/html,<title>Quokkalatch</title>x")
@@ -555,6 +622,13 @@ const SCENARIOS: Scenario[] = [
         const stayed = hints().length > 3
         tap()
         const untapped = await until(() => hints().length === 0, 2000).catch(() => false)
+        // Latched again, then a long press of Alt alone clears them too.
+        tap()
+        await until(() => hints().length > 3, 2000)
+        document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
+        await sleep(450)
+        document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
+        const longCleared = await until(() => hints().length === 0, 2000).catch(() => false)
         tap()
         await until(() => hints().length > 3, 2000)
         press("escape")
@@ -566,8 +640,8 @@ const SCENARIOS: Scenario[] = [
         if (letter) press(letter)
         const ran = await until(() => gBrowser.selectedTab === target, 2000).catch(() => false)
         return {
-          ok: !!latched && stayed && !!untapped && !!escaped && ran,
-          detail: (latched && stayed ? "a tap latched the hints" : "no latch") + (untapped ? "; another tap cleared them" : "; still up after a tap") + (escaped ? "; esc cleared them" : "; esc did not clear") + (ran ? "; " + letter + " switched to the marked tab" : "; letter " + letter + " ran nothing"),
+          ok: !!latched && stayed && !!untapped && !!longCleared && !!escaped && ran,
+          detail: (latched && stayed ? "a tap latched the hints" : "no latch") + (untapped ? "; another tap cleared them" : "; still up after a tap") + (longCleared ? "; a long alt cleared them" : "; still up after a long alt") + (escaped ? "; esc cleared them" : "; esc did not clear") + (ran ? "; " + letter + " switched to the marked tab" : "; letter " + letter + " ran nothing"),
         }
       } finally {
         await dismiss().catch(() => {})

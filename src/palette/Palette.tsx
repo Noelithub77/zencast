@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { readConfig, readUsage } from "@/shared/config"
 import { comboFromEvent, displaySequence } from "@/shared/keys"
 import { ActionPanel } from "./ActionPanel"
+import { readDraft, saveDraft } from "./draft"
 import { closePalette, popView, runAction, runCommandInPalette, saveRecording, toggleContainerTarget, toggleSpaceTarget } from "./controller"
 import { Keys } from "@/components/keys"
 import { assignHints, useModifierHold, type Hint, type Modifier } from "./hints"
@@ -92,7 +93,7 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
           {hint ? (
             <>
               {item.title.slice(0, hint.index)}
-              <span className="underline decoration-2 underline-offset-4" style={{ color: hint.color }}>
+              <span className="font-bold underline decoration-2 underline-offset-4" style={{ color: hint.color }}>
                 {item.title[hint.index]}
               </span>
               {item.title.slice(hint.index + 1)}
@@ -106,7 +107,7 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
           {hint ? (
             <kbd
               data-hint=""
-              className="flex h-8 min-w-8 items-center justify-center font-mono text-[17px] font-semibold animate-in fade-in-0 zoom-in-90 duration-150"
+              className="flex h-8 min-w-8 items-center justify-center text-[19px] leading-none font-extrabold animate-in fade-in-0 zoom-in-90 duration-150"
               style={{ color: hint.color }}
             >
               {hint.letter.toUpperCase()}
@@ -385,13 +386,15 @@ export function Palette() {
   // A search engine's keyword and Tab search only that engine until Backspace or Esc.
   const [engine, setEngine] = useState<Engine | null>(null)
   if (seenKey !== viewKey) {
+    // The root list picks up what was typed before the palette last closed without running anything.
+    const draft = view ? null : readDraft()
     setSeenKey(viewKey)
-    setQuery(view?.prompt?.initial ?? "")
+    setQuery(view?.prompt?.initial ?? draft?.query ?? "")
     setSelected("")
     setPanel(false)
     setFill(false)
-    setScope(null)
-    setEngine(null)
+    setScope(draft?.scope ?? null)
+    setEngine(draft?.engine ?? null)
   }
 
   const inputRef = useRef<HTMLInputElement>(null)
@@ -452,15 +455,14 @@ export function Palette() {
       }
       return { groups: [{ section: engine.name, items: [first, ...webItems(context, web, q, (text) => engineSearchUrl(engine, text))] }], suffix: "" }
     }
-    // Searching only tabs lists every loaded match first, then unloaded ones up to the limit in their own section.
+    // Ranked once without a limit: the result limit applies to everything but tabs.
+    const all = search(index, q, readUsage(), Infinity).map((r) => r.item)
+    // Searching only tabs lists every tab in every space, past the limit: loaded ones first, then unloaded ones in their own section.
     if (scope?.id === "tabs") {
-      const tabs = search(index, q, readUsage(), Infinity).map((r) => r.item)
-      const loaded = tabs.filter((item) => !item.dim)
-      const unloaded = tabs.filter((item) => item.dim).slice(0, Math.max(0, config.maxResults - loaded.length))
-      const groups = [{ section: "Tabs", items: loaded }, { section: "Unloaded", items: unloaded }]
+      const groups = [{ section: "Tabs", items: all.filter((item) => !item.dim) }, { section: "Unloaded", items: all.filter((item) => item.dim) }]
       return { groups: groups.filter((group) => group.items.length), suffix: "" }
     }
-    const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
+    const found = all.slice(0, config.maxResults)
     if (!q && !view && !scope && context) {
       // The empty palette leads with the last few loaded tabs, most recent first; a tab's boost grows with recency.
       const recent = root
@@ -476,7 +478,14 @@ export function Palette() {
     const out: Group[] = []
     // A typed keyword leads with its quick link, and its bookmark's own row steps aside.
     const quick = quickLink(context, q)
-    const matched = quick ? found.filter((item) => item.id !== `bookmark:${quick.bookmark.guid}`) : found
+    // Every matching tab is listed, past the limit: loaded ones first, then unloaded, pinned or essential ones.
+    const tabs = all.filter((item) => item.section === "Tabs")
+    const allTabs = [...tabs.filter((item) => !item.dim), ...tabs.filter((item) => item.dim)]
+    // The tab group keeps the place its best match earned among the other results, or comes after them.
+    const firstTab = found.find((item) => item.section === "Tabs")
+    const listed = found.flatMap((item) => (item === firstTab ? allTabs : item.section === "Tabs" ? [] : [item]))
+    const withTabs = firstTab ? listed : [...listed, ...allTabs]
+    const matched = quick ? withTabs.filter((item) => item.id !== `bookmark:${quick.bookmark.guid}`) : withTabs
     if (quick) out.push({ section: "Quick link", items: [quick.item] })
     const host = fill && query === q && !quick ? completion(q, web, domains, guess) : null
     const suffix = host ? host.slice(q.length) : ""
@@ -506,6 +515,10 @@ export function Palette() {
   const shown = deferred === entries ? entries : firstScreen(entries, deferred)
   const active = rows.find((item) => item.id === selected) ?? rows[0] ?? null
 
+  useEffect(() => {
+    if (open && !view) saveDraft({ query, scope, engine })
+  }, [open, view, query, scope, engine])
+
   // The completed part stays selected, so typing replaces it and Backspace removes it.
   useLayoutEffect(() => {
     if (suffix) inputRef.current?.setSelectionRange(query.length, query.length + suffix.length)
@@ -514,8 +527,8 @@ export function Palette() {
   useLayoutEffect(() => {
     if (!open || !context) return
     inputRef.current?.focus()
-    // A prompt starts with its current value selected, so typing replaces it.
-    if (view?.prompt) inputRef.current?.select()
+    // A prompt or a restored draft starts selected, so typing replaces it.
+    if (view?.prompt || (!view && readDraft().query)) inputRef.current?.select()
     markOpenPainted(context.win)
   }, [open, context, viewKey, view])
 
@@ -530,10 +543,11 @@ export function Palette() {
     setHints(null)
   }
   useModifierHold(open && context ? context.win : null, (pressed, cause) => {
+    // A quick Alt toggles the latch; while latched, any lone Alt clears it, however long it was held.
     if (cause === "tap") latched.current = !latched.current
-    else if (cause === "reset") latched.current = false
+    else if (cause === "reset" || cause === "lone") latched.current = false
     // Letting go of a hold while latched goes back to the latched Alt hints.
-    const modifier = (cause === "tap" ? null : pressed) ?? (latched.current ? "alt" : null)
+    const modifier = (cause ? null : pressed) ?? (latched.current ? "alt" : null)
     setHeld(modifier)
     const list = listRef.current
     if (!modifier || panel || recording || view?.prompt || !list) return setHints(null)

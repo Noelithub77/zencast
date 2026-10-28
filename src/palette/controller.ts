@@ -10,6 +10,7 @@ import { jumpId, readConfig, recordUsage, updateConfig, writeConfig } from "@/sh
 import { displaySequence } from "@/shared/keys"
 import { markOpenStart } from "./perf"
 import { bookmarkItems } from "./bookmarks"
+import { clearDraft } from "./draft"
 import { inScope } from "./scopes"
 import { loadEngineName, rootItems } from "./sources"
 import { getState, HOST_ID, setState } from "./store"
@@ -140,6 +141,8 @@ function reportError(error: unknown) {
 
 export async function runAction(item: PaletteItem, action: ItemAction) {
   if (!item.transient) recordUsage(item.id)
+  // Only a palette closed before anything ran keeps what was typed for the next open.
+  if (!action.keepOpen) clearDraft()
   try {
     const view = await settle(action.run())
     if (view) setState((current) => ({ stack: [...current.stack, view] }))
@@ -166,6 +169,7 @@ export async function runCommand(command: Command) {
 /** A Zencast key pressed in the palette: a view it returns opens on top, anything else closes the palette. */
 export async function runCommandInPalette(command: Command) {
   recordUsage(command.id)
+  clearDraft()
   try {
     const view = await settle(command.run(commandContext()))
     if (view) setState((current) => ({ stack: [...current.stack, view] }))

@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 export interface TabInfo {
   tab: XULTab
   title: string
@@ -44,6 +46,26 @@ export function describeTab(tab: XULTab): TabInfo {
     folder,
     userContextId: tab.userContextId,
   }
+}
+
+// A tab's SessionStore state; `index` is 1-based and absent on a fresh tab.
+const stateSchema = z.object({
+  entries: z.array(z.object({ url: z.string(), title: z.string().optional() })),
+  index: z.number().int().optional(),
+})
+
+/** The history entry a tab shows, from its SessionStore state. */
+export function currentEntry(state: string): { url: string; title?: string } | undefined {
+  const parsed = stateSchema.safeParse(JSON.parse(state))
+  if (!parsed.success) return undefined
+  const { entries, index } = parsed.data
+  return entries[(index ?? entries.length) - 1]
+}
+
+/** The page's own title on a tab the user renamed, which its label no longer shows, even asleep. */
+export function pageTitle(win: Window, tab: XULTab): string | undefined {
+  if (typeof tab.zenStaticLabel !== "string") return undefined
+  return currentEntry(win.SessionStore.getTabState(tab))?.title
 }
 
 /** Real tabs only: skips Zen's hidden placeholder tabs used inside empty folders. */

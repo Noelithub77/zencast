@@ -5,8 +5,10 @@ import { useEffect, useEffectEvent } from "react"
 // Editing keys, the actions panel (J), and the browser's close and quit keys never become hints; nor
 // do the palette's own keys or Zencast's, which the caller passes as taken.
 const RESERVED = "acjvxzqw"
-// Long enough that a quick Ctrl+K never flashes hints; Alt let go sooner, alone, is a tap.
+// Long enough that a quick Ctrl+K never flashes hints.
 const HOLD_MS = 200
+// Alt pressed and let go alone within this is a tap, even if the hold already showed the hints.
+const TAP_MS = 350
 
 // Many pastels, like a terminal's colours, so neighbouring hints read apart at a glance.
 const COLORS = [
@@ -56,18 +58,18 @@ const MODIFIER_KEYS: Record<string, Modifier> = { Control: "ctrl", Alt: "alt" }
 
 /**
  * Reports a modifier once it has been held alone briefly, and null on release. Keys pressed while
- * it is held (Ctrl+1, Alt+2) keep it held, so a strip stays up while choosing from it. A quick tap of
- * Alt alone is reported as a "tap", which toggles the hints until the next tap; losing focus or
- * closing reports a "reset".
+ * it is held (Ctrl+1, Alt+2) keep it held, so a strip stays up while choosing from it. Alt pressed
+ * and let go with no other key is reported after the release as a "tap" when quick, else as "lone";
+ * losing focus or closing reports a "reset".
  */
-export function useModifierHold(win: Window | null, onHold: (held: Modifier | null, cause?: "tap" | "reset") => void) {
+export function useModifierHold(win: Window | null, onHold: (held: Modifier | null, cause?: "tap" | "lone" | "reset") => void) {
   const notify = useEffectEvent(onHold)
   useEffect(() => {
     if (!win) return
     let timer = 0
     let held: Modifier | null = null
-    // Alt went down alone and nothing else has been pressed since.
-    let tapping = false
+    // When Alt went down alone, until another key is pressed with it.
+    let aloneSince = 0
     const release = () => {
       win.clearTimeout(timer)
       if (held) notify(null)
@@ -77,28 +79,27 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
       win.clearTimeout(timer)
       const modifier = MODIFIER_KEYS[event.key]
       if (!modifier || event.repeat || held) {
-        if (!event.repeat) tapping = false
+        if (!event.repeat) aloneSince = 0
         return
       }
       const others = [event.ctrlKey && modifier !== "ctrl", event.altKey && modifier !== "alt", event.shiftKey, event.metaKey]
-      tapping = modifier === "alt" && !others.some(Boolean)
+      aloneSince = modifier === "alt" && !others.some(Boolean) ? event.timeStamp : 0
       if (others.some(Boolean)) return
       timer = win.setTimeout(() => {
         held = modifier
-        tapping = false
         notify(modifier)
       }, HOLD_MS)
     }
     const up = (event: KeyboardEvent) => {
       if (!MODIFIER_KEYS[event.key]) return
-      // Let go before the hold showed anything.
-      const tapped = event.key === "Alt" && tapping && !held
-      tapping = false
+      const alone = event.key === "Alt" && aloneSince > 0
+      const quick = event.timeStamp - aloneSince < TAP_MS
+      aloneSince = 0
       release()
-      if (tapped) notify("alt", "tap")
+      if (alone) notify("alt", quick ? "tap" : "lone")
     }
     const blur = () => {
-      tapping = false
+      aloneSince = 0
       release()
       notify(null, "reset")
     }

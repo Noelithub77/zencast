@@ -250,10 +250,22 @@ declare global {
     observe(subject: unknown, topic: string, data: string): void
   }
 
+  interface CookieNotification {
+    readonly baseDomain: string
+    readonly cookie: nsICookie | null
+  }
+
+  /** "cookie-changed" passes a subject that becomes a notification once queried. */
+  interface CookieObserver {
+    observe(subject: { QueryInterface(iface: GeckoComponentsInterfaces["nsICookieNotification"]): CookieNotification }): void
+  }
+
   interface GeckoServices {
     prefs: PrefBranch
     obs: {
+      addObserver(observer: CookieObserver, topic: "cookie-changed"): void
       addObserver(observer: GeckoObserver, topic: string): void
+      removeObserver(observer: CookieObserver, topic: "cookie-changed"): void
       removeObserver(observer: GeckoObserver, topic: string): void
       notifyObservers(subject: unknown, topic: string, data?: string): void
     }
@@ -310,6 +322,25 @@ declare global {
     nsIWebNavigation: { LOAD_FLAGS_BYPASS_CACHE: number; LOAD_FLAGS_BYPASS_PROXY: number }
     nsIDashboard: object
     nsIDNSService: { RESOLVE_TYPE_DEFAULT: number }
+    nsICookieNotification: object
+    nsIRequest: { LOAD_ANONYMOUS: number; LOAD_BYPASS_CACHE: number }
+    nsIHttpChannel: object
+    nsIUploadChannel2: object
+    nsIStringInputStream: object
+  }
+
+  interface StringInputStream {
+    setByteStringData(data: string): void
+    available(): number
+  }
+
+  /** A channel queried to nsIHttpChannel and nsIUploadChannel2, whose members then sit on one object. */
+  interface HttpChannel {
+    loadFlags: number
+    readonly responseStatus: number
+    setRequestHeader(header: string, value: string, merge: boolean): void
+    explicitSetUploadStream(stream: StringInputStream, contentType: string, length: number, method: string, streamHasHeaders: boolean): void
+    QueryInterface(iface: GeckoComponentsInterfaces["nsIHttpChannel"] | GeckoComponentsInterfaces["nsIUploadChannel2"]): HttpChannel
   }
 
   interface DnsCacheEntry {
@@ -324,6 +355,9 @@ declare global {
 
   interface GeckoComponentsClasses {
     "@mozilla.org/network/dashboard;1": { getService(iface: GeckoComponentsInterfaces["nsIDashboard"]): NetDashboard }
+    "@mozilla.org/io/string-input-stream;1": {
+      createInstance(iface: GeckoComponentsInterfaces["nsIStringInputStream"]): StringInputStream
+    }
   }
 
   interface ContainerIdentity {
@@ -416,6 +450,13 @@ declare global {
   }
 
   interface GeckoModuleMap {
+    "resource://gre/modules/NetUtil.sys.mjs": {
+      NetUtil: {
+        newChannel(options: { uri: string; loadUsingSystemPrincipal: true }): HttpChannel
+        asyncFetch(channel: HttpChannel, callback: (stream: StringInputStream, status: number) => void): void
+        readInputStreamToString(stream: StringInputStream, count: number, options: { charset: string }): string
+      }
+    }
     "resource://gre/modules/PlacesUtils.sys.mjs": {
       PlacesUtils: {
         bookmarks: PlacesBookmarks

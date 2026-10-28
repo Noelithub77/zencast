@@ -2,9 +2,11 @@
 import { watchBookmarks } from "@/browser/bookmarks"
 import { sweepTemporaryContainers } from "@/browser/containers"
 import { isTab } from "@/browser/folders"
+import { watchGoogleSignIns } from "@/browser/google"
 import { addSineSettingsButton } from "@/browser/sine-card"
 import { registerToasts } from "@/browser/toast"
 import { openSettings } from "@/commands/catalog"
+import { offerGoogleContainers } from "@/commands/google"
 import { buildIndex } from "@/keys/bindings"
 import { startKeyEngine } from "@/keys/engine"
 import { closePalette, commandContext, disposeController, initController, openPalette, runCommand } from "@/palette/controller"
@@ -16,7 +18,12 @@ import { onConfigChange, readConfig } from "@/shared/config"
 function start(win: Window): () => void {
   const disposers: Array<() => void> = []
   initController(win)
-  disposers.push(disposeController, registerToasts(win), watchBookmarks())
+  disposers.push(
+    disposeController,
+    registerToasts(win),
+    watchBookmarks(),
+    watchGoogleSignIns(win, (emails) => offerGoogleContainers(win, emails)),
+  )
 
   let index = buildIndex(readConfig())
   let recording = false

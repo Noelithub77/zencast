@@ -649,6 +649,30 @@ const SCENARIOS: Scenario[] = [
         for (const keyword of ["gh", "yt", "wiki", "mdn", "npm", "maps", "gpt", "claude", "cf"]) await PlacesUtils.keywords.remove(keyword).catch(() => {})
       }`,
   },
+  {
+    name: "google account containers read Google's real list and leave the cookie jar alone",
+    body: String.raw`${READY}
+      // A stand-in cookie makes the request go out; Google answers with an empty list for it.
+      const jar = () => Services.cookies.getCookiesWithOriginAttributes("{}", "google.com").map((c) => c.name + "=" + c.value).sort().join("; ")
+      Services.cookies.add(".google.com", "/", "SID", "zencast-test", true, false, false, Date.now() + 600000, {}, Ci.nsICookie.SAMESITE_NONE, Ci.nsICookie.SCHEME_HTTPS, false)
+      const before = jar()
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("Google account containers")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Google account containers"), 2000)
+        press("enter")
+        const toast = await until(() => toastText().includes("Google") && toastText(), 8000).catch(() => toastText())
+        const after = jar()
+        return {
+          ok: toast.includes("No Google accounts signed in") && after === before,
+          detail: "toast: " + toast + (after === before ? "; cookie jar unchanged" : "; cookie jar changed: " + after.slice(0, 80)),
+        }
+      } finally {
+        Services.cookies.remove(".google.com", "SID", "/", {})
+        Services.prefs.clearUserPref("zencast.googleAccounts")
+      }`,
+  },
 ]
 
 export async function runScenarios(zen: Zen): Promise<ScenarioResult[]> {

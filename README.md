@@ -75,6 +75,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Containers and privacy.** Open or reopen a tab in a container, start a throwaway container that deletes its data on close, move a signed-in session to another container, or wipe a site's data and history from a tab.
 
+**Google account containers.** Zencast finds the Google accounts you're signed in to and gives each one its own container, named after its email. You sign in once in each, with the email already filled in. Signing in to another account offers a container for it. Only the list of emails is kept, never your cookies.
+
 **Fast.** Measured in headless Zen with 300 tabs, at the 95th percentile:
 
 | Open | Search | Keystroke |

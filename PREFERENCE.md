@@ -78,6 +78,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - A bit bigger, and centred on screen.
 - **Bookmarks (2026-10-28).** Bookmark search and bookmark keys must work. Bookmarking is keyboard-first on Ctrl+B, filled in the palette with an optional keyword; Ctrl+D stays the owner's duplicate key. Quick links are Firefox bookmark keywords, one source of truth with the address bar, and a starter set is offered by a command, never added unasked.
 - **Ask an assistant (2026-10-28).** Any query can go to ChatGPT or Claude as a prompt, offered right under the web search row.
+- **Google account containers (2026-10-28).** Find the Google accounts signed in to Zen and give each its own container named after its email, signed in once per container with the email filled in. Cache the account list, never the cookies, and offer a container when a new account signs in.
 - Best fuzzy search for speed and typo tolerance.
 
 ### Keys (the owner's current personal setup)
@@ -131,6 +132,7 @@ Use Zen's native toast, the one that says "URL copied" on Ctrl+Shift+C, for mess
 - Treat performance as a constraint: build with it in mind, then benchmark and optimize so every interaction stays smooth.
 - Provide an `ops` entry point so agents can build, install, test, benchmark, record media, release and deploy without one-off scripts.
 - Never test against the owner's running Zen or real profile; tests use a throwaway headless profile.
+- **Keep the owner's Zen current (2026-10-28).** After every finished change, install the build into the owner's profile with `pnpm ops install` (dry run first), without asking. Never restart their Zen; a restart loads the new build.
 - **Distribution:**
   - one-line setup (`curl | bash` and a PowerShell twin) that checks for Sine and installs it if needed;
   - guide the user through any manual step;

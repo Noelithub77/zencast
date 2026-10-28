@@ -1,5 +1,17 @@
-// Inline host completion ("allpyq" → "allpyq.in") from Firefox's live DNS cache. The URL bar's own
-// history autofill and its history results are the other sources; they arrive with the web results.
+// Inline host completion ("allpyq" → "allpyq.in"). Hosts already known come first: Firefox's live DNS
+// cache and the open tabs, then the URL bar's history autofill and history results, which arrive with
+// the web results. Only then does a live DNS lookup try the typed name with common endings.
+import { listTabs, tabUrl } from "./tabs"
+
+const baseDomain = (host: string): string | null => {
+  try {
+    // Completing to the registrable domain keeps service hosts like settings.services.mozilla.com out.
+    return Services.eTLD.getBaseDomainFromHost(host)
+  } catch {
+    // IP addresses and single-label hosts have no registrable domain.
+    return null
+  }
+}
 
 /** Registrable domains of every host in the DNS cache, skipping private-browsing lookups. */
 export function readDnsDomains(): Promise<string[]> {
@@ -10,16 +22,52 @@ export function readDnsDomains(): Promise<string[]> {
       for (const entry of data.entries) {
         if (entry.type !== Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT || entry.originAttributesSuffix.includes("privateBrowsingId=1"))
           continue
-        try {
-          // Completing to the registrable domain keeps service hosts like settings.services.mozilla.com out.
-          domains.add(Services.eTLD.getBaseDomainFromHost(entry.hostname))
-        } catch {
-          // IP addresses and single-label hosts have no registrable domain.
-        }
+        const domain = baseDomain(entry.hostname)
+        if (domain) domains.add(domain)
       }
       resolve([...domains])
     })
   })
+}
+
+/** Registrable domains of the open tabs, which stay known after the DNS cache forgets them. */
+export function tabDomains(win: Window): string[] {
+  return listTabs(win).flatMap((tab) => {
+    const host = bareHost(tabUrl(tab))
+    return (host && baseDomain(host)) || []
+  })
+}
+
+// Tried in this order; the first that resolves wins.
+const ENDINGS = ["com", "in", "io", "dev", "app", "org", "net"]
+
+/** The typed name with the first common ending that resolves ("allpyq" → "allpyq.in"), if any. */
+export async function guessDomain(name: string, signal: AbortSignal): Promise<string | null> {
+  const lookups = ENDINGS.map(
+    (ending) =>
+      new Promise<string | null>((resolve) => {
+        const host = `${name}.${ending}`
+        const request = Services.dns.asyncResolve(
+          host,
+          Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
+          0,
+          null,
+          { onLookupComplete: (_request, _record, status) => resolve(status === 0 ? host : null) },
+          Services.tm.mainThread,
+          {},
+        )
+        signal.addEventListener("abort", () => {
+          request.cancel(Cr.NS_BINDING_ABORTED)
+          resolve(null)
+        })
+      }),
+  )
+  // An earlier ending wins, so each answer waits only for the endings before it.
+  for (const lookup of lookups) {
+    const host = await lookup
+    if (host) return host
+  }
+  return null
 }
 
 /** Text that can only be the start of a host name. */

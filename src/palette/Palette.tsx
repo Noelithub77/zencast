@@ -4,7 +4,7 @@ import { Command as CommandPrimitive } from "cmdk"
 import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { listContainers } from "@/browser/containers"
-import { bareHost, completeDomain, readDnsDomains } from "@/browser/hosts"
+import { bareHost, completeDomain, guessDomain, isHostPrefix, readDnsDomains, tabDomains } from "@/browser/hosts"
 import { queryWeb, type WebResult } from "@/browser/urlbar"
 import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
@@ -239,37 +239,70 @@ function useWebResults(context: CommandContext | null, query: string, enabled: b
   return web.query === query ? web.results : []
 }
 
-// Refreshed on every open; Firefox keeps a host in its DNS cache for a few minutes after a lookup.
-function useDnsDomains(open: boolean): string[] {
+// Refreshed on every open; Firefox keeps a host in its DNS cache for a few minutes after a lookup,
+// and the open tabs keep theirs known after that.
+function useKnownDomains(win: Window | null): string[] {
   const [domains, setDomains] = useState<string[]>([])
   useEffect(() => {
-    if (!open) return
+    if (!win) return
     let live = true
-    readDnsDomains()
-      .then((list) => live && setDomains(list))
-      .catch((error: unknown) => console.error("[zencast] DNS cache", error))
+    // Read after the palette paints, so opening never waits on every tab's host.
+    const handle = win.requestIdleCallback(() => {
+      readDnsDomains()
+        .then((list) => live && setDomains([...new Set([...list, ...tabDomains(win)])]))
+        .catch((error: unknown) => console.error("[zencast] DNS cache", error))
+    })
     return () => {
       live = false
+      win.cancelIdleCallback(handle)
     }
-  }, [open])
+  }, [win])
   return domains
+}
+
+const GUESS_DEBOUNCE_MS = 150
+
+/** A live DNS lookup of the typed name with common endings, once typing pauses. */
+function useDomainGuess(typed: string, enabled: boolean): string | null {
+  const [guess, setGuess] = useState<{ typed: string; host: string | null }>({ typed: "", host: null })
+  const name = typed.toLowerCase()
+  const wanted = enabled && name.length >= 3 && !name.includes(".") && isHostPrefix(name)
+  useEffect(() => {
+    if (!wanted) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      guessDomain(name, controller.signal)
+        // A miss changes nothing on screen, so it skips the render.
+        .then((host) => host && !controller.signal.aborted && setGuess({ typed: name, host }))
+        .catch((error: unknown) => console.error("[zencast] domain guess", error))
+    }, GUESS_DEBOUNCE_MS)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [name, wanted])
+  return wanted && guess.typed === name ? guess.host : null
 }
 
 // Pages the URL bar found in history or bookmarks.
 const visited = (web: WebResult[]) => web.filter((result) => result.source === "history" || result.source === "bookmark")
 
 /**
- * A host from the DNS cache wins, even over a command whose name starts with the query. The URL
- * bar's history autofill comes after, then the host of its top history row (autofill skips origins
- * below its frecency threshold); both yield to such a command.
+ * A host from the DNS cache or an open tab wins. The URL bar's history autofill comes after, then the
+ * host of its top history row (autofill skips origins below its frecency threshold), and last the
+ * live DNS guess. Each applies even when a command's name starts with the query.
  */
-function completion(typed: string, web: WebResult[], domains: string[], strong: boolean): string | null {
-  const dns = completeDomain(typed, domains)
-  if (dns || strong) return dns
+function completion(typed: string, web: WebResult[], domains: string[], guess: string | null): string | null {
+  const known = completeDomain(typed, domains)
+  if (known) return known
   const autofill = web.find((result) => result.heuristic && result.autofill)?.autofill
   if (autofill && autofill.length > typed.length && autofill.toLowerCase().startsWith(typed.toLowerCase())) return autofill
-  return completeDomain(typed, visited(web).flatMap((result) => bareHost(result.url) ?? []))
+  return completeDomain(typed, visited(web).flatMap((result) => bareHost(result.url) ?? [])) ?? guess
 }
+
+/** A tab leads the results when its title, or its address without the scheme, starts with the query. */
+const tabLeads = (item: PaletteItem, query: string) =>
+  item.section === "Tabs" && (isStrongMatch(item, query) || !!item.subtitle?.toLowerCase().startsWith(query.trim().toLowerCase()))
 
 /** The favicon for a typed URL: a visited page on the same host, else the site's root. */
 function typedIcon(url: string, web: WebResult[]): string {
@@ -353,7 +386,9 @@ export function Palette() {
     return () => context.win.cancelIdleCallback(handle)
   }, [open, context, root])
   const web = useWebResults(context, view || scope ? "" : q, config.urlResults)
-  const domains = useDnsDomains(open)
+  const domains = useKnownDomains(open ? (context?.win ?? null) : null)
+  // The lookup runs only when no known host completes the text.
+  const guess = useDomainGuess(q, open && !view && !scope && fill && !completeDomain(q, domains))
 
   const { groups, suffix } = useMemo(() => timed("search", () => {
     if (view?.prompt) {
@@ -374,10 +409,14 @@ export function Palette() {
     const out: Group[] = []
     // A typed keyword leads with its quick link, and its bookmark's own row steps aside.
     const quick = quickLink(context, q)
-    const ranked = quick ? found.filter((item) => item.id !== `bookmark:${quick.bookmark.guid}`) : found
+    const matched = quick ? found.filter((item) => item.id !== `bookmark:${quick.bookmark.guid}`) : found
     if (quick) out.push({ section: "Quick link", items: [quick.item] })
+    // Tabs come first when one matches well, ahead of the address and search rows.
+    const tabsFirst = matched.some((item) => tabLeads(item, q))
+    const ranked = tabsFirst ? matched.filter((item) => item.section !== "Tabs") : matched
+    if (tabsFirst) out.push({ section: "Tabs", items: matched.filter((item) => item.section === "Tabs") })
     const strong = ranked.some((item) => isStrongMatch(item, q))
-    const host = fill && query === q && !quick ? completion(q, web, domains, strong) : null
+    const host = fill && query === q && !quick ? completion(q, web, domains, guess) : null
     const suffix = host ? host.slice(q.length) : ""
     const { url, search: searchItems } = queryItems(context, q + suffix, (target) => typedIcon(target, web))
     if (url) out.push({ section: "Open", items: [url] })
@@ -388,7 +427,7 @@ export function Palette() {
     if (url || strong) webList.unshift(...searchItems)
     if (webList.length) out.push({ section: "Web", items: webList })
     return { groups: out, suffix }
-  }), [index, q, query, view, scope, context, wantsSettings, web, domains, fill, config.maxResults])
+  }), [index, q, query, view, scope, context, wantsSettings, web, domains, guess, fill, config.maxResults])
 
   const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])
@@ -541,6 +580,13 @@ export function Palette() {
     if (combo === "enter") {
       consume()
       if (active) run(active, active.actions[0])
+      return
+    }
+    // Shift+Enter searches the web for the typed text, whichever result is selected.
+    if (combo === "shift+enter" && !view && q && context) {
+      consume()
+      const item = queryItems(context, q, () => "").search[0]
+      if (item) run(item, item.actions[0])
       return
     }
     const letter = held ? new RegExp(`^${held}\\+([a-z])$`).exec(combo)?.[1] : undefined

@@ -311,6 +311,43 @@ const SCENARIOS: Scenario[] = [
       return { ok: value === "quokkagram.net" && icon === "page-icon:https://www.quokkagram.net/", detail: value + "; icon " + icon }`,
   },
   {
+    name: "a tab that matches leads, its host completes past a container's name, and shift+enter searches",
+    body: String.raw`${READY}
+      const { ContextualIdentityService } = ChromeUtils.importESModule("moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs")
+      const identity = ContextualIdentityService.create("Zebrafinch", "fingerprint", "orange")
+      const principal = Services.scriptSecurityManager.getSystemPrincipal()
+      const tab = gBrowser.addTab("https://zebrafinch.example/notes", { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true, lazyTabTitle: "Field notes" })
+      const headings = () => [...shadow().querySelectorAll("[cmdk-group-heading]:not([hidden])")].map((h) => h.textContent)
+      let searched = null
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        await sleep(100)
+        typeQuery("zebrafinch")
+        const input = shadow().querySelector("[cmdk-input]")
+        const value = await until(() => input.value !== "zebrafinch" && input.value, 3000).catch(() => input.value)
+        const order = await until(() => headings().includes("Containers") && headings(), 2000).catch(() => headings())
+        await sleep(80)
+        press("shift+enter")
+        await until(() => !paletteOpen(), 2000)
+        searched = gBrowser.selectedTab
+        const url = await until(() => {
+          const browser = searched.linkedBrowser
+          const spec = browser.userTypedValue || browser.currentURI?.spec || ""
+          return /zebrafinch/.test(spec) && !spec.startsWith("https://zebrafinch.example") && spec
+        }, 3000).catch(() => "")
+        return {
+          ok: order[0] === "Tabs" && value === "zebrafinch.example" && !!url,
+          detail: "sections " + order.join(", ") + "; completed " + value + "; shift+enter " + (url || "nothing"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        if (searched && searched !== tab && searched.isConnected) gBrowser.removeTab(searched)
+        gBrowser.removeTab(tab)
+        ContextualIdentityService.remove(identity.userContextId)
+      }`,
+  },
+  {
     name: "holding ctrl or alt labels visible rows with letters and lists the keys",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)

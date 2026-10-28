@@ -131,10 +131,11 @@ In the palette:
 | `Alt+1…9`, `Ctrl+1…9` | Open results in that space or container |
 | `Ctrl+.` | Record a shortcut, or assign a key to a tab, folder or site |
 | `@`, `/`, `#`, `$`, `*` first | Search only tabs, commands, bookmarks, settings or mods |
+| `Shift+Enter` | Search the web for the typed text, whatever is selected |
 | `Tab`, `→` | Accept the inline completion |
 | `Esc` | Back, then close |
 
-Typing the start of a site completes it inline and takes `Enter`. A site you visited in the last few minutes completes from the DNS cache, even over a command with the same start (`allpyq` becomes `allpyq.in`); any other site completes from your history, as in Zen's address bar.
+Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Open tabs and the DNS cache come first, then your history as in Zen's address bar, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). A tab whose title or address starts with what you typed leads the results, and `Shift+Enter` searches the web for the typed text whichever result is selected.
 
 ## Make it yours
 

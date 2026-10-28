@@ -273,6 +273,11 @@ declare global {
     observe(subject: { QueryInterface(iface: GeckoComponentsInterfaces["nsICookieNotification"]): CookieNotification }): void
   }
 
+  /** A thread that callbacks are delivered on. */
+  interface GeckoEventTarget {
+    readonly __brand: "GeckoEventTarget"
+  }
+
   interface GeckoServices {
     prefs: PrefBranch
     obs: {
@@ -285,6 +290,18 @@ declare global {
       notifyObservers(subject: unknown, topic: string, data?: string): void
     }
     io: { newURI(spec: string): nsIURI }
+    dns: {
+      asyncResolve(
+        host: string,
+        type: number,
+        flags: number,
+        info: null,
+        listener: { onLookupComplete(request: unknown, record: unknown, status: number): void },
+        target: GeckoEventTarget,
+        originAttributes: OriginAttributes,
+      ): { cancel(status: number): void }
+    }
+    tm: { readonly mainThread: GeckoEventTarget }
     startup: { getStartupInfo(): { process?: Date } }
     appinfo: { processID: number }
     eTLD: { getBaseDomain(uri: nsIURI): string; getBaseDomainFromHost(host: string): string; getSchemelessSite(uri: nsIURI): string }

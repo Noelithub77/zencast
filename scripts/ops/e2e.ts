@@ -769,6 +769,45 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "ask about this page sends the question, the selection and the address to an assistant",
+    body: String.raw`${READY}
+      ${PLACES}
+      const page = "https://example.com/ask-page"
+      const tab = newTab(page)
+      await until(() => gBrowser.selectedBrowser.currentURI?.spec === page, 10000).catch(() => {})
+      gBrowser.selectedBrowser.focus()
+      goDoCommand("cmd_selectAll")
+      await sleep(200)
+      const opened = (host) => {
+        const browser = gBrowser.selectedBrowser
+        const spec = browser.currentURI?.spec ?? ""
+        return spec.startsWith(host) ? spec : (browser.userTypedValue ?? "").startsWith(host) ? browser.userTypedValue : ""
+      }
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("ask about this page")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Ask about this page"), 2000)
+        await sleep(80)
+        press("enter")
+        const placeholder = await until(() => inputPlaceholder() === "Question about the selection" && inputPlaceholder(), 2000).catch(() => inputPlaceholder())
+        typeQuery("what is this")
+        await until(() => (resultTitles()[0] ?? "") === "what is this", 2000)
+        await sleep(80)
+        press("ctrl+enter")
+        const url = await until(() => opened("https://chatgpt.com/"), 3000).catch(() => "")
+        const prompt = new URL(url || "https://x/").searchParams.get("q")
+        return {
+          ok: placeholder === "Question about the selection" && (prompt ?? "").startsWith("what is this\n\n> ") && prompt.includes("domain") && prompt.endsWith("\n\nFrom " + page),
+          detail: "placeholder " + placeholder + "; ChatGPT got " + JSON.stringify(prompt),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        if (opened("https://chatgpt.com/")) gBrowser.removeTab(gBrowser.selectedTab)
+        if (tab.isConnected) gBrowser.removeTab(tab)
+      }`,
+  },
+  {
     name: "ctrl+b fills a bookmark's name, folder and keyword, then edits it",
     body: String.raw`${READY}
       ${PLACES}

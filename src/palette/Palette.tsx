@@ -357,14 +357,14 @@ export function Palette() {
 
   const { groups, suffix } = useMemo(() => timed("search", () => {
     if (view?.prompt) {
-      const { submit, label } = view.prompt
+      const { prompt } = view
       const item: PaletteItem = {
         id: "prompt",
         transient: true,
-        title: label?.(query) ?? (query ? `Set to “${query}”` : "Set to empty"),
+        title: prompt.label?.(query) ?? (query ? `Set to “${query}”` : "Set to empty"),
         section: view.title,
-        icon: { kind: "icon", icon: Tick02Icon },
-        actions: [{ id: "save", title: "Save", run: () => submit(query) }],
+        icon: prompt.icon ?? { kind: "icon", icon: Tick02Icon },
+        actions: "actions" in prompt ? prompt.actions(query) : [{ id: "save", title: "Save", run: () => prompt.submit(query) }],
       }
       return { groups: [{ section: view.title, items: [item] }], suffix: "" }
     }

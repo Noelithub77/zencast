@@ -38,6 +38,7 @@ import { canCopy, isPageFocused, pageHasSelection } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { bookmarkFolderCommands } from "./bookmark-folders"
 import { bookmarkCommands } from "./bookmarks"
+import { askCommands } from "./ask"
 import { cleanupCommands } from "./cleanup"
 import { googleCommands } from "./google"
 import { modCommands } from "./mods"
@@ -457,6 +458,6 @@ const CORE: Command[] = [
 // Each file in src/features/ exports `commands`; forks add features there instead of editing this list.
 const FEATURES = import.meta.glob<Command[]>("../features/*.ts", { eager: true, import: "commands" })
 
-export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...bookmarkFolderCommands, ...googleCommands, ...modCommands, ...sessionCommands, ...cleanupCommands, ...siteContainerCommands, ...localhostCommands, ...Object.values(FEATURES).flat()]
+export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...bookmarkFolderCommands, ...googleCommands, ...modCommands, ...sessionCommands, ...cleanupCommands, ...askCommands, ...siteContainerCommands, ...localhostCommands, ...Object.values(FEATURES).flat()]
 
 export const COMMANDS_BY_ID = new Map(COMMANDS.map((command) => [command.id, command]))

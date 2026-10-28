@@ -24,10 +24,10 @@ export interface ListView {
   /** Turns the view into a text prompt: the input starts with `initial` and Enter submits it. */
   prompt?: {
     initial: string
-    submit: (value: string) => RunResult
     /** The row Enter runs, for the typed value; defaults to "Set to “value”". */
     label?: (value: string) => string
-  }
+    icon?: ItemIcon
+  } & ({ submit: (value: string) => RunResult } | { actions: (value: string) => ItemAction[] })
 }
 
 export type RunResult = void | ListView | Promise<void | ListView>

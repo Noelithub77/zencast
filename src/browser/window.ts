@@ -33,20 +33,22 @@ export function canCopy(win: Window): boolean {
   return win.document.commandDispatcher.getControllerForCommand("cmd_copy")?.isCommandEnabled("cmd_copy") ?? false
 }
 
-// A page that does not answer in time is treated as having a selection, so Ctrl+C still copies.
 const SELECTION_TIMEOUT_MS = 250
 
-/** Asks the selected page whether any text is selected, including inside a focused field. */
-export function pageHasSelection(win: Window): Promise<boolean> {
+/**
+ * The text selected in the page, including inside a focused field; Firefox's finder cuts it at 150
+ * characters. Null when the page does not answer in time.
+ */
+export function selectedText(win: Window): Promise<string | null> {
   const finder = win.gBrowser.selectedBrowser.finder
   return new Promise((resolve) => {
     const listener: FinderListener = {
       onCurrentSelection(selection) {
-        settle(selection.length > 0)
+        settle(selection)
       },
     }
-    const timer = win.setTimeout(() => settle(true), SELECTION_TIMEOUT_MS)
-    const settle = (value: boolean) => {
+    const timer = win.setTimeout(() => settle(null), SELECTION_TIMEOUT_MS)
+    const settle = (value: string | null) => {
       win.clearTimeout(timer)
       finder.removeResultListener(listener)
       resolve(value)
@@ -55,6 +57,9 @@ export function pageHasSelection(win: Window): Promise<boolean> {
     finder.getInitialSelection()
   })
 }
+
+/** Whether any text is selected; a page that does not answer counts as selected, so Ctrl+C still copies. */
+export const pageHasSelection = async (win: Window) => (await selectedText(win)) !== ""
 
 export function systemPrincipal(): nsIPrincipal {
   return Services.scriptSecurityManager.getSystemPrincipal()

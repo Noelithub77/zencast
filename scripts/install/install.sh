@@ -46,7 +46,7 @@ main() {
   ensure_unsafe_js "$profile"
 
   printf '\n'
-  done_line "Zencast is ready. Open Zen and press Ctrl+K; Ctrl+, opens its settings."
+  done_line "Zencast is ready. Open Zen and press Ctrl+K; Ctrl+Shift+, opens its settings."
   muted "  Updates arrive through Sine. Source and issues: https://github.com/$REPO"
 }
 

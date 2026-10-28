@@ -281,9 +281,9 @@ export async function captureMedia(zen: Zen, dir: string, video = false): Promis
     ${key("ctrl+1", 300)}`)
   await shot("targets.png")
 
-  // Ctrl+, is tried first, as a user would; the chrome URL is the fallback if the key does not open it.
+  // Ctrl+Shift+, is tried first, as a user would; the chrome URL is the fallback if the key does not open it.
   await zen.run(String.raw`await dismiss()
-    press("ctrl+,", document.documentElement)
+    press("ctrl+shift+,", document.documentElement)
     await sleep(1500)
     if (!gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings"))
       gBrowser.selectedTab = gBrowser.addTrustedTab("chrome://sine/content/zencast/settings/index.html", { skipAnimation: true })

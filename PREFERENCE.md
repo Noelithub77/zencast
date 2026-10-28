@@ -64,7 +64,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 
 - A full Raycast-style palette that can do everything in Zen, on Ctrl+K.
 - Ctrl+T as an option. It is off by default and replaces Zen's new-tab with the palette only when the toggle is on. An earlier request had both keys always open the palette; the later "by default don't override Ctrl+T" replaced it.
-- Ctrl+, opens the settings page; Ctrl+Shift+, opens the extensions settings page.
+- Ctrl+, opens Zen's own settings; Ctrl+Shift+, opens Zencast's settings page. This replaced an earlier request where Ctrl+, opened Zencast's settings and Ctrl+Shift+, the extensions page; extensions stay in the palette and on Firefox's Ctrl+Shift+A.
 - Search every Zen setting, and show each one's keybinding. Change settings from the palette itself.
 - Fuzzy-search every tab: active, unloaded and pinned, in all folders, plus folder names. Active tabs rank above unloaded ones.
 - **DNS cache fill.** Typing "allpyq" fills "allpyq.in" from the DNS cache plus history. When the DNS cache has a match, it always wins Enter.

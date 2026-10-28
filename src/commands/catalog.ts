@@ -17,6 +17,7 @@ import {
   PinIcon,
   PuzzleIcon,
   RefreshIcon,
+  Settings01Icon,
   Settings02Icon,
   StarIcon,
   UserGroupIcon,
@@ -154,8 +155,18 @@ const CORE: Command[] = [
     section: "Palette",
     icon: Settings02Icon,
     keywords: "preferences keybindings shortcuts config",
-    defaultKeys: ["ctrl+,"],
+    defaultKeys: ["ctrl+shift+,"],
     run: ({ win }) => openSettings(win),
+  },
+  {
+    id: "browser.settings",
+    title: "Zen settings",
+    section: "Palette",
+    icon: Settings01Icon,
+    keywords: "preferences options about:preferences",
+    defaultKeys: ["ctrl+,"],
+    // Reuses an open settings tab instead of opening another.
+    run: ({ win }) => win.openPreferences(),
   },
   {
     id: "zencast.extensions",
@@ -163,7 +174,6 @@ const CORE: Command[] = [
     section: "Palette",
     icon: PuzzleIcon,
     keywords: "addons add-ons manager themes plugins",
-    defaultKeys: ["ctrl+shift+,"],
     // Reuses an open add-ons tab instead of opening another.
     run: ({ win }) => void win.BrowserAddonUI.openAddonsMgr("addons://list/extension"),
   },

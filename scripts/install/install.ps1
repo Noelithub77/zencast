@@ -472,7 +472,7 @@ function Install-Zencast {
     Enable-UnsafeJs $zenProfile
 
     Write-Host ''
-    Write-Done 'Zencast is ready. Open Zen and press Ctrl+K; Ctrl+, opens its settings.'
+    Write-Done 'Zencast is ready. Open Zen and press Ctrl+K; Ctrl+Shift+, opens its settings.'
     Write-Muted "  Updates arrive through Sine. Source and issues: https://github.com/$repo"
   } catch {
     if ($_.Exception.Message -ne $failure) { throw }

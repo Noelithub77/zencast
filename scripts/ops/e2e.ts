@@ -247,10 +247,10 @@ const SCENARIOS: Scenario[] = [
       return { ok: Boolean(switched) && passed, detail: (switched ? "switched to " + spaces[1].name : "did not switch") + "; ctrl+" + missing + (passed ? " passed through" : " was taken") }`,
   },
   {
-    name: "ctrl+shift+, opens the extensions page",
+    name: "ctrl+, opens Zen's settings",
     body: String.raw`${READY}
-      press("ctrl+shift+,", document.documentElement)
-      const url = await until(() => gBrowser.selectedBrowser.currentURI.spec.startsWith("about:addons") && gBrowser.selectedBrowser.currentURI.spec)
+      press("ctrl+,", document.documentElement)
+      const url = await until(() => gBrowser.selectedBrowser.currentURI.spec.startsWith("about:preferences") && gBrowser.selectedBrowser.currentURI.spec)
       gBrowser.removeTab(gBrowser.selectedTab)
       return { ok: true, detail: url }`,
   },
@@ -401,9 +401,9 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "ctrl+, opens the settings page",
+    name: "ctrl+shift+, opens the settings page",
     body: String.raw`${READY}
-      press("ctrl+,", document.documentElement)
+      press("ctrl+shift+,", document.documentElement)
       const browser = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings") && gBrowser.selectedBrowser)
       const doc = await until(() => browser.contentDocument?.querySelector("nav a") && browser.contentDocument)
       const nav = [...doc.querySelectorAll("nav a")].map((a) => a.textContent.trim())
@@ -433,14 +433,14 @@ const SCENARIOS: Scenario[] = [
   },
   {
     // Closing a space's first tab leaves Zen's placeholder tab without a browser.
-    name: "ctrl+, still opens settings when a tab has no browser",
+    name: "ctrl+shift+, still opens settings when a tab has no browser",
     body: String.raw`${READY}
       for (const tab of gBrowser.tabs.filter((tab) => tab.linkedBrowser?.currentURI?.spec.includes("zencast/settings"))) gBrowser.removeTab(tab)
       const first = gBrowser.tabs[0]
       gBrowser.selectedTab = gBrowser.addTrustedTab("about:blank", { skipAnimation: true })
       gBrowser.removeTab(first)
       const empty = await until(() => gBrowser.tabs.filter((tab) => tab.linkedBrowser === null).length, 3000).catch(() => 0)
-      press("ctrl+,", document.documentElement)
+      press("ctrl+shift+,", document.documentElement)
       const opened = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings"), 3000).catch(() => false)
       return { ok: empty > 0 && Boolean(opened), detail: empty + " tab without a browser; " + (opened ? "opened settings" : "settings did not open") }`,
   },

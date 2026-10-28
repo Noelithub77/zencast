@@ -85,7 +85,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | Key | Action |
 | --- | --- |
 | `Ctrl+K` | Open the palette |
-| `Ctrl+,` | Zencast settings |
+| `Ctrl+,` | Zen settings |
+| `Ctrl+Shift+,` | Zencast settings |
 | `Ctrl+1…9` | Switch to space 1…9 |
 | `Alt+1…9` | Move the tab to space 1…9 |
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |
@@ -124,7 +125,7 @@ These defaults are my own setup, built around how I use Zen, and some of them re
 | `Ctrl+Shift+N` | New unsynced window |
 | `Ctrl+C` | Copy, only when nothing is selected |
 
-Change any of them in settings (`Ctrl+,`, or the gear on Zencast's card in Sine).
+Change any of them in settings (`Ctrl+Shift+,`, or the gear on Zencast's card in Sine).
 
 ![The settings page: shortcuts, Zen settings, folders and general](docs/media/settings.png)
 

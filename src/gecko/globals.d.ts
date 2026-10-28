@@ -119,6 +119,7 @@ declare global {
     pinTab(tab: XULTab): void
     unpinTab(tab: XULTab): void
     moveTabAfter?(tab: XULTab, target: XULTab): void
+    getTabForBrowser(browser: Element): XULTab | null
   }
 
   interface ZenWorkspace {
@@ -255,6 +256,18 @@ declare global {
     readonly cookie: nsICookie | null
   }
 
+  /** "http-on-modify-request" passes each HTTP channel before its request is sent. */
+  interface RequestObserver {
+    observe(subject: { QueryInterface(iface: GeckoComponentsInterfaces["nsIHttpChannel"]): HttpChannel }): void
+  }
+
+  interface ChannelLoadInfo {
+    readonly externalContentPolicyType: number
+    readonly originAttributes: { readonly userContextId: number }
+    /** The tab's <browser> is the top context's embedder. */
+    readonly browsingContext: { readonly top: { readonly embedderElement: Element | null } } | null
+  }
+
   /** "cookie-changed" passes a subject that becomes a notification once queried. */
   interface CookieObserver {
     observe(subject: { QueryInterface(iface: GeckoComponentsInterfaces["nsICookieNotification"]): CookieNotification }): void
@@ -264,8 +277,10 @@ declare global {
     prefs: PrefBranch
     obs: {
       addObserver(observer: CookieObserver, topic: "cookie-changed"): void
+      addObserver(observer: RequestObserver, topic: "http-on-modify-request"): void
       addObserver(observer: GeckoObserver, topic: string): void
       removeObserver(observer: CookieObserver, topic: "cookie-changed"): void
+      removeObserver(observer: RequestObserver, topic: "http-on-modify-request"): void
       removeObserver(observer: GeckoObserver, topic: string): void
       notifyObservers(subject: unknown, topic: string, data?: string): void
     }
@@ -328,6 +343,7 @@ declare global {
     nsIClearDataService: Record<string, number>
     nsICookieValidation: { eOK: number }
     nsIWebNavigation: { LOAD_FLAGS_BYPASS_CACHE: number; LOAD_FLAGS_BYPASS_PROXY: number }
+    nsIContentPolicy: { TYPE_DOCUMENT: number }
     nsIDashboard: object
     nsIDNSService: { RESOLVE_TYPE_DEFAULT: number }
     nsICookieNotification: object
@@ -345,6 +361,9 @@ declare global {
   /** A channel queried to nsIHttpChannel and nsIUploadChannel2, whose members then sit on one object. */
   interface HttpChannel {
     loadFlags: number
+    readonly URI: nsIURI
+    readonly loadInfo: ChannelLoadInfo
+    cancel(status: number): void
     readonly responseStatus: number
     setRequestHeader(header: string, value: string, merge: boolean): void
     explicitSetUploadStream(stream: StringInputStream, contentType: string, length: number, method: string, streamHasHeaders: boolean): void
@@ -588,5 +607,6 @@ declare global {
   var Services: GeckoServices
   var ChromeUtils: GeckoChromeUtils
   var Ci: GeckoComponentsInterfaces
+  var Cr: { readonly NS_BINDING_ABORTED: number }
   var Cc: GeckoComponentsClasses
 }

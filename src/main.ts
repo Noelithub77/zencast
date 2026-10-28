@@ -4,6 +4,7 @@ import { sweepTemporaryContainers } from "@/browser/containers"
 import { isTab } from "@/browser/folders"
 import { watchGoogleSignIns } from "@/browser/google"
 import { watchSessions } from "@/browser/sessions"
+import { watchSiteContainers } from "@/browser/site-containers"
 import { addSineSettingsButton } from "@/browser/sine-card"
 import { registerToasts } from "@/browser/toast"
 import { openSettings } from "@/commands/catalog"
@@ -25,6 +26,7 @@ function start(win: Window): () => void {
     watchBookmarks(),
     watchGoogleSignIns(win, (emails) => offerGoogleContainers(win, emails)),
     watchSessions(win),
+    watchSiteContainers(win),
   )
 
   let index = buildIndex(readConfig())

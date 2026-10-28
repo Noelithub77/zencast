@@ -1006,6 +1006,40 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "a site set to always open in a container moves there, and so does its next tab",
+    body: String.raw`${READY}
+      ${PLACES}
+      const onSite = (path) => gBrowser.tabs.filter((tab) => tab.linkedBrowser?.currentURI?.spec === "https://example.com/" + path)
+      const tab = newTab("https://example.com/site-rule")
+      await until(() => gBrowser.selectedBrowser.currentURI?.spec === "https://example.com/site-rule", 10000).catch(() => {})
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("always open this site")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Always open this site"), 2000)
+        await sleep(80)
+        press("enter")
+        await until(() => inputPlaceholder() === "Container", 2000)
+        const first = await until(() => resultTitles()[0], 2000).catch(() => "")
+        press("enter")
+        await until(() => !paletteOpen(), 2000)
+        const rule = await poll(() => JSON.parse(Services.prefs.getStringPref("zencast.config", "{}")).siteContainers?.["example.com"])
+        const moved = await poll(() => onSite("site-rule").length === 1 && onSite("site-rule")[0].userContextId === rule)
+
+        gBrowser.selectedTab = gBrowser.addTab("https://example.com/next", { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() })
+        const next = await poll(() => onSite("next").length === 1 && onSite("next")[0].userContextId === rule, 10000)
+        return {
+          ok: rule > 0 && moved && next,
+          detail: "picked " + first + " → rule " + rule + (moved ? "; this tab moved" : "; this tab stayed") + (next ? "; next tab opened in it" : "; next tab in " + onSite("next").map((t) => t.userContextId).join(",")),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        Services.prefs.clearUserPref("zencast.config")
+        for (const open of [...onSite("site-rule"), ...onSite("next")]) gBrowser.removeTab(open)
+        if (tab.isConnected) gBrowser.removeTab(tab)
+      }`,
+  },
+  {
     name: "google account containers read Google's real list and leave the cookie jar alone",
     body: String.raw`${READY}
       // A stand-in cookie makes the request go out; Google answers with an empty list for it.

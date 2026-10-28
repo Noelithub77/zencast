@@ -83,7 +83,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Your own shortcuts.** `Ctrl+.` records a shortcut for any command, or gives a tab, folder or site its own key. Shortcuts can be chords, like `Ctrl+Space` then `F`.
 
-**Containers and privacy.** Open something new in a container, move a tab to another container with or without its signed-in session, start a throwaway container that deletes its data on close, or wipe a site's data and history from a tab.
+**Containers and privacy.** Open something new in a container, move a tab to another container with or without its signed-in session, start a throwaway container that deletes its data on close, or wipe a site's data and history from a tab. "Always open this site in a container" makes a site leave the default container on its own: a page of it opens in that container instead, in the same space, while a tab you put in a container yourself stays where it is.
 
 **Mod overlap.** Lists the Sine mods you have on that claim one of Zencast's keys or do a job the palette already does, each with a way to turn it off.
 

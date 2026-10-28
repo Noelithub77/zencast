@@ -29,6 +29,8 @@ const configSchema = z.object({
   urlResults: z.boolean().default(true),
   maxResults: z.number().int().min(10).max(200).default(60),
   jumps: z.array(jumpSchema).default([]),
+  // Sites that always open in a container: bare host ("allpyq.in") -> container id.
+  siteContainers: z.record(z.string(), z.number().int()).default({}),
 })
 
 export type Config = z.infer<typeof configSchema>

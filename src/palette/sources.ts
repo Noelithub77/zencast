@@ -131,7 +131,8 @@ function tabItem(ctx: CommandContext, tab: XULTab, bindings: Map<string, string[
     ]
       .filter(Boolean)
       .join(" "),
-    boost: (loaded ? 0.6 : 0) + recency,
+    // The current tab is listed too, below other tabs that match as well.
+    boost: tab === ctx.tab ? 0 : (loaded ? 0.6 : 0) + recency,
     dim: !loaded,
     actions: [
       { id: "switch", title: "Switch to tab", run: () => switchToTab(ctx, tab) },
@@ -145,20 +146,14 @@ function tabItem(ctx: CommandContext, tab: XULTab, bindings: Map<string, string[
 const spaceNames = (ctx: CommandContext) => new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
 
 /**
- * Every tab in every space and folder but the current one, including pinned, essential and unloaded
- * ones. Loaded tabs rank above unloaded ones, and recently used tabs above both, without outranking commands.
+ * Every tab in every space and folder, including pinned, essential and unloaded ones. Loaded tabs rank
+ * above unloaded ones, and recently used tabs above both, without outranking commands.
  */
 function tabItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {
   const spaces = spaceNames(ctx)
   const now = Date.now()
-  return listTabs(ctx.win)
-    .filter((tab) => tab !== ctx.tab)
-    .map((tab) => tabItem(ctx, tab, bindings, spaces, now))
+  return listTabs(ctx.win).map((tab) => tabItem(ctx, tab, bindings, spaces, now))
 }
-
-/** The current tab, listed only when searching tabs, where it shows where it lives. */
-export const currentTabItem = (ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem =>
-  tabItem(ctx, ctx.tab, bindings, spaceNames(ctx), Date.now())
 
 /** Folders by name and path; opening one expands it and switches to its first tab. */
 function folderItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {

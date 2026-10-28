@@ -6,12 +6,13 @@ import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayo
 import { listContainers } from "@/browser/containers"
 import { bareHost, completeDomain, firstDomain, guessDomain, historyHosts, isHostPrefix, readDnsDomains, tabDomains } from "@/browser/hosts"
 import { engineFor, engineSearchUrl, type Engine } from "@/browser/engines"
+import { tabKey } from "@/browser/tabs"
 import { queryWeb, type WebResult } from "@/browser/urlbar"
 import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
 import { Kbd } from "@/components/ui/kbd"
-import { bindingIndex, effectiveBindings, paletteKeys } from "@/keys/bindings"
+import { bindingIndex, paletteKeys } from "@/keys/bindings"
 import { CHORD_WAIT_MS, recordKey } from "@/keys/record"
 import { cn } from "@/lib/utils"
 import { readConfig, readUsage } from "@/shared/config"
@@ -27,7 +28,7 @@ import { buildIndex, isStrongMatch, search } from "./search"
 import { quickLink } from "./bookmarks"
 import { modItems } from "@/commands/mods"
 import { scopeFor, SCOPES, type Scope } from "./scopes"
-import { currentTabItem, defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
+import { defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
 const WEB_DEBOUNCE_MS = 40
@@ -328,9 +329,9 @@ function completion(typed: string, web: WebResult[], domains: KnownDomains, gues
   return completeDomain(typed, visited(web).flatMap((result) => bareHost(result.url) ?? [])) ?? guess
 }
 
-/** A tab leads the results when its title, or its address without the scheme, starts with the query. */
-const tabLeads = (item: PaletteItem, query: string) =>
-  item.section === "Tabs" && (isStrongMatch(item, query) || !!item.subtitle?.toLowerCase().startsWith(query.trim().toLowerCase()))
+/** A tab leads the results when its title, or its address without the scheme, starts with the query; never the tab already shown. */
+const tabLeads = (item: PaletteItem, query: string, here: string) =>
+  item.section === "Tabs" && item.id !== here && (isStrongMatch(item, query) || !!item.subtitle?.toLowerCase().startsWith(query.trim().toLowerCase()))
 
 /** The favicon for a typed URL: a visited page on the same host, else the site's root. */
 function typedIcon(url: string, web: WebResult[]): string {
@@ -408,11 +409,9 @@ export function Palette() {
     if (view) return buildIndex(view.items)
     if (scope?.id === "mods") return buildIndex(mods)
     if (scope) {
-      // The tabs scope lists tabs only, the current one too; folders stay in the root search.
+      // The tabs scope lists tabs only; folders stay in the root search.
       const scoped = (item: PaletteItem) => item.scope === scope.id && (scope.id !== "tabs" || item.section === "Tabs")
-      const items = (context ? rootWithSettings(context, root).items : root).filter(scoped)
-      const current = scope.id === "tabs" && context ? [currentTabItem(context, effectiveBindings(readConfig()))] : []
-      return buildIndex([...current, ...items])
+      return buildIndex((context ? rootWithSettings(context, root).items : root).filter(scoped))
     }
     if (!wantsSettings || !context) return buildIndex(root)
     return rootWithSettings(context, root)
@@ -465,8 +464,9 @@ export function Palette() {
     const found = all.slice(0, config.maxResults)
     if (!q && !view && !scope && context) {
       // The empty palette leads with the last few loaded tabs, most recent first; a tab's boost grows with recency.
+      const here = tabKey(context.tab)
       const recent = root
-        .filter((item) => item.scope === "tabs" && item.section === "Tabs" && !item.dim)
+        .filter((item) => item.scope === "tabs" && item.section === "Tabs" && !item.dim && item.id !== here)
         .toSorted((a, b) => (b.boost ?? 0) - (a.boost ?? 0))
         .slice(0, RECENT_TABS)
       const shownIds = new Set(recent.map((item) => item.id))
@@ -494,7 +494,7 @@ export function Palette() {
     const completed = !!suffix && !!url
     if (completed && url) out.push({ section: "Open", items: [url] })
     // Tabs come first when one matches well, ahead of the address and search rows.
-    const tabsFirst = matched.some((item) => tabLeads(item, q))
+    const tabsFirst = matched.some((item) => tabLeads(item, q, tabKey(context.tab)))
     const ranked = tabsFirst ? matched.filter((item) => item.section !== "Tabs") : matched
     if (tabsFirst) out.push({ section: "Tabs", items: matched.filter((item) => item.section === "Tabs") })
     const strong = ranked.some((item) => isStrongMatch(item, q))

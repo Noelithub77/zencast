@@ -130,7 +130,7 @@ const SCENARIOS: Scenario[] = [
       return { ok: both && byFolder, detail: "zebra: " + zebra.join(" | ") + "; quokka: " + quokka.slice(0, 2).join(" | ") }`,
   },
   {
-    name: "search lists every matching tab past the result limit, loaded first, and renamed tabs by their page",
+    name: "search lists every matching tab past the result limit, loaded first, the current one too, and renamed tabs by their page",
     body: String.raw`${READY}
       const principal = Services.scriptSecurityManager.getSystemPrincipal()
       const lazy = []
@@ -143,7 +143,8 @@ const SCENARIOS: Scenario[] = [
       await until(() => renamed.hasAttribute("pending") && renamed.label === "Numbat ledger")
       renamed.zenStaticLabel = "public-db"
       gBrowser._setTabLabel(renamed, "public-db")
-      const current = newTab()
+      const current = newTab("data:text/html,<title>Wallaby here</title>x")
+      await until(() => current.label === "Wallaby here")
       await sleep(300)
       press("ctrl+k", document.documentElement)
       await until(paletteOpen)
@@ -153,6 +154,9 @@ const SCENARIOS: Scenario[] = [
       typeQuery("numbat")
       await sleep(150)
       const numbat = resultTitles()
+      typeQuery("wallaby")
+      await sleep(150)
+      const wallaby = resultTitles()
       typeQuery("")
       await sleep(50)
       typeQuery("@wombatlist")
@@ -162,7 +166,9 @@ const SCENARIOS: Scenario[] = [
       for (const tab of [...lazy, live, renamed, current]) gBrowser.removeTab(tab)
       const all = wombats.length === 71 && wombats[0].startsWith("Wombatlist live") && scoped === 71
       const byPage = numbat.some((t) => t.startsWith("public-db"))
-      return { ok: all && byPage, detail: wombats.length + " wombat tabs, first " + wombats[0] + "; " + scoped + " in the tabs scope; numbat: " + numbat.slice(0, 2).join(" | ") }`,
+      // The tab already shown is found too.
+      const here = wallaby.some((t) => t.startsWith("Wallaby here"))
+      return { ok: all && byPage && here, detail: wombats.length + " wombat tabs, first " + wombats[0] + "; " + scoped + " in the tabs scope; numbat: " + numbat.slice(0, 2).join(" | ") + "; current tab: " + wallaby.slice(0, 3).join(" | ") }`,
   },
   {
     name: "a palette closed before anything runs keeps the typed text for the next open",

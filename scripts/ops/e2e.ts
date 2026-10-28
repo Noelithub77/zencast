@@ -311,7 +311,7 @@ const SCENARIOS: Scenario[] = [
       return { ok: value === "quokkagram.net" && icon === "page-icon:https://www.quokkagram.net/", detail: value + "; icon " + icon }`,
   },
   {
-    name: "a tab that matches leads, its host completes past a container's name, and shift+enter searches",
+    name: "a completed host leads, a matching tab leads once the completion is deleted, and shift+enter searches",
     body: String.raw`${READY}
       const { ContextualIdentityService } = ChromeUtils.importESModule("moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs")
       const identity = ContextualIdentityService.create("Zebrafinch", "fingerprint", "orange")
@@ -328,6 +328,9 @@ const SCENARIOS: Scenario[] = [
         const value = await until(() => input.value !== "zebrafinch" && input.value, 3000).catch(() => input.value)
         const order = await until(() => headings().includes("Containers") && headings(), 2000).catch(() => headings())
         await sleep(80)
+        // Backspace on the selected completion leaves the typed text.
+        typeQuery("zebrafinch")
+        const deleted = await until(() => input.value === "zebrafinch" && headings()[0] === "Tabs" && headings(), 2000).catch(() => headings())
         press("shift+enter")
         await until(() => !paletteOpen(), 2000)
         searched = gBrowser.selectedTab
@@ -337,8 +340,8 @@ const SCENARIOS: Scenario[] = [
           return /zebrafinch/.test(spec) && !spec.startsWith("https://zebrafinch.example") && spec
         }, 3000).catch(() => "")
         return {
-          ok: order[0] === "Tabs" && value === "zebrafinch.example" && !!url,
-          detail: "sections " + order.join(", ") + "; completed " + value + "; shift+enter " + (url || "nothing"),
+          ok: order[0] === "Open" && order[1] === "Tabs" && deleted[0] === "Tabs" && value === "zebrafinch.example" && !!url,
+          detail: "sections " + order.join(", ") + "; completed " + value + "; after backspace " + deleted.join(", ") + "; shift+enter " + (url || "nothing"),
         }
       } finally {
         await dismiss().catch(() => {})
@@ -398,10 +401,12 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "unloaded tabs are greyed out, and searching tabs lists them in their own section",
+    name: "unloaded tabs are greyed out, and searching tabs lists them in their own section, without folders",
     body: String.raw`${READY}
       const principal = Services.scriptSecurityManager.getSystemPrincipal()
       const lazy = gBrowser.addTab("https://quokkafern.example/a", { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true, })
+      const shelved = gBrowser.addTab("https://example.com/shelf", { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true, })
+      const folder = gZenFolders.createFolder([shelved], { label: "Quokkafern shelf" })
       const live = newTab("data:text/html,<title>Quokkafern live</title>x")
       await until(() => live.label === "Quokkafern live")
       const current = newTab()
@@ -423,6 +428,7 @@ const SCENARIOS: Scenario[] = [
         }
       } finally {
         await dismiss().catch(() => {})
+        await folder.delete()
         for (const tab of [lazy, live, current]) gBrowser.removeTab(tab)
       }`,
   },
@@ -892,6 +898,48 @@ const SCENARIOS: Scenario[] = [
         await PlacesUtils.bookmarks.remove(dash.guid)
         await PlacesUtils.keywords.remove("zq").catch(() => {})
         await PlacesUtils.keywords.remove("dsh").catch(() => {})
+      }`,
+  },
+  {
+    name: "quick links list keywords, keys and search engine keywords together",
+    body: String.raw`${READY}
+      ${PLACES}
+      const { SearchService } = ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs")
+      const engine = SearchService.getEngineByName("DuckDuckGo")
+      const before = engine.alias
+      engine.alias = "dk"
+      const page = "https://example.net/quokka-links"
+      const mark = await PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid, url: page, title: "Quokka links" })
+      await PlacesUtils.keywords.insert({ keyword: "zql", url: page })
+      const target = "https://example.org/quokka-jump"
+      Services.prefs.setStringPref("zencast.config", JSON.stringify({
+        version: 1,
+        jumps: [{ kind: "url", target, title: "Quokka jump" }],
+        bindings: { ["jump:url:" + target]: ["ctrl+shift+9"] },
+      }))
+      const headings = () => [...shadow().querySelectorAll("[cmdk-group-heading]:not([hidden])")].map((h) => h.textContent)
+      await sleep(300)
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("quick links")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Quick links"), 2000)
+        press("enter")
+        const sections = await until(() => headings().includes("Search engines") && headings(), 3000).catch(() => headings())
+        const rows = resultTitles()
+        const keyword = rows.find((row) => row.startsWith("Quokka links")) ?? ""
+        const jump = rows.find((row) => row.startsWith("Quokka jump")) ?? ""
+        const duck = rows.find((row) => row.startsWith("DuckDuckGo")) ?? ""
+        return {
+          ok: sections.join() === "Keywords,Keys,Search engines" && keyword.includes("zql") && jump.includes("Ctrl") && duck.includes("dk"),
+          detail: "sections " + sections.join(", ") + " | " + keyword + " | " + jump + " | " + duck,
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        engine.alias = before
+        Services.prefs.clearUserPref("zencast.config")
+        await PlacesUtils.bookmarks.remove(mark.guid)
+        await PlacesUtils.keywords.remove("zql").catch(() => {})
       }`,
   },
   {

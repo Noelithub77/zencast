@@ -100,7 +100,9 @@ Zencast is a project, not a product. Describe it as a project everywhere.
   - engine mode as in Zen's address bar: an engine keyword then Tab searches only that engine, with a shake and a chip coloured from the engine's icon; engines and keywords come from Zen's settings, nothing is configured in Zencast;
   - unloaded tabs greyed out in every result list, and in a separate section below loaded ones under `@`;
   - completion that remembers old history: frecent history hosts win over the DNS cache and open tabs (`amazon` must complete to `amazon.in`, not `amazonaws.com`);
-  - one entry per key sheet: Zencast's is "Show Zencast keys", Zen's own "Keyboard shortcuts" stays.
+  - one "Keyboard shortcuts" row: Ctrl+/ shows the key sheet; the shortcut editor lives in Zencast settings (Ctrl+Shift+,), with no second row;
+  - `@` lists tabs only, never folders: every loaded match first, then unloaded ones.
+- **Quick links list and completion first (2026-10-28).** The owner asked for one list of every quick link and key: "Quick links" shows bookmark keywords, keys on sites and folders, and engine keywords, with no default key. When the input shows an inline completion, `Enter` opens that address, so its row leads; deleting the completion lets a matching tab lead again (this replaces "tabs lead" while a completion shows).
 - **Settings polish (2026-10-28).** An archived folder disappears from Folders right away. A menu item's shown key runs it, not just selects it. Zen settings show no "changed" dots: Zen writes many prefs itself, so they were noise. Sessions leave out pinned tabs and essentials, list windows largest first, and name an unsynced window kept for one site (ChatGPT, WhatsApp) after that site, marked "Quick".
 - **Localhost switcher (2026-10-28).** Alt+L lists the dev servers listening on this machine, found from open ports, and jumps to the tab already on one or opens it.
 - **Search everything (2026-10-28).** Search covers each result's title, description and keys: typing a key ("ctrl j", "alt s") lists what it runs.

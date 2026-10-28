@@ -395,7 +395,11 @@ export function Palette() {
   const index = useMemo(() => {
     if (view) return buildIndex(view.items)
     if (scope?.id === "mods") return buildIndex(mods)
-    if (scope) return buildIndex((context ? rootWithSettings(context, root).items : root).filter((item) => item.scope === scope.id))
+    if (scope) {
+      // The tabs scope lists tabs only; folders stay in the root search.
+      const scoped = (item: PaletteItem) => item.scope === scope.id && (scope.id !== "tabs" || item.section === "Tabs")
+      return buildIndex((context ? rootWithSettings(context, root).items : root).filter(scoped))
+    }
     if (!wantsSettings || !context) return buildIndex(root)
     return rootWithSettings(context, root)
   }, [view, root, wantsSettings, context, scope, mods])
@@ -437,12 +441,15 @@ export function Palette() {
       }
       return { groups: [{ section: engine.name, items: [first, ...webItems(context, web, q, (text) => engineSearchUrl(engine, text))] }], suffix: "" }
     }
-    const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
-    // Searching only tabs lists the loaded ones first and the unloaded ones in their own section.
+    // Searching only tabs lists every loaded match first, then unloaded ones up to the limit in their own section.
     if (scope?.id === "tabs") {
-      const groups = [{ section: "Tabs", items: found.filter((item) => !item.dim) }, { section: "Unloaded", items: found.filter((item) => item.dim) }]
+      const tabs = search(index, q, readUsage(), Infinity).map((r) => r.item)
+      const loaded = tabs.filter((item) => !item.dim)
+      const unloaded = tabs.filter((item) => item.dim).slice(0, Math.max(0, config.maxResults - loaded.length))
+      const groups = [{ section: "Tabs", items: loaded }, { section: "Unloaded", items: unloaded }]
       return { groups: groups.filter((group) => group.items.length), suffix: "" }
     }
+    const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
     if (view || scope || !context || !q) return { groups: groupBySection(found), suffix: "" }
 
     const out: Group[] = []
@@ -450,16 +457,19 @@ export function Palette() {
     const quick = quickLink(context, q)
     const matched = quick ? found.filter((item) => item.id !== `bookmark:${quick.bookmark.guid}`) : found
     if (quick) out.push({ section: "Quick link", items: [quick.item] })
+    const host = fill && query === q && !quick ? completion(q, web, domains, guess) : null
+    const suffix = host ? host.slice(q.length) : ""
+    const { url, search: searchItems } = queryItems(context, q + suffix, (target) => typedIcon(target, web))
+    // The completed address shown in the input is what Enter opens; deleting the completion lets tabs lead again.
+    const completed = !!suffix && !!url
+    if (completed && url) out.push({ section: "Open", items: [url] })
     // Tabs come first when one matches well, ahead of the address and search rows.
     const tabsFirst = matched.some((item) => tabLeads(item, q))
     const ranked = tabsFirst ? matched.filter((item) => item.section !== "Tabs") : matched
     if (tabsFirst) out.push({ section: "Tabs", items: matched.filter((item) => item.section === "Tabs") })
     const strong = ranked.some((item) => isStrongMatch(item, q))
-    const host = fill && query === q && !quick ? completion(q, web, domains, guess) : null
-    const suffix = host ? host.slice(q.length) : ""
-    const { url, search: searchItems } = queryItems(context, q + suffix, (target) => typedIcon(target, web))
-    if (url) out.push({ section: "Open", items: [url] })
-    else if (!strong) out.push({ section: "Search", items: searchItems })
+    if (url && !completed) out.push({ section: "Open", items: [url] })
+    else if (!url && !strong) out.push({ section: "Search", items: searchItems })
     if (wantsSettings && q.length >= 3) ranked.push(settingsSearchItem(context, q))
     out.push(...groupBySection(ranked))
     const webList = webItems(context, web, q)

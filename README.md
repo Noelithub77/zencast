@@ -79,7 +79,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Bookmarks from the keyboard.** `Ctrl+B` bookmarks the tab in the palette: name, folder, then an optional keyword, with `Esc` stepping back. On a page already bookmarked it opens the same fields to edit (name, URL, folder, keyword), plus its key and Delete. Every bookmark is searchable by title, folder or keyword, and any bookmark row edits with `Ctrl+E`, moves with `Ctrl+M` and deletes with `Ctrl+Shift+Backspace`; moves and deletes have Undo. "Browse bookmarks" walks the folders in Zen's order, and `Ctrl+Enter` on a folder opens its bookmarks as tabs.
 
-**Quick links.** A bookmark's keyword is its quick link: `gh zencast` searches GitHub when the bookmark's URL has `%s`, `gh` alone asks for the query, and a keyword without `%s` opens its page. They are Firefox's own bookmark keywords, so Zen's address bar knows them too. "Add starter quick links" adds `gh`, `yt`, `wiki`, `mdn`, `npm`, `maps`, `gpt`, `claude` and `cf`, keeping any keyword you already use.
+**Quick links.** A bookmark's keyword is its quick link: `gh zencast` searches GitHub when the bookmark's URL has `%s`, `gh` alone asks for the query, and a keyword without `%s` opens its page. They are Firefox's own bookmark keywords, so Zen's address bar knows them too. "Add starter quick links" adds `gh`, `yt`, `wiki`, `mdn`, `npm`, `maps`, `gpt`, `claude` and `cf`, keeping any keyword you already use. "Quick links" lists everything you can reach by a word or a key: bookmark keywords, sites and folders given a key with `Ctrl+.`, and search engine keywords.
 
 **Ask ChatGPT or Claude.** Under the web search row, any query can open in ChatGPT or Claude with it already in the prompt. "Ask about this page" sends a question about the open page with its address, quoting the selected text when there is some: `Enter` asks Claude, `Ctrl+Enter` ChatGPT, and an empty question asks for a summary.
 
@@ -138,7 +138,7 @@ In the palette:
 | `Tab`, `→` | Accept the inline completion; after an engine keyword, search that engine |
 | `Esc` | Back, then close |
 
-Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). A tab whose title or address starts with what you typed leads the results, and `Shift+Enter` searches the web for the typed text whichever result is selected; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones.
+Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). `Enter` opens the completed address; delete the completion and a tab whose title or address starts with what you typed leads instead, and `Shift+Enter` searches the web for the typed text whichever result is selected; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones.
 
 ## Make it yours
 

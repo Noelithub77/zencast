@@ -45,6 +45,7 @@ import { cleanupCommands } from "./cleanup"
 import { googleCommands } from "./google"
 import { modCommands } from "./mods"
 import { localhostCommands } from "./localhost"
+import { quickLinkCommands } from "./quick-links"
 import { sessionCommands } from "./sessions"
 import { siteContainerCommands } from "./site-containers"
 import type { Command, CommandContext, ListView, PaletteItem } from "./types"
@@ -172,7 +173,7 @@ const CORE: Command[] = [
   },
   {
     id: "zencast.keys",
-    title: "Show Zencast keys",
+    title: "Keyboard shortcuts",
     section: "Palette",
     icon: KeyboardIcon,
     keywords: "keyboard shortcuts keybindings cheat sheet help hotkeys",
@@ -469,6 +470,6 @@ const CORE: Command[] = [
 // Each file in src/features/ exports `commands`; forks add features there instead of editing this list.
 const FEATURES = import.meta.glob<Command[]>("../features/*.ts", { eager: true, import: "commands" })
 
-export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...bookmarkFolderCommands, ...googleCommands, ...modCommands, ...sessionCommands, ...cleanupCommands, ...askCommands, ...siteContainerCommands, ...localhostCommands, ...Object.values(FEATURES).flat()]
+export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...bookmarkFolderCommands, ...quickLinkCommands, ...googleCommands, ...modCommands, ...sessionCommands, ...cleanupCommands, ...askCommands, ...siteContainerCommands, ...localhostCommands, ...Object.values(FEATURES).flat()]
 
 export const COMMANDS_BY_ID = new Map(COMMANDS.map((command) => [command.id, command]))

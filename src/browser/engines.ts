@@ -69,6 +69,8 @@ export function watchEngines(win: Window): () => void {
   }
 }
 
+export const allEngines = () => engines
+
 /** The engine whose keyword, alias or name is exactly the typed text. */
 export function engineFor(text: string): Engine | undefined {
   const typed = text.trim().toLowerCase()

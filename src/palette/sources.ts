@@ -1,6 +1,5 @@
 import {
   Folder01Icon,
-  KeyboardIcon,
   Layers01Icon,
   Search01Icon,
   Settings01Icon,
@@ -363,17 +362,6 @@ export function settingsSearchItem(ctx: CommandContext, query: string): PaletteI
     section: "Settings",
     icon: { kind: "icon", icon: Search01Icon },
     actions: [{ id: "search", title: "Search settings", run: () => searchPreferences(ctx.win, query) }],
-  }
-}
-
-export function keybindingsItem(ctx: CommandContext): PaletteItem {
-  return {
-    id: "zencast.keys",
-    title: "Keyboard shortcuts",
-    section: "Palette",
-    icon: { kind: "icon", icon: KeyboardIcon },
-    keywords: "keybindings hotkeys bindings chords",
-    actions: [{ id: "open", title: "Open", run: () => openSettings(ctx.win, "keys") }],
   }
 }
 

@@ -63,18 +63,14 @@ function firstScreen(fresh: Entry[], stale: Entry[]): Entry[] {
 interface RowProps {
   item: PaletteItem
   heading: string | undefined
-  /** Letter shown while Ctrl or Alt is held; that modifier plus the letter runs the row. */
+  /** Letter shown while Ctrl or Alt is held, underlined in the title and at the row's end. */
   hint: Hint | undefined
-  /** Alt shows the letter in place of the icon, Ctrl at the row's end. */
-  hintAt: Modifier | null
   onRun: (item: PaletteItem, action: ItemAction | undefined) => void
 }
 
 // Memoized so rows whose item is unchanged skip rendering, including cmdk's per-item registration.
 // Optional parts stay mounted and empty, so reusing a row for another item only patches text.
-const Row = memo(function Row({ item, heading, hint, hintAt, onRun }: RowProps) {
-  const left = hint && hintAt === "alt" ? hint : undefined
-  const right = hint && hintAt === "ctrl" ? hint : undefined
+const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
   return (
     <>
       <div cmdk-group-heading="" hidden={!heading} className="px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint">
@@ -82,13 +78,7 @@ const Row = memo(function Row({ item, heading, hint, hintAt, onRun }: RowProps) 
       </div>
       <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-13 gap-4 rounded-xl px-4 text-[17px] font-normal">
         <span className="flex w-7 shrink-0 justify-center [&>img]:size-5 [&>svg]:size-5">
-          {left ? (
-            <span data-hint="" className="font-mono text-[22px] leading-none font-bold animate-in fade-in-0 zoom-in-75 duration-150" style={{ color: left.color }}>
-              {left.letter.toUpperCase()}
-            </span>
-          ) : (
-            <ItemGlyph icon={item.icon} />
-          )}
+          <ItemGlyph icon={item.icon} />
         </span>
         <span className="shrink-0 truncate">
           {hint ? (
@@ -105,17 +95,17 @@ const Row = memo(function Row({ item, heading, hint, hintAt, onRun }: RowProps) 
         </span>
         <span className="min-w-0 truncate text-sm text-faint">{item.subtitle}</span>
         <span data-slot="command-shortcut" className="ml-auto flex shrink-0 items-center gap-2 pl-3">
-          {right ? (
+          {hint ? (
             <kbd
               data-hint=""
               className="flex h-8 min-w-8 items-center justify-center rounded-lg px-2 font-mono text-[17px] font-semibold animate-in fade-in-0 zoom-in-90 duration-150"
               style={{
-                color: right.color,
-                backgroundColor: `color-mix(in srgb, ${right.color} 16%, transparent)`,
-                boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${right.color} 35%, transparent)`,
+                color: hint.color,
+                backgroundColor: `color-mix(in srgb, ${hint.color} 16%, transparent)`,
+                boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${hint.color} 35%, transparent)`,
               }}
             >
-              {right.letter.toUpperCase()}
+              {hint.letter.toUpperCase()}
             </kbd>
           ) : (
             <>
@@ -634,7 +624,6 @@ export function Palette() {
                 item={entry.item}
                 heading={entry.section === shown[index - 1]?.section ? undefined : entry.section}
                 hint={hints?.get(entry.item.id)}
-                hintAt={held}
                 onRun={run}
               />
             ))}

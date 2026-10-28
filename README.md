@@ -57,7 +57,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Alt+2 tints the palette to a space, Ctrl+1 picks a container](docs/media/spaces.gif)
 
-**Hold to reveal.** Hold `Ctrl` or `Alt` and each visible result shows a letter in its own colour; the same key plus the letter runs it. A strip lists every other key that modifier takes in the palette, and numbers the containers (`Ctrl`) or spaces (`Alt`), so nothing has to be learned first.
+**Hold to reveal.** Hold `Ctrl` or `Alt` and each visible result underlines a letter in its title and shows it at the row's end, both in the same pastel colour; the same key plus the letter runs it. A strip lists every other key that modifier takes in the palette, and numbers the containers (`Ctrl`) or spaces (`Alt`), so nothing has to be learned first.
 
 ![Holding Ctrl marks a letter in every result](docs/media/hints.gif)
 

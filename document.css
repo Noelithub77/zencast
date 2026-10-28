@@ -57,5 +57,14 @@
 @property --tw-drop-shadow-color{syntax:"*";inherits:false}
 @property --tw-drop-shadow-alpha{syntax:"<percentage>";inherits:false;initial-value:100%}
 @property --tw-drop-shadow-size{syntax:"*";inherits:false}
+@property --tw-backdrop-blur{syntax:"*";inherits:false}
+@property --tw-backdrop-brightness{syntax:"*";inherits:false}
+@property --tw-backdrop-contrast{syntax:"*";inherits:false}
+@property --tw-backdrop-grayscale{syntax:"*";inherits:false}
+@property --tw-backdrop-hue-rotate{syntax:"*";inherits:false}
+@property --tw-backdrop-invert{syntax:"*";inherits:false}
+@property --tw-backdrop-opacity{syntax:"*";inherits:false}
+@property --tw-backdrop-saturate{syntax:"*";inherits:false}
+@property --tw-backdrop-sepia{syntax:"*";inherits:false}
 @property --tw-duration{syntax:"*";inherits:false}
 @property --tw-ease{syntax:"*";inherits:false}

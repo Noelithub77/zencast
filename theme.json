@@ -3,7 +3,7 @@
   "name": "Zencast",
   "description": "Raycast for Zen: a keyboard-first browser with one palette for tabs, spaces, containers, settings and your own shortcuts.",
   "author": "Noel",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "https://github.com/Noelithub77/zencast/tree/release",
   "fork": [
     "zen"
@@ -19,5 +19,5 @@
     }
   },
   "supportsUnload": true,
-  "updatedAt": "2026-10-27T21:37:17.103Z"
+  "updatedAt": "2026-10-28T11:36:01.275Z"
 }

@@ -5,15 +5,15 @@
 <h1 align="center">Zencast</h1>
 
 <p align="center">
-  <b>Raycast for Zen.</b> A powerful keyboard-first browser: one palette for tabs, spaces, containers, settings and your own shortcuts.
+  <b>Describe the browser you want. Your agent builds it.</b>
 </p>
 
 <p align="center">
-  Also a template for making Zen, or any Firefox, malleable: fork it and let your agent reshape the browser any way you want.
+  A one-shot template for reshaping any Firefox-based browser with your coding agent, and my own setup for Zen: Raycast for Zen, a keyboard-first palette for tabs, spaces, containers, settings and my own keys.
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> · <a href="#features">Features</a> · <a href="#keys">Keys</a> · <a href="#make-it-yours">Make it yours</a> · <a href="#how-do-you-make-a-browser-malleable">Why Firefox</a>
+  <a href="https://zencast.allpyq.in">Website</a> · <a href="#install">Install</a> · <a href="#features">Features</a> · <a href="#keys">Keys</a> · <a href="#make-it-yours">Make it yours</a> · <a href="#how-do-you-make-a-browser-malleable">Why Firefox</a>
 </p>
 
 ![Ctrl+K, type, Enter: the palette jumps to a tab in another space](https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/hero.gif)
@@ -51,23 +51,41 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ## Features
 
-**Everything is one search away.** Every tab in every space and folder, including pinned, essential and sleeping ones, plus history, bookmarks, folders, commands and every Zen setting. Loaded and recent tabs rank first; typos are forgiven.
+**Everything is one search away.** Every tab in every space and folder, including pinned, essential and sleeping ones, plus history, bookmarks, folders, commands and every Zen setting. Loaded and recent tabs rank first; typos are forgiven. Type a key, like `alt s` or `ctrl space`, to see what it runs.
+
+**Prefixes.** Start with `@` for tabs, `/` for commands, `#` for bookmarks, `$` for settings or `*` for mods, and the search keeps to that kind. `*` lists every Sine mod, on or off, and `Enter` toggles it. `Backspace` on an empty search drops the prefix.
 
 **Open anywhere.** In the palette, `Alt+1…9` aims results at a space and `Ctrl+1…9` at a container. The palette takes that space's colour and name, and `Enter` on an open tab moves it there. Press the key again to clear.
 
 ![Alt+2 tints the palette to a space, Ctrl+1 picks a container](https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/spaces.gif)
 
-**Hold to reveal.** Hold `Ctrl` and each visible result shows a letter; `Ctrl+letter` runs it. Hold `Alt` to number the spaces.
+**Hold to reveal.** Hold `Ctrl` or `Alt` and each visible result underlines a letter in its title and shows it at the row's end, both in the same pastel colour; the same key plus the letter runs it. A strip lists every other key that modifier takes in the palette, and numbers the containers (`Ctrl`) or spaces (`Alt`), so nothing has to be learned first.
 
 ![Holding Ctrl marks a letter in every result](https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/hints.gif)
+
+**Key sheet.** Hold `Ctrl+Shift` for a moment, anywhere in Zen, to see every Zencast key at once, grouped like the palette. Let go to hide it.
+
+**Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart. `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
+
+**Localhost.** `Alt+L` lists the dev servers running on your machine, by page title and port. `Enter` switches to the tab already on one, or opens it.
 
 **Settings in place.** Type a setting's name: switches flip right in the list, and numbers or text open a prompt.
 
 ![Typing a setting's name and switching it from the palette](https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/settings.gif)
 
+**Bookmarks from the keyboard.** `Ctrl+B` bookmarks the tab in the palette: name, folder, then an optional keyword, with `Esc` stepping back. On a page already bookmarked it opens the same fields to edit (name, URL, folder, keyword), plus its key and Delete. Every bookmark is searchable by title, folder or keyword, and any bookmark row edits with `Ctrl+E`, moves with `Ctrl+M` and deletes with `Ctrl+Shift+Backspace`; moves and deletes have Undo. "Browse bookmarks" walks the folders in Zen's order, and `Ctrl+Enter` on a folder opens its bookmarks as tabs.
+
+**Quick links.** A bookmark's keyword is its quick link: `gh zencast` searches GitHub when the bookmark's URL has `%s`, `gh` alone asks for the query, and a keyword without `%s` opens its page. They are Firefox's own bookmark keywords, so Zen's address bar knows them too. "Add starter quick links" adds `gh`, `yt`, `wiki`, `mdn`, `npm`, `maps`, `gpt`, `claude` and `cf`, keeping any keyword you already use.
+
+**Ask ChatGPT or Claude.** Under the web search row, any query can open in ChatGPT or Claude with it already in the prompt.
+
 **Your own shortcuts.** `Ctrl+.` records a shortcut for any command, or gives a tab, folder or site its own key. Shortcuts can be chords, like `Ctrl+Space` then `F`.
 
-**Containers and privacy.** Open or reopen a tab in a container, start a throwaway container that deletes its data on close, move a signed-in session to another container, or wipe a site's data and history from a tab.
+**Containers and privacy.** Open something new in a container, move a tab to another container with or without its signed-in session, start a throwaway container that deletes its data on close, or wipe a site's data and history from a tab.
+
+**Mod overlap.** Lists the Sine mods you have on that claim one of Zencast's keys or do a job the palette already does, each with a way to turn it off.
+
+**Google account containers.** Zencast finds the Google accounts you're signed in to and gives each one its own container, named after its email. You sign in once in each, with the email already filled in. Signing in to another account offers a container for it. Only the list of emails is kept, never your cookies.
 
 **Fast.** Measured in headless Zen with 300 tabs, at the 95th percentile:
 
@@ -85,32 +103,36 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | Key | Action |
 | --- | --- |
 | `Ctrl+K` | Open the palette |
-| `Ctrl+,` | Zencast settings |
+| `Ctrl+,` | Zen settings |
+| `Ctrl+Shift+,` | Zencast settings |
+| `Ctrl+B` | Bookmark the tab, or edit its bookmark |
 | `Ctrl+1…9` | Switch to space 1…9 |
-| `Alt+1…9` | Move the tab to space 1…9 |
+| `Ctrl+Shift+1…9` | Move the tab to space 1…9 |
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |
 | `Ctrl+Shift+N` | New folder, or a subfolder of the current tab's folder |
 | `Ctrl+C` | Open in a container, when nothing is selected to copy |
-| `Alt+Shift+C` | Reopen the tab in a container |
+| `Alt+Shift+C` | Move the tab to a container; `Ctrl+Enter` takes its signed-in session along |
 | `Alt+Shift+T` | New tab in a throwaway container |
-| `Alt+M` | Move the tab's session to another container |
 | `Alt+Shift+W` | Wipe the site's data and history |
-| `Ctrl+Space` then `E`, `F`, `W` | Toggle essential, move to a folder, move to a space |
+| `Alt+S` | Past sessions |
+| `Alt+L` | Local dev servers |
+| `Ctrl+Space` then `E`, `F`, `S` | Toggle essential, move to a folder, move to a space |
 
 In the palette:
 
 | Key | Action |
 | --- | --- |
 | `Enter`, `Ctrl+Enter` | Run the result's first or second action |
-| `Ctrl+K` | All actions for the result |
-| Hold `Ctrl` | Letter hints on results; numbers on containers |
-| Hold `Alt` | Numbers on spaces |
+| `Ctrl+J` | All actions for the result |
+| `Ctrl+K` | Close; whichever key opened the palette closes it |
+| Hold `Ctrl` or `Alt` | Letter hints on results and a list of that modifier's keys; numbers on containers or spaces |
 | `Alt+1…9`, `Ctrl+1…9` | Open results in that space or container |
 | `Ctrl+.` | Record a shortcut, or assign a key to a tab, folder or site |
+| `@`, `/`, `#`, `$`, `*` first | Search only tabs, commands, bookmarks, settings or mods |
 | `Tab`, `→` | Accept the inline completion |
 | `Esc` | Back, then close |
 
-Typing the start of a site you visited recently completes it from the DNS cache and takes `Enter`, even over a command with the same start: `allpyq` becomes `allpyq.in`.
+Typing the start of a site completes it inline and takes `Enter`. A site you visited in the last few minutes completes from the DNS cache, even over a command with the same start (`allpyq` becomes `allpyq.in`); any other site completes from your history, as in Zen's address bar.
 
 ## Make it yours
 
@@ -118,15 +140,27 @@ These defaults are my own setup, built around how I use Zen, and some of them re
 
 | Key | Zen's own action, replaced |
 | --- | --- |
-| `Alt+1…9` | Select tab 1…9 on Linux (Zencast moves the tab to that space) |
 | `Ctrl+1…9` | Select tab 1…9 on Windows (Zencast switches space, only while that space exists) |
 | `Ctrl+K` | Focus web search |
 | `Ctrl+Shift+N` | New unsynced window |
 | `Ctrl+C` | Copy, only when nothing is selected |
 
-Change any of them in settings (`Ctrl+,`, or the gear on Zencast's card in Sine).
+Change any of them in settings (`Ctrl+Shift+,`, or the gear on Zencast's card in Sine).
 
 ![The settings page: shortcuts, Zen settings, folders and general](https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/settings.png)
+
+### Make it look like anything
+
+A look is one CSS file for Zen's own window. These four are real Zen, restyled by the files in [`src/looks/`](https://github.com/Noelithub77/zencast/blob/master/src/looks) and captured by `pnpm ops look`:
+
+<p>
+  <img src="https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/looks/candy.webp" width="49%" alt="Candy: a pastel gradient browser with rounded tabs" />
+  <img src="https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/looks/pink.webp" width="49%" alt="Pink: sidebar, tabs and pages all in pink" />
+  <img src="https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/looks/terminal.webp" width="49%" alt="Terminal: black, phosphor green and monospace" />
+  <img src="https://raw.githubusercontent.com/Noelithub77/zencast/master/docs/media/looks/paper.webp" width="49%" alt="Paper: cream pages, ink outlines and a serif face" />
+</p>
+
+Ask your agent for a look; the `restyle` skill has it write the CSS, preview it headless and ship it.
 
 ### Fork it
 
@@ -135,8 +169,8 @@ Zencast is a template for customising Zen, or any Firefox, from the inside. A Si
 | | |
 | --- | --- |
 | [`AGENTS.md`](https://github.com/Noelithub77/zencast/blob/master/AGENTS.md) | Map of the code and its conventions |
-| [`.claude/skills/`](https://github.com/Noelithub77/zencast/blob/master/.claude/skills) | Add a command, find Zen and Firefox internals, ship a release |
-| `pnpm ops` | Build, install into a profile, probe a live Zen with `eval`, run e2e and benchmarks headless |
+| [`.claude/skills/`](https://github.com/Noelithub77/zencast/blob/master/.claude/skills) | Add a command, restyle Zen, find Zen and Firefox internals, ship a release |
+| `pnpm ops` | Build, install into a profile, probe a live Zen with `eval`, preview looks, run e2e and benchmarks headless |
 | [`scripts/install/`](https://github.com/Noelithub77/zencast/blob/master/scripts/install) | The one-line setup, ready to point at your fork |
 | [`docs/distribution.md`](https://github.com/Noelithub77/zencast/blob/master/docs/distribution.md) | How the mod ships and updates through Sine |
 

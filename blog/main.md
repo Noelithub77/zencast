@@ -1,4 +1,4 @@
-# My Browser Should Bend Too
+# My browser should bend too
 
 *How I made Zen something my coding agent can reshape with a prompt, without forking a browser*
 

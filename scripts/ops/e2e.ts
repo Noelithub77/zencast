@@ -19,6 +19,18 @@ interface Scenario {
 
 const READY = String.raw`await until(() => window.Zencast && document.getElementById("zencast-host"), 20000)`
 
+// Places for the bookmark scenarios; its calls are async, which until() does not poll.
+const PLACES = String.raw`const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs")
+      const poll = async (fn, ms = 3000) => {
+        const end = Date.now() + ms
+        for (;;) {
+          const value = await fn()
+          if (value || Date.now() > end) return value
+          await sleep(50)
+        }
+      }
+      const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""`
+
 const SCENARIOS: Scenario[] = [
   {
     name: "mod loads and mounts",
@@ -443,6 +455,174 @@ const SCENARIOS: Scenario[] = [
       press("ctrl+shift+,", document.documentElement)
       const opened = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings"), 3000).catch(() => false)
       return { ok: empty > 0 && Boolean(opened), detail: empty + " tab without a browser; " + (opened ? "opened settings" : "settings did not open") }`,
+  },
+  {
+    name: "bookmarks are found by title and folder, and ctrl+. gives one a key",
+    body: String.raw`${READY}
+      ${PLACES}
+      const url = "https://example.com/quokka-handbook"
+      const folder = await PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.toolbarGuid, type: PlacesUtils.bookmarks.TYPE_FOLDER, title: "Field notes" })
+      await PlacesUtils.bookmarks.insert({ parentGuid: folder.guid, url, title: "Quokka handbook" })
+      await sleep(300)
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("field notes")
+        const byFolder = await until(() => resultTitles().some((title) => title.startsWith("Quokka handbook")), 3000).catch(() => false)
+        typeQuery("quokka")
+        const first = await until(() => (resultTitles()[0] ?? "").startsWith("Quokka handbook") && resultTitles()[0], 3000).catch(() => resultTitles()[0] ?? "")
+        press("ctrl+.")
+        await until(() => shadow().textContent.includes("Press keys"), 2000)
+        press("ctrl+shift+q")
+        const bound = await until(() => JSON.parse(Services.prefs.getStringPref("zencast.config", "{}")).bindings?.["jump:url:" + url]?.[0] === "ctrl+shift+q", 3000).catch(() => false)
+        await dismiss()
+        press("ctrl+shift+q", document.documentElement)
+        const jumped = await until(() => gBrowser.selectedBrowser.currentURI?.spec === url || gBrowser.selectedBrowser.userTypedValue === url, 3000).catch(() => false)
+        if (jumped) gBrowser.removeTab(gBrowser.selectedTab)
+        return {
+          ok: byFolder && first.startsWith("Quokka handbook") && bound && jumped,
+          detail: "first row for quokka: " + first.slice(0, 40) + (byFolder ? "; found by folder" : "; not found by folder") + (bound ? "; key bound" : "; key not bound") + (jumped ? ", opens it" : ", did not open"),
+        }
+      } finally {
+        Services.prefs.clearUserPref("zencast.config")
+        await PlacesUtils.bookmarks.remove(folder.guid)
+      }`,
+  },
+  {
+    name: "a keyword opens its bookmark, and a quick link fills in the query",
+    body: String.raw`${READY}
+      ${PLACES}
+      const template = "https://example.org/search?q=%s"
+      const search = await PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid, url: template, title: "Example search" })
+      await PlacesUtils.keywords.insert({ keyword: "zq", url: template })
+      const dash = await PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid, url: "https://example.net/dash", title: "Dash board" })
+      await PlacesUtils.keywords.insert({ keyword: "dsh", url: "https://example.net/dash" })
+      await sleep(300)
+      const opened = async () => {
+        const url = await until(() => {
+          const browser = gBrowser.selectedBrowser
+          const spec = browser.currentURI?.spec ?? ""
+          return spec.startsWith("https://example.") ? spec : (browser.userTypedValue ?? "").startsWith("https://example.") ? browser.userTypedValue : ""
+        }, 3000).catch(() => "")
+        if (url) gBrowser.removeTab(gBrowser.selectedTab)
+        return url
+      }
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("zq hello world")
+        const filled = await until(() => (resultTitles()[0] ?? "").startsWith("hello world") && resultTitles()[0], 2000).catch(() => resultTitles()[0] ?? "")
+        press("enter")
+        const query = await opened()
+
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("zq")
+        await until(() => (resultTitles()[0] ?? "").includes("Type to search"), 2000)
+        press("enter")
+        await until(() => inputPlaceholder() === "Search", 2000)
+        typeQuery("abc")
+        await sleep(50)
+        press("enter")
+        const prompted = await opened()
+
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("dsh")
+        const plain = await until(() => (resultTitles()[0] ?? "").startsWith("Dash board") && resultTitles()[0], 2000).catch(() => resultTitles()[0] ?? "")
+        await dismiss()
+        return {
+          ok: query.endsWith("q=hello%20world") && prompted.endsWith("q=abc") && plain.startsWith("Dash board"),
+          detail: "zq hello world: " + (query || filled.slice(0, 30)) + "; zq then abc: " + prompted + "; dsh: " + plain.slice(0, 20),
+        }
+      } finally {
+        await PlacesUtils.bookmarks.remove(search.guid)
+        await PlacesUtils.bookmarks.remove(dash.guid)
+        await PlacesUtils.keywords.remove("zq").catch(() => {})
+        await PlacesUtils.keywords.remove("dsh").catch(() => {})
+      }`,
+  },
+  {
+    name: "ctrl+b fills a bookmark's name, folder and keyword, then edits it",
+    body: String.raw`${READY}
+      ${PLACES}
+      const url = "https://example.com/zencast-ctrl-b"
+      const tab = newTab(url)
+      await until(() => gBrowser.selectedBrowser.currentURI?.spec === url, 10000).catch(() => {})
+      await sleep(200)
+      try {
+        press("ctrl+b", document.documentElement)
+        await until(paletteOpen, 2000)
+        const initial = shadow().querySelector("[cmdk-input]").value
+        typeQuery("Ctrl B test")
+        await sleep(50)
+        press("enter")
+        await until(() => inputPlaceholder() === "Folder", 2000)
+        typeQuery("other bookmarks")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Other bookmarks"), 2000)
+        press("enter")
+        await until(() => inputPlaceholder().startsWith("Keyword"), 2000)
+        typeQuery("cbt")
+        await sleep(50)
+        const label = resultTitles()[0] ?? ""
+        press("enter")
+        await until(() => !paletteOpen(), 2000)
+        const saved = await poll(() => PlacesUtils.bookmarks.fetch({ url }))
+        const keyword = await PlacesUtils.keywords.fetch({ url })
+        await sleep(300)
+
+        press("ctrl+b", document.documentElement)
+        await until(paletteOpen, 2000)
+        const fields = await until(() => resultTitles().length >= 5 && resultTitles(), 2000).catch(() => resultTitles())
+        shadow().querySelector('[cmdk-item][data-value="bookmark-edit-remove"]').click()
+        await until(() => !paletteOpen(), 2000)
+        const removed = await poll(async () => !(await PlacesUtils.bookmarks.fetch({ url })))
+
+        // Zen's bookmarks sidebar command no longer shows Ctrl+B, which Zencast now owns.
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("bookmark show sidebar")
+        const sidebar = await until(() => resultTitles().find((title) => title.startsWith("Bookmark show sidebar")), 2000).catch(() => "")
+        await dismiss()
+        const ok = initial !== "" && label.includes("cbt") && saved?.title === "Ctrl B test" && saved?.parentGuid === PlacesUtils.bookmarks.unfiledGuid &&
+          keyword?.keyword === "cbt" && fields.some((title) => title.startsWith("Keyword")) && removed && sidebar !== "" && !sidebar.endsWith("CtrlB")
+        return {
+          ok,
+          detail: "name from \"" + initial.slice(0, 20) + "\" to " + saved?.title + " in " + saved?.parentGuid + ", keyword " + keyword?.keyword + "; edit rows " + fields.length + (removed ? ", removed" : ", not removed") + "; sidebar row: " + sidebar,
+        }
+      } finally {
+        gBrowser.removeTab(tab)
+        const left = await PlacesUtils.bookmarks.fetch({ url })
+        if (left) await PlacesUtils.bookmarks.remove(left.guid)
+        await PlacesUtils.keywords.remove("cbt").catch(() => {})
+      }`,
+  },
+  {
+    name: "starter quick links fill a folder and keep a keyword already taken",
+    body: String.raw`${READY}
+      ${PLACES}
+      const mine = "https://example.com/my-gh?q=%s"
+      const own = await PlacesUtils.bookmarks.insert({ parentGuid: PlacesUtils.bookmarks.unfiledGuid, url: mine, title: "My gh" })
+      await PlacesUtils.keywords.insert({ keyword: "gh", url: mine })
+      await sleep(300)
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("Add starter quick links")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Add starter quick links"), 2000)
+        press("enter")
+        const yt = await poll(() => PlacesUtils.keywords.fetch("yt"))
+        const gh = await PlacesUtils.keywords.fetch("gh")
+        const toast = await until(() => toastText(), 2000).catch(() => "")
+        return {
+          ok: !!yt && yt.url.href.startsWith("https://www.youtube.com/") && gh?.url.href === mine,
+          detail: toast + "; gh still " + (gh?.url.href ?? "missing"),
+        }
+      } finally {
+        await PlacesUtils.bookmarks.remove(own.guid)
+        for (const folder of await PlacesUtils.bookmarks.search({ title: "Quick links" })) await PlacesUtils.bookmarks.remove(folder.guid)
+        for (const keyword of ["gh", "yt", "wiki", "mdn", "npm", "maps", "gpt", "claude", "cf"]) await PlacesUtils.keywords.remove(keyword).catch(() => {})
+      }`,
   },
 ]
 

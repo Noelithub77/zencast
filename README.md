@@ -65,6 +65,10 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Typing a setting's name and switching it from the palette](docs/media/settings.gif)
 
+**Bookmarks from the keyboard.** `Ctrl+B` bookmarks the tab in the palette: name, folder, then an optional keyword, with `Esc` stepping back. On a page already bookmarked it opens the same fields to edit, plus its key and Remove. Every bookmark is searchable by title, folder or keyword.
+
+**Quick links.** A bookmark's keyword is its quick link: `gh zencast` searches GitHub when the bookmark's URL has `%s`, `gh` alone asks for the query, and a keyword without `%s` opens its page. They are Firefox's own bookmark keywords, so Zen's address bar knows them too. "Add starter quick links" adds `gh`, `yt`, `wiki`, `mdn`, `npm`, `maps`, `gpt`, `claude` and `cf`, keeping any keyword you already use.
+
 **Your own shortcuts.** `Ctrl+.` records a shortcut for any command, or gives a tab, folder or site its own key. Shortcuts can be chords, like `Ctrl+Space` then `F`.
 
 **Containers and privacy.** Open or reopen a tab in a container, start a throwaway container that deletes its data on close, move a signed-in session to another container, or wipe a site's data and history from a tab.
@@ -87,6 +91,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Ctrl+K` | Open the palette |
 | `Ctrl+,` | Zen settings |
 | `Ctrl+Shift+,` | Zencast settings |
+| `Ctrl+B` | Bookmark the tab, or edit its bookmark |
 | `Ctrl+1…9` | Switch to space 1…9 |
 | `Alt+1…9` | Move the tab to space 1…9 |
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |

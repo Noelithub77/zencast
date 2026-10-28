@@ -28,10 +28,9 @@ import { defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/ur
 import { openUrl } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
 import { chooseContainer, COMMANDS, containerItems, openSettings } from "@/commands/catalog"
-import { jumpId } from "@/commands/jumps"
 import type { CommandContext, ItemAction, ListView, PaletteItem } from "@/commands/types"
 import { paletteOnCtrlT, setPaletteOnCtrlT } from "@/keys/bindings"
-import { readConfig, RESULT_LIMITS, updateConfig, type Jump } from "@/shared/config"
+import { jumpId, readConfig, RESULT_LIMITS, updateConfig, type Jump } from "@/shared/config"
 import { buildIndex, type SearchIndex } from "./search"
 import { getState } from "./store"
 
@@ -73,7 +72,7 @@ function assignAction(ctx: CommandContext, jump: Jump): ItemAction {
   return { id: "assign", title: "Assign shortcut", keys: "ctrl+.", keepOpen: true, run: () => ctx.ui.record(jumpId(jump), jump.title, jump) }
 }
 
-function openActions(ctx: CommandContext, url: () => string | Promise<string>): ItemAction[] {
+export function openActions(ctx: CommandContext, url: () => string | Promise<string>): ItemAction[] {
   return [
     { id: "open", title: "Open in new tab", run: async () => openTarget(ctx, await url(), "tab") },
     { id: "open-here", title: "Open in this tab", keys: "alt+enter", run: async () => openTarget(ctx, await url(), "current") },
@@ -413,7 +412,8 @@ export function queryItems(ctx: CommandContext, query: string): { url: PaletteIt
 export function webItems(ctx: CommandContext, results: WebResult[], query: string): PaletteItem[] {
   const out: PaletteItem[] = []
   for (const result of results) {
-    if (result.heuristic || result.source === "tab") continue
+    // Bookmarks come from their own index, with keywords and folders.
+    if (result.heuristic || result.source === "tab" || result.source === "bookmark") continue
     if (result.kind === "search") {
       const text = result.query ?? result.title
       if (text.toLowerCase() === query.trim().toLowerCase()) continue
@@ -433,8 +433,6 @@ export function webItems(ctx: CommandContext, results: WebResult[], query: strin
         subtitle: result.url.replace(/^https?:\/\/(www\.)?/, ""),
         section: "Web",
         icon: { kind: "favicon", url: `page-icon:${result.url}` },
-        accessory: result.source === "bookmark" ? "Bookmark" : undefined,
-        accessoryColor: "var(--butter)",
         actions: [...openActions(ctx, () => result.url), assignAction(ctx, { kind: "url", target: result.url, title: result.title })],
       })
     }

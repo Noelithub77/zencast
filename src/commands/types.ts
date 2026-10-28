@@ -19,7 +19,12 @@ export interface ListView {
   placeholder?: string
   items: PaletteItem[]
   /** Turns the view into a text prompt: the input starts with `initial` and Enter submits it. */
-  prompt?: { initial: string; submit: (value: string) => RunResult }
+  prompt?: {
+    initial: string
+    submit: (value: string) => RunResult
+    /** The row Enter runs, for the typed value; defaults to "Set to “value”". */
+    label?: (value: string) => string
+  }
 }
 
 export type RunResult = void | ListView | Promise<void | ListView>
@@ -78,6 +83,7 @@ export type Section =
   | "Tabs"
   | "Pins"
   | "Folders"
+  | "Bookmarks"
   | "Spaces"
   | "Containers"
   | "Privacy"

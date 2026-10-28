@@ -1,4 +1,5 @@
 // Mod entry: Sine imports this module once per browser window.
+import { watchBookmarks } from "@/browser/bookmarks"
 import { sweepTemporaryContainers } from "@/browser/containers"
 import { isTab } from "@/browser/folders"
 import { addSineSettingsButton } from "@/browser/sine-card"
@@ -15,7 +16,7 @@ import { onConfigChange, readConfig } from "@/shared/config"
 function start(win: Window): () => void {
   const disposers: Array<() => void> = []
   initController(win)
-  disposers.push(disposeController, registerToasts(win))
+  disposers.push(disposeController, registerToasts(win), watchBookmarks())
 
   let index = buildIndex(readConfig())
   let recording = false

@@ -381,7 +381,49 @@ declare global {
     isAvailable(win: Window): boolean
   }
 
+  interface MozStorageRow {
+    getResultByName(name: string): unknown
+  }
+
+  interface PlacesConnection {
+    executeCached(sql: string, params?: Record<string, string | number>): Promise<MozStorageRow[]>
+  }
+
+  interface PlacesBookmarks {
+    readonly toolbarGuid: string
+    readonly menuGuid: string
+    readonly unfiledGuid: string
+    readonly mobileGuid: string
+    readonly tagsGuid: string
+    readonly rootGuid: string
+    readonly DEFAULT_INDEX: number
+    readonly TYPE_FOLDER: number
+    insert(info: { parentGuid: string; url?: string; title?: string; type?: number }): Promise<{ guid: string }>
+    /** Moving to another folder needs `index` too. */
+    update(info: { guid: string; title?: string; parentGuid?: string; index?: number }): Promise<unknown>
+    remove(guid: string): Promise<unknown>
+  }
+
+  interface PlacesKeywords {
+    /** A keyword belongs to a URL, not to one bookmark; inserting a taken keyword moves it. */
+    insert(entry: { keyword: string; url: string }): Promise<void>
+    remove(keyword: string): Promise<void>
+  }
+
+  interface PlacesObserversService {
+    addListener(types: string[], listener: (events: unknown[]) => void): void
+    removeListener(types: string[], listener: (events: unknown[]) => void): void
+  }
+
   interface GeckoModuleMap {
+    "resource://gre/modules/PlacesUtils.sys.mjs": {
+      PlacesUtils: {
+        bookmarks: PlacesBookmarks
+        keywords: PlacesKeywords
+        observers: PlacesObserversService
+        promiseDBConnection(): Promise<PlacesConnection>
+      }
+    }
     "moz-src:///toolkit/components/search/SearchService.sys.mjs": {
       SearchService: { getDefault(): Promise<SearchEngine> }
     }

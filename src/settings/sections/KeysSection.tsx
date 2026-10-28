@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { openPane } from "@/browser/settings-index"
 import { nativeShortcuts } from "@/browser/zen-shortcuts"
-import { allCommands, jumpId } from "@/commands/jumps"
+import { allCommands } from "@/commands/jumps"
 import { Keys } from "@/components/keys"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { bindSequence, buildIndex, effectiveBindings } from "@/keys/bindings"
 import { fuzzyFilter } from "@/palette/search"
-import { updateConfig, type Config } from "@/shared/config"
+import { jumpId, updateConfig, type Config } from "@/shared/config"
 import { displaySequence } from "@/shared/keys"
 import { useBrowserWindow, useConfig } from "../hooks"
 import { GroupHeading, SectionHeader, StatusDot } from "../parts"

@@ -17,6 +17,11 @@ const jumpSchema = z.object({
 
 export type Jump = z.infer<typeof jumpSchema>
 
+/** The hidden command id a jump's key is bound to. */
+export function jumpId(jump: Pick<Jump, "kind" | "target">): string {
+  return `jump:${jump.kind}:${jump.target}`
+}
+
 const configSchema = z.object({
   version: z.literal(1).default(1),
   // Overrides of default bindings: command id -> key sequences. An empty list unbinds the command.

@@ -5,13 +5,9 @@ import { Folder01Icon, Globe02Icon } from "@hugeicons/core-free-icons"
 import { allFolders, openFolder } from "@/browser/folders"
 import { listTabs, selectTab, tabUrl } from "@/browser/tabs"
 import { openUrl } from "@/browser/window"
-import type { Config, Jump } from "@/shared/config"
+import { jumpId, type Config, type Jump } from "@/shared/config"
 import { COMMANDS } from "./catalog"
 import type { Command } from "./types"
-
-export function jumpId(jump: Pick<Jump, "kind" | "target">): string {
-  return `jump:${jump.kind}:${jump.target}`
-}
 
 /** Switches to an open tab showing the site, in any space, or opens it in a new tab. */
 async function jumpToUrl(win: Window, url: string) {

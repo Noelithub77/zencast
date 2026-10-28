@@ -1,13 +1,14 @@
 import { listContainers } from "@/browser/containers"
 import { notify } from "@/browser/toast"
 import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
-import { allCommands, jumpId } from "@/commands/jumps"
+import { allCommands } from "@/commands/jumps"
 import { nativeItems } from "@/commands/native"
 import type { Command, CommandContext, ItemAction, ListView, PaletteControls, PaletteItem, RunResult } from "@/commands/types"
 import { bindSequence, buildIndex, effectiveBindings } from "@/keys/bindings"
-import { readConfig, recordUsage, updateConfig, writeConfig } from "@/shared/config"
+import { jumpId, readConfig, recordUsage, updateConfig, writeConfig } from "@/shared/config"
 import { displaySequence } from "@/shared/keys"
 import { markOpenStart } from "./perf"
+import { bookmarkItems } from "./bookmarks"
 import { keybindingsItem, loadEngineName, rootItems } from "./sources"
 import { getState, HOST_ID, setState } from "./store"
 
@@ -58,7 +59,11 @@ export function commandContext(): CommandContext {
 
 function buildRoot(ctx: CommandContext): PaletteItem[] {
   nativeCache ??= nativeItems(ctx.win)
-  return [...rootItems(ctx, effectiveBindings(readConfig()), nativeCache), keybindingsItem(ctx)]
+  const bindings = effectiveBindings(readConfig())
+  // A Zen command loses the key a Zencast binding has taken, so the palette shows who owns it.
+  const taken = new Set([...bindings.values()].flat())
+  const native = nativeCache.map((item) => (item.keys && taken.has(item.keys) ? { ...item, keys: undefined } : item))
+  return [...rootItems(ctx, bindings, native), ...bookmarkItems(ctx, bindings), keybindingsItem(ctx)]
 }
 
 export function openPalette(view?: ListView) {

@@ -21,6 +21,7 @@ import { assignHints, useModifierHold, type Hint, type Modifier } from "./hints"
 import { isBrowserShortcut, ItemGlyph } from "./parts"
 import { markOpenPainted, record, timed } from "./perf"
 import { buildIndex, isStrongMatch, search } from "./search"
+import { quickLink } from "./bookmarks"
 import { queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
@@ -281,23 +282,27 @@ export function Palette() {
 
   const { groups, suffix } = useMemo(() => timed("search", () => {
     if (view?.prompt) {
-      const submit = view.prompt.submit
+      const { submit, label } = view.prompt
       const item: PaletteItem = {
         id: "prompt",
         transient: true,
-        title: query ? `Set to “${query}”` : "Set to empty",
+        title: label?.(query) ?? (query ? `Set to “${query}”` : "Set to empty"),
         section: view.title,
         icon: { kind: "icon", icon: Tick02Icon },
         actions: [{ id: "save", title: "Save", run: () => submit(query) }],
       }
       return { groups: [{ section: view.title, items: [item] }], suffix: "" }
     }
-    const ranked = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
-    if (view || !context || !q) return { groups: groupBySection(ranked), suffix: "" }
+    const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
+    if (view || !context || !q) return { groups: groupBySection(found), suffix: "" }
 
     const out: Group[] = []
+    // A typed keyword leads with its quick link, and its bookmark's own row steps aside.
+    const quick = quickLink(context, q)
+    const ranked = quick ? found.filter((item) => item.id !== `bookmark:${quick.bookmark.guid}`) : found
+    if (quick) out.push({ section: "Quick link", items: [quick.item] })
     const strong = ranked.some((item) => isStrongMatch(item, q))
-    const host = fill && query === q ? completion(q, web, domains, strong) : null
+    const host = fill && query === q && !quick ? completion(q, web, domains, strong) : null
     const suffix = host ? host.slice(q.length) : ""
     const { url, search: searchItem } = queryItems(context, q + suffix)
     if (url) out.push({ section: "Open", items: [url] })

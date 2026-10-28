@@ -34,14 +34,26 @@
   display: none !important;
 }
 
-/* The engine chip shakes once on entering an engine's search mode, as Zen's address bar does. */
+/* The engine chip hooks in on entering an engine's search mode: it swings in from the left, catches
+   just past its place and settles, while the palette takes on the engine's colour. */
 @theme {
-  --animate-shake: shake 360ms ease-out;
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-4px); }
-    40% { transform: translateX(4px); }
-    60% { transform: translateX(-2px); }
-    80% { transform: translateX(2px); }
+  --animate-hook-in: hook-in 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  @keyframes hook-in {
+    0% { opacity: 0; transform: translateX(-14px) rotate(-6deg) scale(0.9); filter: blur(3px); }
+    55% { opacity: 1; transform: translateX(2px) rotate(1deg) scale(1.02); filter: blur(0); }
+    100% { opacity: 1; transform: none; filter: none; }
+  }
+}
+
+/* An engine's colour, set as --tint on the palette, reaches the selected row, headings and caret. */
+[data-tint] {
+  & [cmdk-item][data-selected] {
+    background-color: color-mix(in srgb, var(--tint) 16%, var(--muted));
+  }
+  & [cmdk-group-heading] {
+    color: color-mix(in srgb, var(--tint) 55%, var(--faint));
+  }
+  & [cmdk-input] {
+    caret-color: var(--tint);
   }
 }

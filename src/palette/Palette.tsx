@@ -141,8 +141,17 @@ interface Target {
   color: string
 }
 
-/** A soft wash of the target's colour from one top corner, behind the palette's content. */
-function TargetWash({ target, corner }: { target: Target | null; corner: "left" | "right" }) {
+declare module "react" {
+  interface CSSProperties {
+    /** An engine's colour across the palette in its search mode; see palette.css. */
+    "--tint"?: string
+  }
+}
+
+const WASH_AT = { left: "0% 0%", right: "100% 0%", top: "12% 0%" }
+
+/** A soft wash of the target's colour from one top corner, or across the header for an engine, behind the palette's content. */
+function TargetWash({ target, corner }: { target: Pick<Target, "color"> | null; corner: keyof typeof WASH_AT }) {
   const shown = useLast(target)
   return (
     <div
@@ -151,7 +160,10 @@ function TargetWash({ target, corner }: { target: Target | null; corner: "left" 
       style={{
         color: shown?.color,
         opacity: target ? 1 : 0,
-        backgroundImage: `radial-gradient(110% 85% at ${corner === "left" ? "0%" : "100%"} 0%, color-mix(in srgb, currentColor 17%, transparent), transparent 62%)`,
+        backgroundImage:
+          corner === "top"
+            ? `radial-gradient(140% 60% at ${WASH_AT.top}, color-mix(in srgb, currentColor 20%, transparent), transparent 70%), linear-gradient(color-mix(in srgb, currentColor 5%, transparent), color-mix(in srgb, currentColor 5%, transparent))`
+            : `radial-gradient(110% 85% at ${WASH_AT[corner]}, color-mix(in srgb, currentColor 17%, transparent), transparent 62%)`,
       }}
     />
   )
@@ -770,11 +782,16 @@ export function Palette() {
           value={active?.id ?? ""}
           onValueChange={setSelected}
           className="relative isolate flex h-[min(760px,86vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60 transition-[border-color] duration-300 ease-out"
-          style={{ borderColor: accent ? `color-mix(in srgb, ${accent} 45%, var(--border))` : undefined }}
+          data-tint={engine ? "" : undefined}
+          style={{ borderColor: accent ? `color-mix(in srgb, ${accent} 45%, var(--border))` : undefined, "--tint": engine?.color }}
         >
+          <TargetWash target={engine} corner="top" />
           <TargetWash target={space} corner="left" />
           <TargetWash target={openIn} corner="right" />
-          <div className="flex h-18 shrink-0 items-center gap-4 border-b px-6">
+          <div
+            className="flex h-18 shrink-0 items-center gap-4 border-b px-6 transition-[border-color] duration-300 ease-out"
+            style={{ borderColor: engine ? `color-mix(in srgb, ${engine.color} 30%, var(--border))` : undefined }}
+          >
             {view ? (
               <button
                 type="button"
@@ -788,7 +805,7 @@ export function Palette() {
               <span
                 data-engine=""
                 key={engine.name}
-                className="flex shrink-0 animate-shake items-center gap-1.5 rounded-full py-1 pr-3 pl-2 text-sm font-medium motion-reduce:animate-none"
+                className="flex shrink-0 origin-left animate-hook-in items-center gap-1.5 rounded-full py-1 pr-3 pl-2 text-sm font-medium motion-reduce:animate-none"
                 style={{ backgroundColor: `color-mix(in srgb, ${engine.color} 18%, transparent)`, color: `color-mix(in srgb, ${engine.color} 70%, var(--foreground))` }}
               >
                 <img src={engine.icon} alt="" className="size-4 rounded-sm" />

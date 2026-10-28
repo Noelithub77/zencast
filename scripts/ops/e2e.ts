@@ -326,6 +326,36 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "holding ctrl+shift shows every key, and a quick ctrl+shift+key does not",
+    body: String.raw`${READY}
+      const root = document.documentElement
+      const ctrl = { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }
+      const shift = { key: "Shift", code: "ShiftLeft", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }
+      const sheet = () => shadow().querySelector("[data-keysheet]")
+      const hold = () => {
+        root.dispatchEvent(new KeyboardEvent("keydown", ctrl))
+        root.dispatchEvent(new KeyboardEvent("keydown", shift))
+      }
+      const release = () => {
+        root.dispatchEvent(new KeyboardEvent("keyup", { ...shift, shiftKey: false }))
+        root.dispatchEvent(new KeyboardEvent("keyup", { ...ctrl, ctrlKey: false }))
+      }
+      hold()
+      root.dispatchEvent(new KeyboardEvent("keydown", { key: "x", code: "KeyX", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }))
+      await sleep(700)
+      const quick = !!sheet()
+      release()
+      hold()
+      const text = await until(() => sheet()?.textContent, 2000).catch(() => "")
+      release()
+      const hidden = await until(() => !sheet(), 2000).catch(() => false)
+      const listed = text.includes("Open Zencast") && text.includes("Move tab to space 1…9") && text.includes("Switch to space 1…9")
+      return {
+        ok: !quick && listed && hidden,
+        detail: (quick ? "showed on a quick key" : "quick key: no sheet") + "; " + (listed ? "lists the palette and the 1…9 families" : "missing rows: " + text.slice(0, 200)) + (hidden ? "; hidden on release" : "; still shown"),
+      }`,
+  },
+  {
     name: "the open key closes the palette and ctrl+j opens actions",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)
@@ -807,6 +837,12 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette-spaces")
   await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Alt", code: "AltLeft", bubbles: true, composed: true }))
     await dismiss()
+    document.documentElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }))
+    document.documentElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Shift", code: "ShiftLeft", ctrlKey: true, shiftKey: true, bubbles: true, composed: true }))
+    await sleep(700)`)
+  await shot("keysheet")
+  await zen.run(String.raw`document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Shift", code: "ShiftLeft", ctrlKey: true, bubbles: true, composed: true }))
+    document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { key: "Control", code: "ControlLeft", bubbles: true, composed: true }))
     press("ctrl+shift+,", document.documentElement)
     const browser = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings") && gBrowser.selectedBrowser)
     await until(() => browser.contentDocument?.querySelector("nav a"))

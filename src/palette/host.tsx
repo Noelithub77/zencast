@@ -1,17 +1,19 @@
 import { createRoot } from "react-dom/client"
 
 import "./palette.css"
+import { KeySheet } from "./KeySheet"
 import { ChordHint } from "./Overlays"
 import { Palette } from "./Palette"
 import { HOST_ID } from "./store"
 
 export const PALETTE_CSS_URL = "chrome://sine/content/zencast/palette.css"
 
-function App() {
+function App({ win }: { win: Window }) {
   return (
     <>
       <Palette />
       <ChordHint />
+      <KeySheet win={win} />
     </>
   )
 }
@@ -36,7 +38,7 @@ export function mountPalette(win: Window): () => void {
   body.append(host)
 
   const root = createRoot(mount)
-  root.render(<App />)
+  root.render(<App win={win} />)
   return () => {
     root.unmount()
     host.remove()

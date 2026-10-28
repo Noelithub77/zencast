@@ -61,6 +61,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Holding Ctrl marks a letter in every result](docs/media/hints.gif)
 
+**Key sheet.** Hold `Ctrl+Shift` for a moment, anywhere in Zen, to see every Zencast key at once, grouped like the palette. Let go to hide it.
+
 **Settings in place.** Type a setting's name: switches flip right in the list, and numbers or text open a prompt.
 
 ![Typing a setting's name and switching it from the palette](docs/media/settings.gif)

@@ -72,6 +72,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
   - 2026-10-28: bigger, many pastel colours (one per row). Ctrl shows a coloured key badge at the row's right end; Alt shows just the big coloured letter, no background, in place of the icon on the left.
   - 2026-10-28: holding a modifier also lists every key it takes in the palette, so a user needs to learn nothing.
 - **The open key closes (2026-10-28).** Whatever opened the palette (Ctrl+K, Ctrl+T when on) closes it again. The actions panel moved from Ctrl+K to Ctrl+J; the owner first picked Tab, then changed to Ctrl+J.
+- **Key sheet (2026-10-28).** Holding Ctrl+Shift anywhere shows every Zencast key at once, grouped by section; numbered families show as one row ("Switch to space 1…9").
 - **Mod overlap (2026-10-28).** A report of enabled Sine mods that claim Zencast's keys or do the palette's job, with a way to turn each off. A Zen command Zencast also has shows once, as Zencast's.
 - **While the palette is open:**
   - its keybindings override everything else;

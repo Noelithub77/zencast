@@ -534,7 +534,10 @@ declare global {
     readonly delayedStartupPromise: Promise<void>
     readonly SessionStore: {
       readonly promiseAllWindowsRestored: Promise<void>
-      /** JSON of `{ windows: [window] }`, with each tab's history entries and Zen's tab fields. */
+      /** JSON of the tab's history entries, container and Zen's tab fields (space, essential). */
+      getTabState(tab: XULTab): string
+      /** Restores a tab from `getTabState`, asleep until selected. */
+      setTabState(tab: XULTab, state: string): void
       getCustomWindowValue(win: Window, key: string): string
       setCustomWindowValue(win: Window, key: string, value: string): void
     }

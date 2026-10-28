@@ -930,6 +930,55 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "clean up closes week-old tabs into a bookmark folder, and undo brings them back",
+    body: String.raw`${READY}
+      ${PLACES}
+      const principal = Services.scriptSecurityManager.getSystemPrincipal()
+      const { E10SUtils } = ChromeUtils.importESModule("resource://gre/modules/E10SUtils.sys.mjs")
+      const old = ["https://example.com/stale-one", "https://example.com/stale-two"].map((url, i) => {
+        const tab = gBrowser.addTab(url, { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true, title: "Stale " + (i + 1) })
+        // Asleep tabs get their title from SessionStore, as after a restart.
+        const lastAccessed = Date.now() - (9 + i) * 24 * 60 * 60 * 1000
+        SessionStore.setTabState(tab, JSON.stringify({ entries: [{ url, title: "Stale " + (i + 1), triggeringPrincipal_base64: E10SUtils.serializePrincipal(principal) }], lastAccessed }))
+        tab.updateLastAccessed(lastAccessed)
+        return tab
+      })
+      const before = gBrowser.tabs.length
+      const staleOpen = () => gBrowser.tabs.filter((tab) => tab.linkedBrowser?.currentURI?.spec.includes("/stale-")).length
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("clean up tabs")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Clean up tabs"), 2000)
+        await sleep(80)
+        press("enter")
+        await until(() => inputPlaceholder() === "Tab", 2000)
+        const rows = await until(() => resultTitles().length >= 3 && resultTitles(), 2000).catch(() => resultTitles())
+        press("enter")
+        await until(() => !paletteOpen(), 2000)
+        const closed = await poll(() => staleOpen() === 0)
+        const folder = await poll(async () => {
+          const found = await PlacesUtils.bookmarks.search({ url: "https://example.com/stale-two" })
+          return found[0]?.title === "Stale 2" && found[0].parentGuid
+        })
+        const toast = await until(() => toastText().includes("Closed") && toastText(), 2000).catch(() => toastText())
+        ;(await until(() => document.getElementById("zencast-toast-action"), 2000)).doCommand()
+        const back = await poll(() => staleOpen() === 2 && gBrowser.tabs.some((tab) => tab.label === "Stale 1" && tab.hasAttribute("pending")))
+        const gone = await poll(async () => !(await PlacesUtils.bookmarks.fetch(folder ?? "")))
+        // A tab opened asleep keeps the label "New Tab" in a headless Zen, so rows are told apart by URL.
+        const ok = rows[0]?.startsWith("Close 2 tabs") && rows[1]?.includes("stale-two") && rows[2]?.includes("stale-one") && closed && !!folder && back && gone
+        return {
+          ok,
+          detail: "rows " + rows.map((row) => row.slice(0, 12)).join(" | ") + (closed ? "; closed" : "; not closed") + (folder ? ", bookmarked" : ", no folder") +
+            "; toast: " + toast + (back ? "; undo reopened them" : "; undo did not reopen") + (gone ? ", folder removed" : ", folder kept"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        for (const tab of gBrowser.tabs.filter((tab) => tab.linkedBrowser?.currentURI?.spec.includes("/stale-"))) gBrowser.removeTab(tab)
+        for (const group of await PlacesUtils.bookmarks.search({ title: "Tab cleanup" })) await PlacesUtils.bookmarks.remove(group.guid)
+      }`,
+  },
+  {
     name: "starter quick links fill a folder and keep a keyword already taken",
     body: String.raw`${READY}
       ${PLACES}

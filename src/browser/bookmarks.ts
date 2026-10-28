@@ -239,14 +239,35 @@ const STARTERS = [
 
 const STARTER_FOLDER = "Quick links"
 
+/** The folder "Other bookmarks / <title>", created when missing. */
+async function otherFolder(title: string): Promise<string> {
+  const api = places().bookmarks
+  const existing = folders.find((folder) => folder.path === `${ROOT_TITLES[api.unfiledGuid]} / ${title}`)
+  return existing?.guid ?? (await api.insert({ parentGuid: api.unfiledGuid, type: api.TYPE_FOLDER, title })).guid
+}
+
+/** Saves pages into a new folder at "Other bookmarks / <group> / <title>" and returns its guid. */
+export async function bookmarkPages(group: string, title: string, pages: { title: string; url: string }[]): Promise<string> {
+  const api = places().bookmarks
+  const { guid } = await api.insert({ parentGuid: await otherFolder(group), type: api.TYPE_FOLDER, title })
+  for (const page of pages) await api.insert({ parentGuid: guid, url: page.url, title: page.title })
+  await loadBookmarks()
+  return guid
+}
+
+/** Removes a folder and everything in it. */
+export async function removeFolder(guid: string) {
+  await places().bookmarks.remove(guid)
+  await loadBookmarks()
+}
+
 /** Adds the starter quick links to "Other bookmarks / Quick links", leaving taken keywords alone. */
 export async function addStarterQuickLinks(): Promise<{ added: number; skipped: string[] }> {
   const { bookmarks: api, keywords } = places()
   const skipped = STARTERS.filter((starter) => byKeyword.has(starter.keyword)).map((starter) => starter.keyword)
   const missing = STARTERS.filter((starter) => !byKeyword.has(starter.keyword))
   if (!missing.length) return { added: 0, skipped }
-  const existing = folders.find((folder) => folder.path === `${ROOT_TITLES[api.unfiledGuid]} / ${STARTER_FOLDER}`)
-  const parentGuid = existing?.guid ?? (await api.insert({ parentGuid: api.unfiledGuid, type: api.TYPE_FOLDER, title: STARTER_FOLDER })).guid
+  const parentGuid = await otherFolder(STARTER_FOLDER)
   for (const starter of missing) {
     await api.insert({ parentGuid, url: starter.url, title: starter.title })
     await keywords.insert({ keyword: starter.keyword, url: starter.url })

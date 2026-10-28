@@ -104,9 +104,9 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | Ctrl+Shift+N | New folder in the space, or a subfolder when the tab is already in a folder |
 | Ctrl+C | Open in a container, only when nothing is selected for copying (Alt+C was taken) |
 | Alt+Shift+T | Tab in a throwaway container |
-| Alt+M | Move a signed-in session (cookies and all) to another container; ask each time |
+| Alt+Shift+C | Move the tab to another container: Enter reopens it there, Ctrl+Enter takes its signed-in session (cookies and all), copying the session is in Ctrl+J. Alt+M is free since 2026-10-28 |
 | Alt+Shift+W | Full tab wipe: site data and history |
-| Ctrl+Space, then a key | Chords: move to a folder, space or essentials |
+| Ctrl+Space, then a key | Chords: F moves to a folder, S to a space, E toggles essentials. W is only wipe (Alt+Shift+W) since 2026-10-28 |
 | Ctrl+. | Give any command, tab, bookmark or site its own key |
 | Ctrl+B | Bookmark the tab (name, folder, optional keyword), or edit its bookmark |
 

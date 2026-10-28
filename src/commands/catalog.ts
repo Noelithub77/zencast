@@ -16,7 +16,6 @@ import {
   PencilEdit01Icon,
   PinIcon,
   PuzzleIcon,
-  RefreshIcon,
   Settings01Icon,
   Settings02Icon,
   StarIcon,
@@ -84,7 +83,8 @@ interface ContainerAction {
   run: (id: number) => void | Promise<void>
 }
 
-export function containerItems(ctx: CommandContext, primary: ContainerAction, secondary?: ContainerAction): PaletteItem[] {
+/** Rows for each container; a third action and beyond show only in the actions panel. */
+export function containerItems(ctx: CommandContext, primary: ContainerAction, secondary?: ContainerAction, ...more: ContainerAction[]): PaletteItem[] {
   return listContainers().map((container) => ({
     id: `container-${container.id}`,
     title: container.name,
@@ -95,6 +95,7 @@ export function containerItems(ctx: CommandContext, primary: ContainerAction, se
       { id: "primary", title: primary.title, keepOpen: primary.keepOpen, run: () => primary.run(container.id) },
       ...(secondary ? [{ id: "secondary", title: secondary.title, keys: "ctrl+enter", run: () => secondary.run(container.id) }] : []),
     ],
+      ...more.map((action, i) => ({ id: `more-${i}`, title: action.title, run: () => action.run(container.id) })),
   }))
 }
 
@@ -353,7 +354,7 @@ const CORE: Command[] = [
     section: "Spaces",
     icon: Layers01Icon,
     keywords: "workspace send",
-    defaultKeys: ["ctrl+space w"],
+    defaultKeys: ["ctrl+space s"],
     run: (ctx) => workspacePicker(ctx, "Move here", (id) => moveTabAndFollow(ctx.win, ctx.tab, id)),
   },
   ...moveToSpaceN,
@@ -375,20 +376,6 @@ const CORE: Command[] = [
     },
   },
   {
-    id: "container.reopen",
-    title: "Reopen tab in container",
-    section: "Containers",
-    icon: RefreshIcon,
-    defaultKeys: ["alt+shift+c"],
-    when: isWebPage,
-    run: (ctx): ListView => ({
-      id: "pick-container-reopen",
-      title: "Reopen in container",
-      placeholder: "Container",
-      items: containerItems(ctx, { title: "Reopen here", run: (id) => void reopenInContainer(ctx.win, ctx.tab, id) }),
-    }),
-  },
-  {
     id: "container.temporary",
     title: "New temporary container tab",
     section: "Containers",
@@ -398,12 +385,13 @@ const CORE: Command[] = [
     run: ({ win }) => void openTemporaryContainer(win),
   },
   {
-    id: "session.transfer",
-    title: "Move session to container",
+    // One key for this tab: reopen it in another container, or take its signed-in session along.
+    id: "container.reopen",
+    title: "Move tab to container",
     section: "Containers",
     icon: Exchange01Icon,
-    keywords: "cookies login auth copy transfer",
-    defaultKeys: ["alt+m"],
+    keywords: "reopen session cookies login auth copy transfer",
+    defaultKeys: ["alt+shift+c"],
     when: isWebPage,
     run: (ctx): ListView => {
       const transfer = (mode: "copy" | "move") => async (id: number) => {
@@ -411,13 +399,14 @@ const CORE: Command[] = [
         ctx.ui.toast(`${mode === "copy" ? "Copied" : "Moved"} ${result.cookies} cookies, ${result.storage} storage keys`)
       }
       return {
-        id: "pick-container-session",
-        title: "Move session",
-        placeholder: "Target container",
+        id: "pick-container-move",
+        title: "Move tab to container",
+        placeholder: "Container",
         items: containerItems(
           ctx,
           { title: "Copy session here", run: transfer("copy") },
-          { title: "Move session here", run: transfer("move") },
+          { title: "Reopen here", run: (id) => void reopenInContainer(ctx.win, ctx.tab, id) },
+          { title: "Move with session", run: transfer("move") },
         ).filter((item) => item.id !== `container-${ctx.tab.userContextId}`),
       }
     },

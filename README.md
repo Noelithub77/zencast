@@ -81,7 +81,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Your own shortcuts.** `Ctrl+.` records a shortcut for any command, or gives a tab, folder or site its own key. Shortcuts can be chords, like `Ctrl+Space` then `F`.
 
-**Containers and privacy.** Open or reopen a tab in a container, start a throwaway container that deletes its data on close, move a signed-in session to another container, or wipe a site's data and history from a tab.
+**Containers and privacy.** Open something new in a container, move a tab to another container with or without its signed-in session, start a throwaway container that deletes its data on close, or wipe a site's data and history from a tab.
 
 **Mod overlap.** Lists the Sine mods you have on that claim one of Zencast's keys or do a job the palette already does, each with a way to turn it off.
 
@@ -111,13 +111,12 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |
 | `Ctrl+Shift+N` | New folder, or a subfolder of the current tab's folder |
 | `Ctrl+C` | Open in a container, when nothing is selected to copy |
-| `Alt+Shift+C` | Reopen the tab in a container |
+| `Alt+Shift+C` | Move the tab to a container; `Ctrl+Enter` takes its signed-in session along |
 | `Alt+Shift+T` | New tab in a throwaway container |
-| `Alt+M` | Move the tab's session to another container |
 | `Alt+Shift+W` | Wipe the site's data and history |
 | `Alt+S` | Past sessions |
 | `Alt+L` | Local dev servers |
-| `Ctrl+Space` then `E`, `F`, `W` | Toggle essential, move to a folder, move to a space |
+| `Ctrl+Space` then `E`, `F`, `S` | Toggle essential, move to a folder, move to a space |
 
 In the palette:
 

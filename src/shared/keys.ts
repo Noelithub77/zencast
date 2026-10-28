@@ -1,5 +1,5 @@
 // Key combos are stored as normalized strings such as "ctrl+shift+n".
-// A sequence (chord) is space-separated combos: "ctrl+space w".
+// A sequence (chord) is space-separated combos: "ctrl+space s".
 
 const MODIFIER_ORDER = ["ctrl", "alt", "shift", "meta"] as const
 type Modifier = (typeof MODIFIER_ORDER)[number]

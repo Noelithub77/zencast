@@ -16,7 +16,7 @@ export function effectiveBindings(config: Config): Map<string, string[]> {
 export interface BindingIndex {
   /** Full sequence -> commands bound to it (several when their `when` conditions differ). */
   exact: Map<string, Command[]>
-  /** Every proper prefix of a chord, e.g. "ctrl+space" for "ctrl+space w". */
+  /** Every proper prefix of a chord, e.g. "ctrl+space" for "ctrl+space s". */
   prefixes: Map<string, Array<{ next: string; command: Command }>>
 }
 

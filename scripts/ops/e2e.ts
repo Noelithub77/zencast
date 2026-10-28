@@ -607,28 +607,40 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "the empty palette leads with the last loaded tabs, the one just left first",
+    name: "the empty palette shows the last seven loaded tabs and the current tab, and the rest below the fold",
     body: String.raw`${READY}
-      const start = gBrowser.selectedTab
+      const start = newTab("data:text/html,<title>Current koala</title>x")
+      const fillers = []
+      for (let i = 0; i < 6; i++) fillers.push(newTab("data:text/html,<title>Recent filler " + i + "</title>x"))
       const older = newTab("data:text/html,<title>Recent wombat</title>x")
       const newer = newTab("data:text/html,<title>Recent numbat</title>x")
-      await until(() => older.label === "Recent wombat" && newer.label === "Recent numbat")
+      await until(() => start.label === "Current koala" && older.label === "Recent wombat" && newer.label === "Recent numbat" && fillers.every((tab, i) => tab.label === "Recent filler " + i))
       try {
-        for (const tab of [older, newer, start]) {
+        for (const tab of [...fillers, older, newer, start]) {
           gBrowser.selectedTab = tab
           await sleep(30)
         }
         press("ctrl+k", document.documentElement)
         await until(paletteOpen)
-        const heading = shadow().querySelector("[cmdk-group-heading]")?.textContent
-        const titles = resultTitles().slice(0, 2)
+        await sleep(150)
+        // Rows render flat: each visible heading starts a section.
+        const sections = []
+        for (const el of shadow().querySelectorAll("[cmdk-group-heading], [cmdk-item]")) {
+          if (el.hasAttribute("cmdk-group-heading")) {
+            if (!el.hidden) sections.push({ heading: el.textContent, el, rows: [] })
+          } else sections.at(-1)?.rows.push(el.textContent)
+        }
+        const [recent, current, next] = sections
+        const list = shadow().querySelector("[cmdk-list]")
+        const below = !!next && next.el.getBoundingClientRect().top >= list.getBoundingClientRect().bottom - 12
         return {
-          ok: heading === "Recent tabs" && !!titles[0]?.startsWith("Recent numbat") && !!titles[1]?.startsWith("Recent wombat"),
-          detail: "first section " + heading + ": " + titles.join(", "),
+          ok: recent?.heading === "Recent tabs" && recent.rows.length === 7 && !!recent.rows[0]?.startsWith("Recent numbat") && !!recent.rows[1]?.startsWith("Recent wombat")
+            && current?.heading === "Current tab" && current.rows.length === 1 && current.rows[0].startsWith("Current koala") && below,
+          detail: sections.slice(0, 3).map((section) => section.heading + " (" + section.rows.length + ")").join(", ") + "; first recent " + recent?.rows[0]?.slice(0, 20) + "; next section " + (below ? "below the fold" : "in view"),
         }
       } finally {
         await dismiss().catch(() => {})
-        for (const tab of [older, newer]) gBrowser.removeTab(tab)
+        for (const tab of [...fillers, older, newer, start]) gBrowser.removeTab(tab)
       }`,
   },
   {
@@ -648,21 +660,21 @@ const SCENARIOS: Scenario[] = [
         press("ctrl+k", document.documentElement)
         await until(paletteOpen)
         tap()
-        const latched = await until(() => hints().length > 3, 2000).catch(() => false)
+        const latched = await until(() => hints().length > 0, 2000).catch(() => false)
         // Still up well past the hold delay, with nothing held.
         await sleep(300)
-        const stayed = hints().length > 3
+        const stayed = hints().length > 0
         tap()
         const untapped = await until(() => hints().length === 0, 2000).catch(() => false)
         // Latched again, then a long press of Alt alone clears them too.
         tap()
-        await until(() => hints().length > 3, 2000)
+        await until(() => hints().length > 0, 2000)
         document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
         await sleep(450)
         document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
         const longCleared = await until(() => hints().length === 0, 2000).catch(() => false)
         tap()
-        await until(() => hints().length > 3, 2000)
+        await until(() => hints().length > 0, 2000)
         press("escape")
         const escaped = await until(() => hints().length === 0, 2000).catch(() => false) && paletteOpen()
         typeQuery("quokkalatch")

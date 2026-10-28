@@ -36,6 +36,8 @@ const WEB_DEBOUNCE_MS = 40
 interface Group {
   section: string
   items: PaletteItem[]
+  /** Fills the first screen; the groups after it start below the fold. */
+  lead?: boolean
 }
 
 function groupBySection(items: PaletteItem[]): Group[] {
@@ -51,11 +53,13 @@ function groupBySection(items: PaletteItem[]): Group[] {
 interface Entry {
   item: PaletteItem
   section: string
+  /** The first row after the lead groups, pushed just below the visible list. */
+  fold?: boolean
 }
 
 // Rows that fit in the list without scrolling; the rest render in a deferred, interruptible pass.
 const FIRST_SCREEN = 14
-const RECENT_TABS = 3
+const RECENT_TABS = 7
 
 /**
  * The first screen of fresh results over the previous results' off-screen rows. Keeping the row
@@ -71,15 +75,21 @@ interface RowProps {
   heading: string | undefined
   /** Letter shown while Ctrl or Alt is held, underlined in the title and at the row's end. */
   hint: Hint | undefined
+  fold: boolean
   onRun: (item: PaletteItem, action: ItemAction | undefined) => void
 }
 
 // Memoized so rows whose item is unchanged skip rendering, including cmdk's per-item registration.
 // Optional parts stay mounted and empty, so reusing a row for another item only patches text.
-const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
+const Row = memo(function Row({ item, heading, hint, fold, onRun }: RowProps) {
   return (
     <>
-      <div cmdk-group-heading="" hidden={!heading} className="px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint">
+      <div
+        cmdk-group-heading=""
+        hidden={!heading}
+        data-fold={fold ? "" : undefined}
+        className={cn("px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint", fold && "mt-(--fold)")}
+      >
         {heading}
       </div>
       <CommandItem
@@ -428,7 +438,7 @@ export function Palette() {
   // The lookup runs only when no known host completes the text.
   const guess = useDomainGuess(q, open && !view && !scope && !engine && fill && !knownDomain(q, domains))
 
-  const { groups, suffix } = useMemo(() => timed("search", () => {
+  const { groups, suffix } = useMemo((): { groups: Group[]; suffix: string } => timed("search", () => {
     if (view?.prompt) {
       const { prompt } = view
       const item: PaletteItem = {
@@ -463,14 +473,21 @@ export function Palette() {
     }
     const found = all.slice(0, config.maxResults)
     if (!q && !view && !scope && context) {
-      // The empty palette leads with the last few loaded tabs, most recent first; a tab's boost grows with recency.
+      // The empty palette shows only what matters now: the last few loaded tabs, most recent first (a
+      // tab's boost grows with recency), then the current tab with where it lives. The rest waits below.
       const here = tabKey(context.tab)
-      const recent = root
-        .filter((item) => item.scope === "tabs" && item.section === "Tabs" && !item.dim && item.id !== here)
+      const tabs = root.filter((item) => item.scope === "tabs" && item.section === "Tabs")
+      const recent = tabs
+        .filter((item) => !item.dim && item.id !== here)
         .toSorted((a, b) => (b.boost ?? 0) - (a.boost ?? 0))
         .slice(0, RECENT_TABS)
-      const shownIds = new Set(recent.map((item) => item.id))
-      const groups = [{ section: "Recent tabs", items: recent }, ...groupBySection(found.filter((item) => !shownIds.has(item.id)))]
+      const current = tabs.filter((item) => item.id === here)
+      const shownIds = new Set([...recent, ...current].map((item) => item.id))
+      const groups: Group[] = [
+        { section: "Recent tabs", items: recent, lead: true },
+        { section: "Current tab", items: current, lead: true },
+        ...groupBySection(found.filter((item) => !shownIds.has(item.id))),
+      ]
       return { groups: groups.filter((group) => group.items.length), suffix: "" }
     }
     if (view || scope || !context || !q) return { groups: groupBySection(found), suffix: "" }
@@ -508,12 +525,33 @@ export function Palette() {
     return { groups: out, suffix }
   }), [index, root, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults])
 
-  const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
+  const entries = useMemo(() => {
+    const fold = groups.findIndex((group, i) => !group.lead && groups[i - 1]?.lead)
+    return groups.flatMap((group, g) => group.items.map((item, i): Entry => ({ item, section: group.section, fold: g === fold && i === 0 })))
+  }, [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])
   // While the full list is still rendering in the background, show the first screen of the new results.
   const deferred = useDeferredValue(entries)
   const shown = deferred === entries ? entries : firstScreen(entries, deferred)
   const active = rows.find((item) => item.id === selected) ?? rows[0] ?? null
+
+  // Puts the first row after the lead groups just below the visible list, so the empty palette shows
+  // only them until scrolled. Measured, since the list's height follows the window's.
+  useLayoutEffect(() => {
+    const list = listRef.current
+    const fold = list?.querySelector<HTMLElement>("[data-fold]")
+    if (!open || !list || !fold) return
+    const place = () => {
+      const margin = parseFloat(getComputedStyle(fold).marginTop) || 0
+      const lead = fold.getBoundingClientRect().top - margin - list.getBoundingClientRect().top + list.scrollTop
+      const padding = parseFloat(getComputedStyle(list).paddingBottom) || 0
+      list.style.setProperty("--fold", `${Math.max(0, list.clientHeight - lead - padding)}px`)
+    }
+    place()
+    const observer = new ResizeObserver(place)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [open, shown])
 
   useEffect(() => {
     if (open && !view) saveDraft({ query, scope, engine })
@@ -790,15 +828,16 @@ export function Palette() {
         if (event.target === event.currentTarget) closePalette(true)
       }}
     >
-      {/* Fixed height, centred a little above the middle, so the input never moves as results change. */}
-      <div className="absolute top-1/2 left-1/2 w-[min(1000px,95vw)] -translate-x-1/2 -translate-y-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100">
+      {/* The input sits where a 760px palette centred would put it, and the list fills the room below, so
+          the input never moves as results change. */}
+      <div className="absolute top-(--top) left-1/2 w-[min(1000px,95vw)] -translate-x-1/2 animate-in fade-in-0 zoom-in-[0.98] duration-100 [--top:max(7vh,calc(50vh_-_380px))]">
         <Command
           shouldFilter={false}
           vimBindings={false}
           loop
           value={active?.id ?? ""}
           onValueChange={setSelected}
-          className="relative isolate flex h-[min(760px,86vh)] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60 transition-[border-color] duration-300 ease-out"
+          className="relative isolate flex h-[min(1100px,calc(96vh_-_var(--top)))] flex-col rounded-[20px] border bg-popover p-0 shadow-2xl shadow-black/60 transition-[border-color] duration-300 ease-out"
           data-tint={engine ? "" : undefined}
           style={{ borderColor: accent ? `color-mix(in srgb, ${accent} 45%, var(--border))` : undefined, "--tint": engine?.color }}
         >
@@ -871,6 +910,7 @@ export function Palette() {
                 item={entry.item}
                 heading={entry.section === shown[index - 1]?.section ? undefined : entry.section}
                 hint={hints?.get(entry.item.id)}
+                fold={!!entry.fold}
                 onRun={run}
               />
             ))}

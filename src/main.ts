@@ -4,13 +4,14 @@ import { watchEngines } from "@/browser/engines"
 import { sweepTemporaryContainers } from "@/browser/containers"
 import { isTab } from "@/browser/folders"
 import { watchGoogleSignIns } from "@/browser/google"
+import { watchNewTabButtons } from "@/browser/new-tab-buttons"
 import { watchSessions } from "@/browser/sessions"
 import { watchSiteContainers } from "@/browser/site-containers"
 import { addSineSettingsButton } from "@/browser/sine-card"
 import { registerToasts } from "@/browser/toast"
 import { openSettings } from "@/commands/catalog"
 import { offerGoogleContainers } from "@/commands/google"
-import { buildIndex } from "@/keys/bindings"
+import { buildIndex, paletteOnCtrlT } from "@/keys/bindings"
 import { startKeyEngine } from "@/keys/engine"
 import { closePalette, commandContext, disposeController, initController, openPalette, runCommand } from "@/palette/controller"
 import { mountPalette } from "@/palette/host"
@@ -58,6 +59,8 @@ function start(win: Window): () => void {
     win.cancelIdleCallback(idle)
     unmount?.()
   })
+
+  disposers.push(watchNewTabButtons(win, () => paletteOnCtrlT(readConfig()), () => openPalette()))
 
   disposers.push(addSineSettingsButton(win, () => openSettings(win)))
 

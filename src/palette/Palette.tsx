@@ -28,7 +28,7 @@ import { buildIndex, isStrongMatch, search } from "./search"
 import { quickLink } from "./bookmarks"
 import { modItems } from "@/commands/mods"
 import { scopeFor, SCOPES, type Scope } from "./scopes"
-import { defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
+import { assistantItem, defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
 const WEB_DEBOUNCE_MS = 40
@@ -704,6 +704,13 @@ export function Palette() {
       consume()
       const item = queryItems(context, q, () => "").search[0]
       if (item) run(item, item.actions[0])
+      return
+    }
+    // Ctrl+Shift+Enter asks the preferred AI the same way.
+    if (combo === "ctrl+shift+enter" && !view && !engine && q && context) {
+      consume()
+      const item = assistantItem(context, q)
+      run(item, item.actions[0])
       return
     }
     const letter = held ? new RegExp(`^${held}\\+([a-z])$`).exec(combo)?.[1] : undefined

@@ -81,7 +81,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Quick links.** A bookmark's keyword is its quick link: `gh zencast` searches GitHub when the bookmark's URL has `%s`, `gh` alone asks for the query, and a keyword without `%s` opens its page. They are Firefox's own bookmark keywords, so Zen's address bar knows them too. "Add starter quick links" adds `gh`, `yt`, `wiki`, `mdn`, `npm`, `maps`, `gpt`, `claude` and `cf`, keeping any keyword you already use. "Quick links" lists everything you can reach by a word or a key: bookmark keywords, sites and folders given a key with `Ctrl+.`, and search engine keywords.
 
-**Ask your AI.** Under the web search row, any query can open in your AI with it already in the prompt: ChatGPT by default, or Claude, chosen under AI in settings. `Ctrl+Shift+Esc` opens a prompt for it from anywhere. "Ask about this page" sends it a question about the open page with its address, quoting the selected text when there is some; an empty question asks for a summary.
+**Ask your AI.** Under the web search row, any query can open in your AI with it already in the prompt: ChatGPT by default, or Claude, chosen under AI in settings. `Ctrl+Shift+Enter` asks it whichever result is selected, as `Shift+Enter` searches the web. "Ask about this page" sends it a question about the open page with its address, quoting the selected text when there is some; an empty question asks for a summary.
 
 **Your own shortcuts.** `Ctrl+.` records a shortcut for any command, or gives a tab, folder or site its own key. Shortcuts can be chords, like `Ctrl+Space` then `F`.
 
@@ -111,7 +111,6 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 | `Ctrl+Shift+,` | Zencast settings |
 | `Ctrl+B` | Bookmark the tab, or edit its bookmark |
 | `Ctrl+/` | Every Zencast key |
-| `Ctrl+Shift+Esc` | Ask your AI |
 | `Alt+1…9` | Switch to space 1…9 |
 | `Alt+Shift+1…9` | Move the tab to space 1…9 |
 | `Alt+P` | Pin or unpin the tab; `Alt+Shift+P` sets its pinned URL to the current page |
@@ -140,7 +139,7 @@ In the palette:
 | `Tab`, `→` | Accept the inline completion; after an engine keyword, search that engine |
 | `Esc` | Back, then close |
 
-Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). `Enter` opens the completed address; delete the completion and a tab whose title or address starts with what you typed leads instead, and `Shift+Enter` searches the web for the typed text whichever result is selected; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones, with the current tab among the loaded. The empty palette leads with your last three loaded tabs, the one you just left first. Each tab shows where it lives, as space / folder / subfolder. Search reaches every tab in every space, past the result limit, and finds a renamed tab by its page's title too. Close the palette mid-query and the next open brings the text back, selected.
+Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). `Enter` opens the completed address; delete the completion and a tab whose title or address starts with what you typed leads instead, `Shift+Enter` searches the web for the typed text whichever result is selected, and `Ctrl+Shift+Enter` asks your AI; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones, with the current tab among the loaded. The empty palette leads with your last three loaded tabs, the one you just left first. Each tab shows where it lives, as space / folder / subfolder. Search reaches every tab in every space, past the result limit, and finds a renamed tab by its page's title too. Close the palette mid-query and the next open brings the text back, selected.
 
 ## Make it yours
 

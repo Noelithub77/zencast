@@ -404,7 +404,7 @@ export function loadEngineName() {
   void defaultEngine().then((engine) => (engineName = engine.name))
 }
 
-/** Asks the preferred assistant from settings, in a new tab. */
+/** Asks the preferred assistant from settings, in a new tab; Ctrl+Shift+Enter runs it from any row. */
 export function assistantItem(ctx: CommandContext, query: string): PaletteItem {
   const assistant = preferredAssistant(readConfig())
   return {
@@ -414,11 +414,13 @@ export function assistantItem(ctx: CommandContext, query: string): PaletteItem {
     subtitle: `Ask ${assistant.title}`,
     section: "Search",
     icon: assistantIcon(assistant),
+    // Runs from any selected row; see Palette's key handler.
+    keys: "ctrl+shift+enter",
     actions: openActions(ctx, () => fillQuery(assistant.url, query)),
   }
 }
 
-export const assistantIcon = (assistant: { url: string }): ItemIcon => ({ kind: "favicon", url: `page-icon:${new URL(assistant.url).origin}/` })
+const assistantIcon = (assistant: { url: string }): ItemIcon => ({ kind: "favicon", url: `page-icon:${new URL(assistant.url).origin}/` })
 
 /** The typed URL, and the web search and assistant prompt that follow it, for a query. */
 export function queryItems(

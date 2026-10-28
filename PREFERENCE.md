@@ -83,7 +83,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 - Ideas the owner chose: record keys from the palette, all settings in the palette, keys for tabs and sites, and hold-to-reveal strips.
 - A bit bigger, and centred on screen. Made bigger again on 2026-10-28 (wider, taller rows, larger type).
 - **Bookmarks (2026-10-28).** Bookmark search and bookmark keys must work. Bookmarking is keyboard-first on Ctrl+B, filled in the palette with an optional keyword; Ctrl+D stays the owner's duplicate key. Quick links are Firefox bookmark keywords, one source of truth with the address bar, and a starter set is offered by a command, never added unasked. Managing them in the palette (2026-10-28): browse folders, edit name, URL, folder and keyword, move, delete with Undo. Folders themselves are not created or renamed there.
-- **Ask an assistant (2026-10-28, made general 2026-10-29).** Any query can go to the preferred AI as a prompt, offered as one row right under the web search row. Settings has an AI option (ChatGPT by default, or Claude); it replaced separate ChatGPT and Claude rows. Ctrl+Shift+Esc opens a prompt for the preferred AI, replacing Firefox's process manager key.
+- **Ask an assistant (2026-10-28, made general 2026-10-29).** Any query can go to the preferred AI as a prompt, offered as one row right under the web search row. Settings has an AI option (ChatGPT by default, or Claude); it replaced separate ChatGPT and Claude rows. In the palette, Ctrl+Shift+Enter asks the preferred AI with the typed text whichever result is selected, as Shift+Enter searches the web; the Ask row shows the key. (A Ctrl+Shift+Esc prompt was tried the same day and dropped: the owner meant this key.)
 - **Google account containers (2026-10-28).** Find the Google accounts signed in to Zen and give each its own container named after its email, signed in once per container with the email filled in. Cache the account list, never the cookies, and offer a container when a new account signs in.
 - **Tab cleanup (2026-10-28).** Chosen by the agent when the owner said to keep building good ideas. Tabs not selected for 7 days, never pinned or essential ones, close together into "Other bookmarks / Tab cleanup / <date>", with Undo. No default key; it runs from the palette.
 - **Site containers (2026-10-28).** Chosen by the agent when the owner said to keep building good ideas. A site (its bare host, `www.` ignored) can always open in one container. Only tabs with no container are moved, so picking a container on purpose always wins; the page request is cancelled before it is sent and opens in the container, in the same space. No default key.
@@ -118,7 +118,6 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | --- | --- |
 | Ctrl+K | Find anything: tabs, spaces, history, commands, settings |
 | Ctrl+/ | Every Zencast key |
-| Ctrl+Shift+Esc | Ask the preferred AI |
 | Alt+1…9 | Switch to that space, only while it exists (moved from Ctrl+1…9 on 2026-10-28) |
 | Alt+Shift+1…9 | Send the tab to that space and follow it (moved from Ctrl+Shift+1…9 on 2026-10-28) |
 | Alt+P | Pin or unpin the tab |

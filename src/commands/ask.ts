@@ -1,11 +1,11 @@
-// Asks the preferred assistant from settings: about the current page, with the page's address and
-// the selected text quoted when there is some, or anything on Ctrl+Shift+Esc.
+// Asks the preferred assistant from settings about the current page: the typed question goes in the
+// prompt with the page's address, and the selected text quoted when there is some.
 import { AiChat02Icon } from "@hugeicons/core-free-icons"
 
 import { fillQuery } from "@/browser/bookmarks"
 import { tabUrl } from "@/browser/tabs"
 import { selectedText } from "@/browser/window"
-import { assistantIcon, openActions } from "@/palette/sources"
+import { openActions } from "@/palette/sources"
 import { preferredAssistant, readConfig } from "@/shared/config"
 import type { Command, CommandContext, ListView } from "./types"
 
@@ -37,22 +37,6 @@ async function askView(ctx: CommandContext): Promise<ListView> {
   }
 }
 
-function assistantView(ctx: CommandContext): ListView {
-  const assistant = preferredAssistant(readConfig())
-  return {
-    id: "ask-ai",
-    title: `Ask ${assistant.title}`,
-    placeholder: `Ask ${assistant.title}`,
-    items: [],
-    prompt: {
-      initial: "",
-      label: (value) => value.trim() || `Open ${assistant.title}`,
-      icon: assistantIcon(assistant),
-      actions: (value) => openActions(ctx, () => fillQuery(assistant.url, value.trim())),
-    },
-  }
-}
-
 export const askCommands: Command[] = [
   {
     id: "page.ask",
@@ -62,14 +46,5 @@ export const askCommands: Command[] = [
     keywords: "ai claude chatgpt gpt chat summarize explain question selection",
     when: ({ tab }) => /^https?:/.test(tabUrl(tab)),
     run: askView,
-  },
-  {
-    id: "ai.ask",
-    title: "Ask AI",
-    section: "Tabs",
-    icon: AiChat02Icon,
-    keywords: "ai claude chatgpt gpt chat assistant prompt",
-    defaultKeys: ["ctrl+shift+escape"],
-    run: assistantView,
   },
 ]

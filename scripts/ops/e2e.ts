@@ -1122,10 +1122,9 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "a query goes to the preferred AI, ChatGPT by default, and ctrl+shift+escape opens it",
+    name: "a query goes to the preferred AI, ChatGPT by default, and ctrl+shift+enter asks it from any row",
     body: String.raw`${READY}
       const CONFIG = "zencast.config"
-      const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""
       const opened = (host) => {
         const browser = gBrowser.selectedBrowser
         const spec = browser.currentURI?.spec ?? ""
@@ -1144,18 +1143,19 @@ const SCENARIOS: Scenario[] = [
         Services.prefs.setStringPref(CONFIG, JSON.stringify({ version: 1, assistant: "claude" }))
         await sleep(100)
         const chosen = await askRows()
-        press("ctrl+shift+escape", document.documentElement)
-        await until(paletteOpen, 2000)
-        const placeholder = await until(() => inputPlaceholder() === "Ask Claude" && inputPlaceholder(), 2000).catch(() => inputPlaceholder())
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
         typeQuery("plan a quiet weekend")
         await sleep(80)
-        press("enter")
+        // The first row is selected, not the Ask row.
+        const selected = shadow().querySelector("[cmdk-item][aria-selected=true]")?.textContent ?? ""
+        press("ctrl+shift+enter")
         const url = await until(() => opened("https://claude.ai/"), 3000).catch(() => "")
         if (url) gBrowser.removeTab(gBrowser.selectedTab)
-        const one = (rows, title) => rows.length === 1 && rows[0].endsWith("Ask " + title)
+        const one = (rows, title) => rows.length === 1 && rows[0].includes("Ask " + title)
         return {
-          ok: one(fallback, "ChatGPT") && one(chosen, "Claude") && placeholder === "Ask Claude" && url === "https://claude.ai/new?q=plan%20a%20quiet%20weekend",
-          detail: "default: " + fallback.join(" | ") + "; claude set: " + chosen.join(" | ") + "; ctrl+shift+escape: " + placeholder + ", opened " + (url || "nothing"),
+          ok: one(fallback, "ChatGPT") && one(chosen, "Claude") && !selected.includes("Ask ") && url === "https://claude.ai/new?q=plan%20a%20quiet%20weekend",
+          detail: "default: " + fallback.join(" | ") + "; claude set: " + chosen.join(" | ") + "; ctrl+shift+enter on " + JSON.stringify(selected.slice(0, 40)) + " opened " + (url || "nothing"),
         }
       } finally {
         await dismiss().catch(() => {})

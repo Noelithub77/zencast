@@ -56,14 +56,27 @@ export function useTabSnapshot<T>(win: Window, read: (win: Window) => T): [T, ()
   const refresh = useCallback(() => setSnapshot(read(win)), [win, read])
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null
-    const schedule = () => {
+    let removal: ReturnType<typeof setTimeout> | null = null
+    // Zen announces a removed folder, then animates it out of the tab strip, so an archived folder
+    // would read as empty; the tree is read again once the folder is really gone.
+    const afterRemoval = (folder: EventTarget & Record<"isConnected", unknown>, tries: number) => {
+      if (!folder.isConnected || !tries) return refresh()
+      removal = setTimeout(() => afterRemoval(folder, tries - 1), 100)
+    }
+    const schedule = (event: Event) => {
       if (timer) clearTimeout(timer)
       timer = setTimeout(refresh, 80)
+      const folder = event.target
+      if (event.type === "TabGroupRemoved" && folder && "isConnected" in folder) {
+        if (removal) clearTimeout(removal)
+        afterRemoval(folder, 30)
+      }
     }
     const target = win.gBrowser.tabContainer
     for (const type of TAB_EVENTS) target.addEventListener(type, schedule)
     return () => {
       if (timer) clearTimeout(timer)
+      if (removal) clearTimeout(removal)
       for (const type of TAB_EVENTS) target.removeEventListener(type, schedule)
     }
   }, [win, refresh])

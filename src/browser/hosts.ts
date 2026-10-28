@@ -1,7 +1,25 @@
-// Inline host completion ("allpyq" → "allpyq.in"). Hosts already known come first: Firefox's live DNS
-// cache and the open tabs, then the URL bar's history autofill and history results, which arrive with
-// the web results. Only then does a live DNS lookup try the typed name with common endings.
+// Inline host completion ("allpyq" → "allpyq.in"). Hosts already known come first: history by how
+// often and recently it was visited, then Firefox's live DNS cache and the open tabs, then the URL
+// bar's history autofill and history results, which arrive with the web results. Only then does a
+// live DNS lookup try the typed name with common endings.
 import { listTabs, tabUrl } from "./tabs"
+
+// Frecency 1 marks an origin seen only in passing, such as a redirect or a page's asset host.
+const HISTORY_QUERY = `SELECT host FROM moz_origins
+WHERE prefix IN ('https://', 'http://') AND frecency > 1
+ORDER BY frecency DESC LIMIT 3000`
+
+/** Hosts from history without "www.", most frecent (often and recently visited) first. */
+export async function historyHosts(): Promise<string[]> {
+  const places = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs").PlacesUtils
+  const db = await places.promiseDBConnection()
+  const hosts = new Set<string>()
+  for (const row of await db.executeCached(HISTORY_QUERY)) {
+    const host = row.getResultByName("host")
+    if (typeof host === "string" && host) hosts.add(host.replace(/^www\./, ""))
+  }
+  return [...hosts]
+}
 
 const baseDomain = (host: string): string | null => {
   try {
@@ -73,6 +91,13 @@ export async function guessDomain(name: string, signal: AbortSignal): Promise<st
 /** Text that can only be the start of a host name. */
 export function isHostPrefix(text: string): boolean {
   return /^[a-z0-9][a-z0-9.-]*$/i.test(text)
+}
+
+/** The first host in a ranked list that starts with the typed text, if any. */
+export function firstDomain(typed: string, ranked: string[]): string | null {
+  const prefix = typed.toLowerCase()
+  if (!isHostPrefix(prefix)) return null
+  return ranked.find((host) => host.length > prefix.length && host.startsWith(prefix)) ?? null
 }
 
 /** The shortest domain that starts with the typed text, if any. */

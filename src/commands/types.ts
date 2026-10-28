@@ -60,6 +60,8 @@ export interface PaletteItem {
   actions: ItemAction[]
   /** Static boost added to the search score. */
   boost?: number
+  /** Shown greyed out, as an unloaded tab is. */
+  dim?: boolean
   /** Not ranked by usage because the id does not survive a restart (tabs, web results). */
   transient?: boolean
   scope?: ScopeId

@@ -298,6 +298,7 @@ function rowLabel(row: TreeRow): string {
 
 function TreeItem({ row, open, focused, renaming, onFocus, onToggle, onRun, onRenamed }: TreeItemProps) {
   const actions = actionsFor(row)
+  const [menuOpen, setMenuOpen] = useState(false)
   const count = row.kind === "tab" ? null : row.kind === "loose" ? row.tabs.length : row.count
   return (
     <div
@@ -355,7 +356,7 @@ function TreeItem({ row, open, focused, renaming, onFocus, onToggle, onRun, onRe
       <span className="ml-auto flex shrink-0 items-center gap-1">
         {count !== null && <span className="text-xs text-faint tabular-nums">{count}</span>}
         {actions.length > 0 && (
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -367,7 +368,18 @@ function TreeItem({ row, open, focused, renaming, onFocus, onToggle, onRun, onRe
                 <HugeiconsIcon icon={MoreHorizontalIcon} strokeWidth={2} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent
+              align="end"
+              onKeyDown={(event) => {
+                // An item's shortcut runs it, where the menu would only move to the item starting with that letter.
+                const action = actions.find((candidate) => candidate.id === KEY_ACTIONS[event.key])
+                if (!action) return
+                event.preventDefault()
+                event.stopPropagation()
+                setMenuOpen(false)
+                onRun(action.id)
+              }}
+            >
               {actions.map((action) => (
                 <span key={action.id}>
                   {action.danger && <DropdownMenuSeparator />}

@@ -125,7 +125,7 @@ const deepActive = () => {
   while (el?.shadowRoot?.activeElement) el = el.shadowRoot.activeElement
   return el
 }
-const CODES = { ",": "Comma", ".": "Period", "/": "Slash", enter: "Enter", escape: "Escape", up: "ArrowUp", down: "ArrowDown", backspace: "Backspace", space: "Space" }
+const CODES = { ",": "Comma", ".": "Period", "/": "Slash", tab: "Tab", enter: "Enter", escape: "Escape", up: "ArrowUp", down: "ArrowDown", backspace: "Backspace", space: "Space" }
 const press = (combo, target) => {
   const parts = combo.split("+")
   const key = parts.pop()

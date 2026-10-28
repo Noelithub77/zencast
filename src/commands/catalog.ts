@@ -172,10 +172,10 @@ const CORE: Command[] = [
   },
   {
     id: "zencast.keys",
-    title: "Keyboard shortcuts",
+    title: "Show Zencast keys",
     section: "Palette",
     icon: KeyboardIcon,
-    keywords: "keys keybindings cheat sheet help hotkeys",
+    keywords: "keyboard shortcuts keybindings cheat sheet help hotkeys",
     defaultKeys: ["ctrl+/"],
     run: () => toggleKeySheet(),
   },

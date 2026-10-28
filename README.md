@@ -63,9 +63,11 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Holding Ctrl marks a letter in every result](docs/media/hints.gif)
 
-**Key sheet.** `Ctrl+/`, anywhere in Zen, shows every Zencast key at once, grouped like the palette. Any other key, `Esc` or a click hides it.
+**Key sheet.** `Ctrl+/`, anywhere in Zen, shows every Zencast key at once, grouped like the palette. Any other key, `Esc` or a click hides it. Zencast's keys work with the palette open too: `Ctrl+B` bookmarks, `Ctrl+Shift+,` opens settings.
 
-**Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart. `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
+**Search engines.** Type an engine's keyword from Zen's search settings and press `Tab` (`y` then `Tab` for YouTube) to search only that engine, with its suggestions, in a chip coloured from its icon. `Backspace` on an empty query leaves it. Keywords and engines come straight from Zen's settings.
+
+**Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart, largest first. Pinned tabs and essentials are left out, since Zen keeps them anyway, and an unsynced window kept for one site shows as that site ("ChatGPT", "WhatsApp"). `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
 
 **Tab cleanup.** "Clean up tabs" lists the tabs you haven't selected for a week, oldest first; pinned and essential tabs stay. `Enter` on the top row closes them all into a dated bookmark folder under Other bookmarks / Tab cleanup, and `Ctrl+Enter` closes them without one. Undo brings them back asleep, in their spaces and containers. Switching to a tab from the list keeps it.
 
@@ -133,10 +135,10 @@ In the palette:
 | `Ctrl+.` | Record a shortcut, or assign a key to a tab, folder or site |
 | `@`, `/`, `#`, `$`, `*` first | Search only tabs, commands, bookmarks, settings or mods |
 | `Shift+Enter` | Search the web for the typed text, whatever is selected |
-| `Tab`, `→` | Accept the inline completion |
+| `Tab`, `→` | Accept the inline completion; after an engine keyword, search that engine |
 | `Esc` | Back, then close |
 
-Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Open tabs and the DNS cache come first, then your history as in Zen's address bar, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). A tab whose title or address starts with what you typed leads the results, and `Shift+Enter` searches the web for the typed text whichever result is selected.
+Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). A tab whose title or address starts with what you typed leads the results, and `Shift+Enter` searches the web for the typed text whichever result is selected; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones.
 
 ## Make it yours
 

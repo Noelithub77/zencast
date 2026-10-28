@@ -353,7 +353,10 @@ declare global {
 
   interface SearchEngine {
     name: string
+    /** The keyword set in Zen's search settings, then built-in ones such as "@google". */
+    aliases: string[]
     getSubmission(query: string): { uri: nsIURI }
+    getIconURL(size?: number): Promise<string | undefined>
   }
 
   interface GeckoComponentsInterfaces {
@@ -439,6 +442,8 @@ declare global {
     searchString: string
     userContextId?: number
     currentPage?: string
+    /** Limits the query to one engine, as the URL bar's search mode does. */
+    searchMode?: { engineName: string; source: number; entry: string }
   }
 
   interface UrlbarQueryContextInstance {
@@ -527,7 +532,11 @@ declare global {
       }
     }
     "moz-src:///toolkit/components/search/SearchService.sys.mjs": {
-      SearchService: { getDefault(): Promise<SearchEngine> }
+      SearchService: {
+        getDefault(): Promise<SearchEngine>
+        getVisibleEngines(): Promise<SearchEngine[]>
+        getEngineByName(name: string): SearchEngine | null
+      }
     }
     "resource:///modules/ZenUBGlobalActions.sys.mjs": { globalActions: ZenGlobalAction[] }
     "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs": {

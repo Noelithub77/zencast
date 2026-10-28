@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent } from "react"
 
 // Editing keys, the actions panel (J), and the browser's close and quit keys never become hints; nor
-// do the palette's own keys, which the caller passes as taken.
+// do the palette's own keys or Zencast's, which the caller passes as taken.
 const RESERVED = "acjvxzqw"
 // Long enough that a quick Ctrl+K never flashes hints.
 const HOLD_MS = 150

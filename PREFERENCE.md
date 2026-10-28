@@ -94,6 +94,14 @@ Zencast is a project, not a product. Describe it as a project everywhere.
   - tabs lead the results when a tab's title or address starts with the query; a loose fuzzy match keeps the normal order;
   - `Shift+Enter` searches the web (the default engine, Google for the owner) for the typed text from any row, with nothing new on screen;
   - completion also uses open tabs' hosts and history even when a command or container starts the same way, and a live DNS lookup of the typed name with common endings comes last. Known hosts must win over the guess: `allpyq.com` resolves too, but the owner's site is `allpyq.in`.
+- **Keys over the palette, engines and greyed tabs (2026-10-28).** The owner asked for:
+  - Zencast's own keys (Ctrl+B, Ctrl+Shift+,) to work while the palette is open, after the palette's own keys;
+  - a footer hint naming the key that searches the web for the typed text (asked as "shift tab"; it is Shift+Enter, since Tab completes and enters engine mode);
+  - engine mode as in Zen's address bar: an engine keyword then Tab searches only that engine, with a shake and a chip coloured from the engine's icon; engines and keywords come from Zen's settings, nothing is configured in Zencast;
+  - unloaded tabs greyed out in every result list, and in a separate section below loaded ones under `@`;
+  - completion that remembers old history: frecent history hosts win over the DNS cache and open tabs (`amazon` must complete to `amazon.in`, not `amazonaws.com`);
+  - one entry per key sheet: Zencast's is "Show Zencast keys", Zen's own "Keyboard shortcuts" stays.
+- **Settings polish (2026-10-28).** An archived folder disappears from Folders right away. A menu item's shown key runs it, not just selects it. Zen settings show no "changed" dots: Zen writes many prefs itself, so they were noise. Sessions leave out pinned tabs and essentials, list windows largest first, and name an unsynced window kept for one site (ChatGPT, WhatsApp) after that site, marked "Quick".
 - **Localhost switcher (2026-10-28).** Alt+L lists the dev servers listening on this machine, found from open ports, and jumps to the tab already on one or opens it.
 - **Search everything (2026-10-28).** Search covers each result's title, description and keys: typing a key ("ctrl j", "alt s") lists what it runs.
 - **Prefixes (2026-10-28).** Like a chat box's "@ files, $ skills, / commands": a first character narrows the search. The owner left the set to the agent: `@` tabs, `/` commands, `#` bookmarks, `$` settings, `*` mods (every Sine mod, toggled with Enter). The placeholder lists them; the prefix becomes a chip that Backspace removes.

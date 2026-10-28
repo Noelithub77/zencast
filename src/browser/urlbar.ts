@@ -2,7 +2,7 @@
 // so palette results match what Zen's address bar would show.
 
 const RESULT_TYPE = { TAB_SWITCH: 1, SEARCH: 2, URL: 3, KEYWORD: 4 } as const
-const RESULT_SOURCE = { BOOKMARKS: 1, HISTORY: 2 } as const
+const RESULT_SOURCE = { BOOKMARKS: 1, HISTORY: 2, SEARCH: 3 } as const
 
 export interface WebResult {
   kind: "url" | "search"
@@ -67,15 +67,17 @@ function toWebResult(result: UrlbarResult): WebResult | null {
 }
 
 /** Queries the URL bar providers. Abort the signal to cancel a stale query when the user keeps typing. */
-export async function queryWeb(win: Window, searchString: string, signal: AbortSignal, maxResults = 8): Promise<WebResult[]> {
+export async function queryWeb(win: Window, searchString: string, signal: AbortSignal, engine?: string, maxResults = 8): Promise<WebResult[]> {
   const { manager, QueryContext } = load()
   const context = new QueryContext({
-    allowAutofill: true,
+    allowAutofill: !engine,
     isPrivate: false,
     maxResults,
     sapName: "urlbar",
     searchString,
     userContextId: win.gBrowser.selectedTab.userContextId,
+    // An engine limits the results to its suggestions, as the URL bar's search mode does.
+    ...(engine && { searchMode: { engineName: engine, source: RESULT_SOURCE.SEARCH, entry: "typed" } }),
   })
   const cancel = () => manager.cancelQuery(context)
   signal.addEventListener("abort", cancel, { once: true })

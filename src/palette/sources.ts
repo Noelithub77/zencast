@@ -140,6 +140,7 @@ function tabItems(ctx: CommandContext, bindings: Map<string, string[]>): Palette
           .filter(Boolean)
           .join(" "),
         boost: (loaded ? 0.6 : 0) + recency,
+        dim: !loaded,
         actions: [
           { id: "switch", title: "Switch to tab", run: () => switchToTab(ctx, tab) },
           { id: "close", title: "Close tab", keys: "ctrl+w", danger: true, keepOpen: true, run: () => closeTab(ctx.win, tab) },
@@ -377,6 +378,7 @@ export function keybindingsItem(ctx: CommandContext): PaletteItem {
 }
 
 let engineName = ""
+export const defaultEngineName = () => engineName
 
 export function loadEngineName() {
   void defaultEngine().then((engine) => (engineName = engine.name))
@@ -423,7 +425,12 @@ export function queryItems(
   }
 }
 
-export function webItems(ctx: CommandContext, results: WebResult[], query: string): PaletteItem[] {
+export function webItems(
+  ctx: CommandContext,
+  results: WebResult[],
+  query: string,
+  search: (text: string) => string | Promise<string> = searchUrl,
+): PaletteItem[] {
   const out: PaletteItem[] = []
   for (const result of results) {
     // Bookmarks come from their own index, with keywords and folders.
@@ -437,7 +444,7 @@ export function webItems(ctx: CommandContext, results: WebResult[], query: strin
         title: text,
         section: "Web",
         icon: { kind: "icon", icon: Search01Icon, color: "var(--faint)" },
-        actions: openActions(ctx, () => searchUrl(text)),
+        actions: openActions(ctx, () => search(text)),
       })
     } else {
       out.push({

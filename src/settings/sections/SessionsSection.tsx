@@ -39,15 +39,25 @@ function Chevron({ group }: { group: keyof typeof CHEVRON }) {
   )
 }
 
+// "(3) WhatsApp" names the app WhatsApp.
+const appName = (title = "") => title.replace(/^\(\d+\)\s*/, "")
+
 function WindowRow({ win, saved, index }: { win: Window; saved: SavedWindow; index: number }) {
+  const app = saved.quick ? saved.tabs[0] : undefined
   return (
     <Collapsible className="group/window">
       <div className="flex h-9 items-center gap-2 pr-2 pl-6">
         <CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-2 rounded-md text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Chevron group="window" />
-          <HugeiconsIcon icon={AppWindowIcon} strokeWidth={1.8} className="size-4 text-faint" />
-          <span className="truncate">Window {index + 1}</span>
-          <span className="shrink-0 text-xs text-faint">{saved.tabs.length} tabs</span>
+          {app ? (
+            <img src={app.icon || `page-icon:${app.url}`} alt="" className="size-4 rounded-sm" />
+          ) : (
+            <HugeiconsIcon icon={AppWindowIcon} strokeWidth={1.8} className="size-4 text-faint" />
+          )}
+          <span className="truncate">{app ? appName(app.title) : `Window ${index + 1}`}</span>
+          <span className="shrink-0 text-xs text-faint">
+            {app ? "Quick" : `${saved.tabs.length} ${saved.tabs.length === 1 ? "tab" : "tabs"}`}
+          </span>
         </CollapsibleTrigger>
         <Button variant="ghost" size="sm" onClick={() => openSavedTabs(win, saved.tabs, true)}>
           Open all
@@ -91,7 +101,7 @@ export function SessionsSection() {
               </span>
             </CollapsibleTrigger>
             <CollapsibleContent className="pb-2">
-              {session.windows.map((saved, index) => (
+              {session.windows.toSorted((a, b) => b.tabs.length - a.tabs.length).map((saved, index) => (
                 <WindowRow key={saved.id} win={win} saved={saved} index={index} />
               ))}
             </CollapsibleContent>

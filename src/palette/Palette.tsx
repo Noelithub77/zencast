@@ -4,19 +4,20 @@ import { Command as CommandPrimitive } from "cmdk"
 import { memo, useCallback, useDeferredValue, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from "react"
 
 import { listContainers } from "@/browser/containers"
-import { bareHost, completeDomain, guessDomain, isHostPrefix, readDnsDomains, tabDomains } from "@/browser/hosts"
+import { bareHost, completeDomain, firstDomain, guessDomain, historyHosts, isHostPrefix, readDnsDomains, tabDomains } from "@/browser/hosts"
+import { engineFor, engineSearchUrl, type Engine } from "@/browser/engines"
 import { queryWeb, type WebResult } from "@/browser/urlbar"
 import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
 import { Kbd } from "@/components/ui/kbd"
-import { paletteKeys } from "@/keys/bindings"
+import { bindingIndex, paletteKeys } from "@/keys/bindings"
 import { CHORD_WAIT_MS, recordKey } from "@/keys/record"
 import { cn } from "@/lib/utils"
 import { readConfig, readUsage } from "@/shared/config"
 import { comboFromEvent, displaySequence } from "@/shared/keys"
 import { ActionPanel } from "./ActionPanel"
-import { closePalette, popView, runAction, saveRecording, toggleContainerTarget, toggleSpaceTarget } from "./controller"
+import { closePalette, popView, runAction, runCommandInPalette, saveRecording, toggleContainerTarget, toggleSpaceTarget } from "./controller"
 import { Keys } from "@/components/keys"
 import { assignHints, useModifierHold, type Hint, type Modifier } from "./hints"
 import { isBrowserShortcut, ItemGlyph } from "./parts"
@@ -25,7 +26,7 @@ import { buildIndex, isStrongMatch, search } from "./search"
 import { quickLink } from "./bookmarks"
 import { modItems } from "@/commands/mods"
 import { scopeFor, SCOPES, type Scope } from "./scopes"
-import { queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
+import { defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
 const WEB_DEBOUNCE_MS = 40
@@ -78,7 +79,11 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
       <div cmdk-group-heading="" hidden={!heading} className="px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint">
         {heading}
       </div>
-      <CommandItem value={item.id} onSelect={() => onRun(item, item.actions[0])} className="h-13 gap-4 rounded-xl px-4 text-[17px] font-normal">
+      <CommandItem
+        value={item.id}
+        onSelect={() => onRun(item, item.actions[0])}
+        className={cn("h-13 gap-4 rounded-xl px-4 text-[17px] font-normal", item.dim && "text-muted-foreground [&_img]:opacity-50 [&_img]:grayscale")}
+      >
         <span className="flex w-7 shrink-0 justify-center [&>img]:size-5 [&>svg]:size-5">
           <ItemGlyph icon={item.icon} />
         </span>
@@ -216,18 +221,19 @@ function useStrip(held: Modifier | null, win: Window | null, space: string | und
   }, [held, win, space, container])
 }
 
-function useWebResults(context: CommandContext | null, query: string, enabled: boolean): WebResult[] {
-  const [web, setWeb] = useState<{ query: string; results: WebResult[] }>({ query: "", results: [] })
+function useWebResults(context: CommandContext | null, query: string, enabled: boolean, engine?: string): WebResult[] {
+  const key = `${engine ?? ""}:${query}`
+  const [web, setWeb] = useState<{ key: string; results: WebResult[] }>({ key: "", results: [] })
   useEffect(() => {
     if (!context || !enabled || !query) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
       const start = performance.now()
-      queryWeb(context.win, query, controller.signal)
+      queryWeb(context.win, query, controller.signal, engine)
         .then((results) => {
           if (controller.signal.aborted) return
           record("web", performance.now() - start)
-          setWeb({ query, results })
+          setWeb({ key: `${engine ?? ""}:${query}`, results })
         })
         .catch((error: unknown) => console.error("[zencast] web results", error))
     }, WEB_DEBOUNCE_MS)
@@ -235,22 +241,31 @@ function useWebResults(context: CommandContext | null, query: string, enabled: b
       clearTimeout(timer)
       controller.abort()
     }
-  }, [context, query, enabled])
-  return web.query === query ? web.results : []
+  }, [context, query, enabled, engine])
+  return web.key === key ? web.results : []
 }
+
+interface KnownDomains {
+  /** History hosts, most frecent first. */
+  history: string[]
+  /** The DNS cache and open tabs, unranked. */
+  recent: string[]
+}
+
+const NO_DOMAINS: KnownDomains = { history: [], recent: [] }
 
 // Refreshed on every open; Firefox keeps a host in its DNS cache for a few minutes after a lookup,
 // and the open tabs keep theirs known after that.
-function useKnownDomains(win: Window | null): string[] {
-  const [domains, setDomains] = useState<string[]>([])
+function useKnownDomains(win: Window | null): KnownDomains {
+  const [domains, setDomains] = useState(NO_DOMAINS)
   useEffect(() => {
     if (!win) return
     let live = true
-    // Read after the palette paints, so opening never waits on every tab's host.
+    // Read after the palette paints, so opening never waits on history or every tab's host.
     const handle = win.requestIdleCallback(() => {
-      readDnsDomains()
-        .then((list) => live && setDomains([...new Set([...list, ...tabDomains(win)])]))
-        .catch((error: unknown) => console.error("[zencast] DNS cache", error))
+      Promise.all([historyHosts(), readDnsDomains()])
+        .then(([history, dns]) => live && setDomains({ history, recent: [...new Set([...dns, ...tabDomains(win)])] }))
+        .catch((error: unknown) => console.error("[zencast] known hosts", error))
     })
     return () => {
       live = false
@@ -287,13 +302,16 @@ function useDomainGuess(typed: string, enabled: boolean): string | null {
 // Pages the URL bar found in history or bookmarks.
 const visited = (web: WebResult[]) => web.filter((result) => result.source === "history" || result.source === "bookmark")
 
+/** A host from history or the DNS cache and open tabs, without waiting on a query. */
+const knownDomain = (typed: string, domains: KnownDomains) => firstDomain(typed, domains.history) ?? completeDomain(typed, domains.recent)
+
 /**
- * A host from the DNS cache or an open tab wins. The URL bar's history autofill comes after, then the
- * host of its top history row (autofill skips origins below its frecency threshold), and last the
- * live DNS guess. Each applies even when a command's name starts with the query.
+ * The most frecent history host wins, then a host from the DNS cache or an open tab. The URL bar's
+ * history autofill comes after, then the host of its top history row, and last the live DNS guess.
+ * Each applies even when a command's name starts with the query.
  */
-function completion(typed: string, web: WebResult[], domains: string[], guess: string | null): string | null {
-  const known = completeDomain(typed, domains)
+function completion(typed: string, web: WebResult[], domains: KnownDomains, guess: string | null): string | null {
+  const known = knownDomain(typed, domains)
   if (known) return known
   const autofill = web.find((result) => result.heuristic && result.autofill)?.autofill
   if (autofill && autofill.length > typed.length && autofill.toLowerCase().startsWith(typed.toLowerCase())) return autofill
@@ -355,6 +373,8 @@ export function Palette() {
   const [fill, setFill] = useState(false)
   // A prefix typed first ("@", "/", …) narrows the root search to one kind of result.
   const [scope, setScope] = useState<Scope | null>(null)
+  // A search engine's keyword and Tab search only that engine until Backspace or Esc.
+  const [engine, setEngine] = useState<Engine | null>(null)
   if (seenKey !== viewKey) {
     setSeenKey(viewKey)
     setQuery(view?.prompt?.initial ?? "")
@@ -362,13 +382,14 @@ export function Palette() {
     setPanel(false)
     setFill(false)
     setScope(null)
+    setEngine(null)
   }
 
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const config = readConfig()
   const q = query.trim()
-  const wantsSettings = !view && !scope && q.length >= 2
+  const wantsSettings = !view && !scope && !engine && q.length >= 2
   const mods = useMods(context, scope?.id === "mods", root)
 
   const index = useMemo(() => {
@@ -385,10 +406,10 @@ export function Palette() {
     const handle = context.win.requestIdleCallback(() => rootWithSettings(context, root))
     return () => context.win.cancelIdleCallback(handle)
   }, [open, context, root])
-  const web = useWebResults(context, view || scope ? "" : q, config.urlResults)
+  const web = useWebResults(context, view || scope ? "" : q, config.urlResults || !!engine, engine?.name)
   const domains = useKnownDomains(open ? (context?.win ?? null) : null)
   // The lookup runs only when no known host completes the text.
-  const guess = useDomainGuess(q, open && !view && !scope && fill && !completeDomain(q, domains))
+  const guess = useDomainGuess(q, open && !view && !scope && !engine && fill && !knownDomain(q, domains))
 
   const { groups, suffix } = useMemo(() => timed("search", () => {
     if (view?.prompt) {
@@ -403,7 +424,25 @@ export function Palette() {
       }
       return { groups: [{ section: view.title, items: [item] }], suffix: "" }
     }
+    if (engine && context && !view) {
+      if (!q) return { groups: [], suffix: "" }
+      const first: PaletteItem = {
+        id: "engine-search",
+        transient: true,
+        title: q,
+        subtitle: `Search ${engine.name}`,
+        section: engine.name,
+        icon: { kind: "favicon", url: engine.icon },
+        actions: openActions(context, () => engineSearchUrl(engine, q)),
+      }
+      return { groups: [{ section: engine.name, items: [first, ...webItems(context, web, q, (text) => engineSearchUrl(engine, text))] }], suffix: "" }
+    }
     const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
+    // Searching only tabs lists the loaded ones first and the unloaded ones in their own section.
+    if (scope?.id === "tabs") {
+      const groups = [{ section: "Tabs", items: found.filter((item) => !item.dim) }, { section: "Unloaded", items: found.filter((item) => item.dim) }]
+      return { groups: groups.filter((group) => group.items.length), suffix: "" }
+    }
     if (view || scope || !context || !q) return { groups: groupBySection(found), suffix: "" }
 
     const out: Group[] = []
@@ -427,7 +466,7 @@ export function Palette() {
     if (url || strong) webList.unshift(...searchItems)
     if (webList.length) out.push({ section: "Web", items: webList })
     return { groups: out, suffix }
-  }), [index, q, query, view, scope, context, wantsSettings, web, domains, guess, fill, config.maxResults])
+  }), [index, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults])
 
   const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])
@@ -464,7 +503,8 @@ export function Palette() {
       return entry && middle > bounds.top && middle < bounds.bottom ? [entry.item] : []
     })
     const own = new RegExp(`^${modifier}\\+([a-z])$`)
-    const taken = [...(active?.actions ?? []).map((action) => action.keys ?? ""), ...paletteKeys(readConfig())].flatMap(
+    const config = readConfig()
+    const taken = [...(active?.actions ?? []).map((action) => action.keys ?? ""), ...paletteKeys(config), ...bindingIndex(config).exact.keys()].flatMap(
       (keys) => own.exec(keys)?.[1] ?? [],
     )
     const assigned = assignHints(visible.map((item) => item.title), taken)
@@ -537,6 +577,15 @@ export function Palette() {
       return
     }
 
+    const typedEngine = combo === "tab" && !view && !scope && !engine ? engineFor(query) : undefined
+    if (typedEngine) {
+      consume()
+      setEngine(typedEngine)
+      setQuery("")
+      setFill(false)
+      setSelected("")
+      return
+    }
     if (suffix && (combo === "tab" || combo === "right" || combo === "end")) {
       consume()
       const full = query + suffix
@@ -549,13 +598,15 @@ export function Palette() {
       consume()
       if (query) setQuery("")
       else if (stack.length) popView()
+      else if (engine) setEngine(null)
       else if (scope) setScope(null)
       else closePalette(true)
       return
     }
-    if (combo === "backspace" && !query && !view && scope) {
+    if (combo === "backspace" && !query && !view && (scope || engine)) {
       consume()
       setScope(null)
+      setEngine(null)
       return
     }
     if (combo === "backspace" && !query && (stack.length || openIn || space)) {
@@ -583,7 +634,7 @@ export function Palette() {
       return
     }
     // Shift+Enter searches the web for the typed text, whichever result is selected.
-    if (combo === "shift+enter" && !view && q && context) {
+    if (combo === "shift+enter" && !view && !engine && q && context) {
       consume()
       const item = queryItems(context, q, () => "").search[0]
       if (item) run(item, item.actions[0])
@@ -602,7 +653,14 @@ export function Palette() {
       run(active, action)
       return
     }
-    if (isBrowserShortcut(combo)) consume()
+    // Zencast's own keys still work over the palette, after the palette's keys and text editing.
+    if (isBrowserShortcut(combo)) {
+      consume()
+      const command = context && bindingIndex(readConfig()).exact.get(combo)?.find(
+        (candidate) => (!candidate.when || candidate.when(context)) && (!candidate.keysWhen || candidate.keysWhen(context)),
+      )
+      if (command) void runCommandInPalette(command)
+    }
   })
   useEffect(() => {
     if (!open || !context) return
@@ -643,9 +701,12 @@ export function Palette() {
   const targets = [space?.name, openIn?.name].filter(Boolean).join(" · ")
   const placeholder =
     view?.placeholder ??
-    (scope ? `Search ${scope.name.toLowerCase()}` : targets ? `Open in ${targets}` : `Search or type a URL · ${SCOPE_HINT}`)
+    (engine ? `Search ${engine.name}` : scope ? `Search ${scope.name.toLowerCase()}` : targets ? `Open in ${targets}` : `Search or type a URL · ${SCOPE_HINT}`)
   const primary = active?.actions[0]
-  const accent = space?.color ?? openIn?.color
+  const accent = space?.color ?? openIn?.color ?? engine?.color
+  // The footer offers what Tab or Shift+Enter would do with the typed text.
+  const tabEngine = !view && !scope && !engine ? engineFor(query) : undefined
+  const webSearch = !view && !scope && !engine && q && active?.id !== "web-search" ? defaultEngineName() || "the web" : ""
 
   return (
     <div
@@ -678,6 +739,16 @@ export function Palette() {
               >
                 <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} className="size-3.5" />
               </button>
+            ) : engine ? (
+              <span
+                data-engine=""
+                key={engine.name}
+                className="flex shrink-0 animate-shake items-center gap-1.5 rounded-full py-1 pr-3 pl-2 text-sm font-medium motion-reduce:animate-none"
+                style={{ backgroundColor: `color-mix(in srgb, ${engine.color} 18%, transparent)`, color: `color-mix(in srgb, ${engine.color} 70%, var(--foreground))` }}
+              >
+                <img src={engine.icon} alt="" className="size-4 rounded-sm" />
+                {engine.name}
+              </span>
             ) : scope ? (
               <span
                 data-scope=""
@@ -694,7 +765,7 @@ export function Palette() {
               ref={inputRef}
               value={query + suffix}
               onValueChange={(value) => {
-                const typed = !view && !scope && !query ? scopeFor(value.charAt(0)) : undefined
+                const typed = !view && !scope && !engine && !query ? scopeFor(value.charAt(0)) : undefined
                 if (typed) {
                   setScope(typed)
                   setQuery(value.slice(1))
@@ -775,6 +846,17 @@ export function Palette() {
             ) : (
               <div key="footer" className="flex min-w-0 flex-1 items-center gap-3 animate-in fade-in-0 duration-150">
                 <span className="min-w-0 truncate text-faint">{view?.title}</span>
+                {tabEngine ? (
+                  <span data-footer-hint="" className="flex shrink-0 items-center gap-1.5">
+                    Search {tabEngine.name}
+                    <Kbd>Tab</Kbd>
+                  </span>
+                ) : webSearch ? (
+                  <span data-footer-hint="" className="flex shrink-0 items-center gap-1.5">
+                    Search {webSearch}
+                    <Keys sequence="shift+enter" />
+                  </span>
+                ) : null}
                 {primary && (
                   <span className={`ml-auto flex items-center gap-1.5 ${primary.danger ? "text-rose" : "text-foreground"}`}>
                     {primary.title}

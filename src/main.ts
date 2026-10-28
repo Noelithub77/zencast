@@ -1,5 +1,6 @@
 // Mod entry: Sine imports this module once per browser window.
 import { watchBookmarks } from "@/browser/bookmarks"
+import { watchEngines } from "@/browser/engines"
 import { sweepTemporaryContainers } from "@/browser/containers"
 import { isTab } from "@/browser/folders"
 import { watchGoogleSignIns } from "@/browser/google"
@@ -24,11 +25,13 @@ function start(win: Window): () => void {
     disposeController,
     registerToasts(win),
     watchBookmarks(),
+    watchEngines(win),
     watchGoogleSignIns(win, (emails) => offerGoogleContainers(win, emails)),
     watchSessions(win),
     watchSiteContainers(win),
   )
 
+  // Also keeps readConfig current when the settings page writes the pref.
   let index = buildIndex(readConfig())
   let recording = false
   disposers.push(onConfigChange((config) => (index = buildIndex(config))))

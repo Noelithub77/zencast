@@ -238,18 +238,17 @@ async function withZen<T>(work: (zen: Zen) => Promise<T>, size?: { width: number
 }
 
 async function e2e() {
-  const { results, screenshots } = await withZen(async (zen) => {
-    const results = await runScenarios(zen)
-    let screenshots: string[] = []
-    if (values.screenshots) {
-      try {
-        screenshots = await captureScreens(zen, resolve(values.screenshots))
-      } catch (error) {
-        results.push({ name: "screenshots", ok: false, detail: error instanceof Error ? error.message.split("\n")[0] : String(error), ms: 0 })
-      }
+  const results = await withZen(runScenarios)
+  let screenshots: string[] = []
+  const dir = values.screenshots
+  // A fresh Zen, so state left by the scenarios doesn't leak into the screenshots.
+  if (dir) {
+    try {
+      screenshots = await withZen((zen) => captureScreens(zen, resolve(dir)))
+    } catch (error) {
+      results.push({ name: "screenshots", ok: false, detail: error instanceof Error ? error.message.split("\n")[0] : String(error), ms: 0 })
     }
-    return { results, screenshots }
-  })
+  }
   const ok = results.every((result) => result.ok)
   finish(
     { ok, command: "e2e", environment: "headless Zen, temporary profile", results, screenshots },

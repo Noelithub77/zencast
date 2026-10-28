@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fuzzyFilter } from "@/palette/search"
 import { useBrowserWindow } from "../hooks"
-import { GroupHeading, SectionHeader, StatusDot } from "../parts"
+import { GroupHeading, SectionHeader } from "../parts"
 
 const TAB_LABELS: Record<PrefCategory, string> = {
   Tabs: "Tabs",
@@ -102,15 +102,11 @@ export function ZenSettingsSection() {
       <SectionHeader title="Zen settings">{search}</SectionHeader>
       <TabsList className="mb-3 max-w-full overflow-x-auto">
         <TabsTrigger value="Pages">Pages</TabsTrigger>
-        {PREF_CATEGORIES.map((category) => {
-          const changed = matches.some((pref) => pref.category === category && Services.prefs.prefHasUserValue(pref.name))
-          return (
-            <TabsTrigger key={category} value={category}>
-              {TAB_LABELS[category]}
-              {changed && <StatusDot color="var(--peach)" label="Has changed settings" />}
-            </TabsTrigger>
-          )
-        })}
+        {PREF_CATEGORIES.map((category) => (
+          <TabsTrigger key={category} value={category}>
+            {TAB_LABELS[category]}
+          </TabsTrigger>
+        ))}
       </TabsList>
       <TabsContent value="Pages">{pages}</TabsContent>
       {PREF_CATEGORIES.map((category) => (
@@ -132,7 +128,6 @@ function PrefRow({ pref, onChange }: { pref: PrefSetting; onChange: () => void }
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-sm">
           {pref.title}
-          {changed && <StatusDot color="var(--peach)" label="Changed from default" />}
         </div>
         <div className="truncate font-mono text-[11px] text-faint">{pref.name}</div>
       </div>

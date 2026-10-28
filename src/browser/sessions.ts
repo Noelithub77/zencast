@@ -7,6 +7,7 @@ import { systemPrincipal } from "./window"
 
 // Every run of Zen is a session, named by its start time. Its windows' tabs are saved to one file
 // per session, so a past session's tabs can be picked back. Files older than a week are removed.
+// Pinned tabs and essentials are left out: Zen keeps them across restarts by itself.
 
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000
 const WINDOW_KEY = "zencast-window"
@@ -24,6 +25,8 @@ const windowSchema = z.object({
   id: z.string(),
   opened: z.number(),
   closed: z.number().optional(),
+  /** Zen's unsynced window, kept for one quick site such as ChatGPT or WhatsApp. */
+  quick: z.boolean().optional(),
   spaces: z.record(z.string(), z.string()),
   tabs: z.array(tabSchema),
 })
@@ -72,13 +75,15 @@ function saveable(url: string): boolean {
 // A sleeping tab's browser still reports the URL it will load, so every tab is read live.
 function snapshotWindow(win: Window, previous: SavedWindow | undefined): SavedWindow {
   const tabs = listTabs(win).flatMap((tab): SavedTab[] => {
+    if (tab.pinned || tab.hasAttribute("zen-essential")) return []
     const { title, url, workspaceId, userContextId } = describeTab(tab)
     const image = tab.getAttribute("image")
     if (!url || !saveable(url)) return []
     return [{ title: title || url, url, userContextId, space: workspaceId ?? undefined, icon: image?.startsWith("data:") ? undefined : (image ?? undefined) }]
   })
   const spaces = Object.fromEntries(win.gZenWorkspaces.getWorkspaces().map((space) => [space.uuid, space.name]))
-  return { id: windowId(win), opened: previous?.opened ?? Date.now(), spaces, tabs }
+  const quick = win.document.documentElement.hasAttribute("zen-unsynced-window") || undefined
+  return { id: windowId(win), opened: previous?.opened ?? Date.now(), quick, spaces, tabs }
 }
 
 async function readSession(path: string): Promise<Session | null> {

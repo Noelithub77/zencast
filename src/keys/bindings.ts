@@ -44,6 +44,14 @@ export function buildIndex(config: Config): BindingIndex {
   return { exact, prefixes }
 }
 
+let cached: { config: Config; index: BindingIndex } | null = null
+
+/** The index for this config, rebuilt only when the config object changes. */
+export function bindingIndex(config: Config): BindingIndex {
+  if (cached?.config !== config) cached = { config, index: buildIndex(config) }
+  return cached.index
+}
+
 export interface Conflict {
   sequence: string
   commands: string[]

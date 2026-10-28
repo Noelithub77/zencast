@@ -159,6 +159,19 @@ export async function runCommand(command: Command) {
   }
 }
 
+/** A Zencast key pressed in the palette: a view it returns opens on top, anything else closes the palette. */
+export async function runCommandInPalette(command: Command) {
+  recordUsage(command.id)
+  try {
+    const view = await settle(command.run(commandContext()))
+    if (view) setState((current) => ({ stack: [...current.stack, view] }))
+    else closePalette(false)
+  } catch (error) {
+    closePalette(false)
+    reportError(error)
+  }
+}
+
 /** Alt+N in the palette: targets space N, or clears it when it is already the target. */
 export function toggleSpaceTarget(index: number) {
   const workspace = listWorkspaces(currentWindow())[index]

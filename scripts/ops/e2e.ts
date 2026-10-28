@@ -348,6 +348,121 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "a search engine's keyword and tab search only that engine, in its icon's colour",
+    body: String.raw`${READY}
+      const { SearchService } = ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs")
+      const engine = SearchService.getEngineByName("DuckDuckGo")
+      const before = engine.alias
+      engine.alias = "dk"
+      const footer = () => shadow().querySelector("[data-footer-hint]")?.textContent ?? ""
+      const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""
+      const chip = () => shadow().querySelector("[data-engine]")
+      const enter = async () => {
+        typeQuery("dk")
+        await until(() => footer().includes("DuckDuckGo"), 4000)
+        press("tab")
+        await until(chip, 2000)
+      }
+      let opened = null
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("pin")
+        const shiftHint = await until(() => footer().startsWith("Search") && footer(), 2000).catch(() => footer())
+        await enter()
+        const color = chip().style.backgroundColor
+        const placeholder = inputPlaceholder()
+        typeQuery("zebra")
+        const first = await until(() => resultTitles()[0]?.includes("Search DuckDuckGo") && resultTitles()[0], 2000).catch(() => resultTitles()[0] ?? "")
+        press("enter")
+        await until(() => !paletteOpen(), 2000)
+        opened = gBrowser.selectedTab
+        const url = await until(() => {
+          const browser = opened.linkedBrowser
+          const spec = browser.userTypedValue || browser.currentURI?.spec || ""
+          return spec.includes("duckduckgo.com") && spec.includes("zebra") && spec
+        }, 3000).catch(() => "")
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        await enter()
+        press("backspace")
+        const left = await until(() => !chip(), 2000).catch(() => false)
+        return {
+          ok: shiftHint.startsWith("Search") && color.includes("rgb(") && placeholder === "Search DuckDuckGo" && first.includes("zebra") && !!url && left,
+          detail: "typing: " + shiftHint + "; chip " + color + ", " + placeholder + "; first row " + first + "; opened " + (url || "nothing") + (left ? "; backspace left the engine" : "; still in the engine"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        if (opened?.isConnected) gBrowser.removeTab(opened)
+        engine.alias = before
+      }`,
+  },
+  {
+    name: "unloaded tabs are greyed out, and searching tabs lists them in their own section",
+    body: String.raw`${READY}
+      const principal = Services.scriptSecurityManager.getSystemPrincipal()
+      const lazy = gBrowser.addTab("https://quokkafern.example/a", { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true, })
+      const live = newTab("data:text/html,<title>Quokkafern live</title>x")
+      await until(() => live.label === "Quokkafern live")
+      const current = newTab()
+      const headings = () => [...shadow().querySelectorAll("[cmdk-group-heading]:not([hidden])")].map((h) => h.textContent)
+      const row = (text) => [...shadow().querySelectorAll("[cmdk-item]")].find((item) => item.textContent.includes(text))
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("@quokkafern")
+        const order = await until(() => headings().includes("Unloaded") && headings(), 2000).catch(() => headings())
+        const scoped = row("quokkafern.example")?.className.includes("grayscale") && !row("Quokkafern live")?.className.includes("grayscale")
+        press("backspace")
+        await sleep(50)
+        typeQuery("quokkafern")
+        const greyed = await until(() => row("quokkafern.example")?.className.includes("grayscale"), 2000).catch(() => false)
+        return {
+          ok: order.join() === "Tabs,Unloaded" && !!scoped && greyed,
+          detail: "tabs scope: " + order.join(", ") + (scoped ? ", only the unloaded row greyed" : ", greying wrong") + (greyed ? "; greyed in search too" : "; not greyed in search"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        for (const tab of [lazy, live, current]) gBrowser.removeTab(tab)
+      }`,
+  },
+  {
+    name: "zencast keys work over the palette, and ctrl+. stays away from the emoji picker",
+    body: String.raw`${READY}
+      const url = "https://example.com/zencast-over-palette"
+      const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""
+      const tab = newTab(url)
+      await until(() => gBrowser.selectedBrowser.currentURI?.spec === url, 10000).catch(() => {})
+      let settings = null
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("pin")
+        await sleep(80)
+        press("ctrl+j")
+        await sleep(80)
+        const emoji = press("ctrl+.")
+        press("escape")
+        await sleep(50)
+        press("ctrl+b")
+        const bookmark = await until(() => paletteOpen() && inputPlaceholder() === "Name", 2000).catch(() => false)
+        await dismiss()
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        press("ctrl+shift+,")
+        settings = await until(() => gBrowser.selectedBrowser.currentURI.spec.includes("zencast/settings") && gBrowser.selectedTab, 3000).catch(() => null)
+        const closed = !paletteOpen()
+        return {
+          ok: emoji.defaultPrevented && bookmark && !!settings && closed,
+          detail: (emoji.defaultPrevented ? "ctrl+. held in the actions panel" : "ctrl+. reached the input") + (bookmark ? "; ctrl+b opened the bookmark name" : "; ctrl+b did nothing") + (settings ? "; ctrl+shift+, opened settings" : "; no settings") + (closed ? " and closed the palette" : ", palette still open"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        if (settings?.isConnected) gBrowser.removeTab(settings)
+        gBrowser.removeTab(tab)
+      }`,
+  },
+  {
     name: "holding ctrl or alt labels visible rows with letters and lists the keys",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)
@@ -408,11 +523,13 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "sessions save this window's tabs, and alt+s reopens one",
+    name: "sessions save this window's unpinned tabs, and alt+s reopens one",
     body: String.raw`${READY}
       const url = "data:text/html,<title>Session kiwi</title>x"
       const tab = newTab(url)
-      await until(() => tab.label === "Session kiwi", 3000).catch(() => false)
+      const pinned = newTab("data:text/html,<title>Session plum</title>x")
+      gBrowser.pinTab(pinned)
+      await until(() => tab.label === "Session kiwi" && pinned.label === "Session plum", 3000).catch(() => false)
       const start = Services.startup.getStartupInfo().process.getTime()
       const path = PathUtils.join(PathUtils.profileDir, "zencast", "sessions", start + ".json")
       Services.obs.notifyObservers(null, "sessionstore-state-write-complete")
@@ -421,7 +538,9 @@ const SCENARIOS: Scenario[] = [
         const session = await IOUtils.readJSON(path)
         return session.windows.some((win) => win.tabs.some((t) => t.title === "Session kiwi")) && session
       }, 4000).catch(() => null)
+      const keptPinned = !!saved && saved.windows.some((win) => win.tabs.some((t) => t.title === "Session plum"))
       gBrowser.removeTab(tab)
+      gBrowser.removeTab(pinned)
       await sleep(100)
       press("alt+s", document.documentElement)
       await until(paletteOpen)
@@ -435,8 +554,8 @@ const SCENARIOS: Scenario[] = [
       await dismiss()
       if (reopened) gBrowser.removeTab(reopened)
       return {
-        ok: !!saved && first.startsWith("Today") && !!reopened,
-        detail: (saved ? "saved " + saved.windows.length + " window(s)" : "not saved") + "; first row " + first + "; " + (reopened ? "reopened" : "not reopened"),
+        ok: !!saved && !keptPinned && first.startsWith("Today") && !!reopened,
+        detail: (saved ? "saved " + saved.windows.length + " window(s)" : "not saved") + (keptPinned ? "; kept the pinned tab" : "; pinned tab left out") + "; first row " + first + "; " + (reopened ? "reopened" : "not reopened"),
       }`,
   },
   {

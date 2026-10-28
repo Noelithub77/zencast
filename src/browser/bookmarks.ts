@@ -10,6 +10,9 @@ export interface BookmarkFolder {
   title: string
   /** "Bookmarks toolbar / Dev", for telling nested folders apart. */
   path: string
+  /** The folder it sits in; null for the toolbar, menu and other roots. */
+  parent: string | null
+  index: number
 }
 
 export interface Bookmark {
@@ -19,6 +22,8 @@ export interface Bookmark {
   /** Lower case, or "" when the URL has none. */
   keyword: string
   folder: BookmarkFolder
+  /** Position in its folder, so an undo puts it back in place. */
+  index: number
 }
 
 const ROOT_TITLES: Record<string, string> = {
@@ -29,7 +34,7 @@ const ROOT_TITLES: Record<string, string> = {
 }
 
 // A URL can carry more than one keyword; one is enough to show and match.
-const QUERY = `SELECT b.id, b.parent, b.guid, b.type, b.title, p.url,
+const QUERY = `SELECT b.id, b.parent, b.guid, b.type, b.title, b.position, p.url,
   (SELECT keyword FROM moz_keywords k WHERE k.place_id = b.fk LIMIT 1) AS keyword
 FROM moz_bookmarks b LEFT JOIN moz_places p ON p.id = b.fk
 WHERE b.type IN (1, 2)`
@@ -51,6 +56,7 @@ interface Node {
   guid: string
   type: number
   title: string
+  position: number
   url: string
   keyword: string
 }
@@ -74,6 +80,7 @@ export async function loadBookmarks() {
       guid: text(row, "guid"),
       type: number(row, "type"),
       title: text(row, "title"),
+      position: number(row, "position"),
       url: text(row, "url"),
       keyword: text(row, "keyword").toLowerCase(),
     })
@@ -87,11 +94,11 @@ export async function loadBookmarks() {
     const node = nodes.get(id)
     const rootTitle = node && ROOT_TITLES[node.guid]
     let folder: BookmarkFolder | null = null
-    if (node && rootTitle) folder = { guid: node.guid, title: rootTitle, path: rootTitle }
+    if (node && rootTitle) folder = { guid: node.guid, title: rootTitle, path: rootTitle, parent: null, index: node.position }
     else if (node) {
       const parent = folderOf(node.parent)
       const title = node.title || "Untitled folder"
-      if (parent) folder = { guid: node.guid, title, path: `${parent.path} / ${title}` }
+      if (parent) folder = { guid: node.guid, title, path: `${parent.path} / ${title}`, parent: parent.guid, index: node.position }
     }
     resolved.set(id, folder)
     return folder
@@ -106,7 +113,7 @@ export async function loadBookmarks() {
       continue
     }
     const folder = node.url ? folderOf(node.parent) : null
-    if (folder) nextBookmarks.push({ guid: node.guid, title: node.title || node.url, url: node.url, keyword: node.keyword, folder })
+    if (folder) nextBookmarks.push({ guid: node.guid, title: node.title || node.url, url: node.url, keyword: node.keyword, folder, index: node.position })
   }
   folders = nextFolders.sort((a, b) => a.path.localeCompare(b.path))
   bookmarks = nextBookmarks
@@ -133,6 +140,16 @@ export function watchBookmarks(): () => void {
 export const allBookmarks = () => bookmarks
 export const bookmarkFolders = () => folders
 export const findBookmark = (url: string) => byUrl.get(url)
+
+const byIndex = (a: { index: number }, b: { index: number }) => a.index - b.index
+
+/** What a folder holds directly, in its own order; the roots for null. */
+export function folderContents(guid: string | null): { folders: BookmarkFolder[]; bookmarks: Bookmark[] } {
+  return {
+    folders: folders.filter((folder) => folder.parent === guid).sort(byIndex),
+    bookmarks: guid ? bookmarks.filter((bookmark) => bookmark.folder.guid === guid).sort(byIndex) : [],
+  }
+}
 export const keywordBookmark = (keyword: string) => byKeyword.get(keyword.toLowerCase())
 
 /** A keyword is one lower-case word; anything after the first space is dropped. */
@@ -169,22 +186,43 @@ export async function addBookmark({ url, title, folder, keyword }: NewBookmark):
   return guid
 }
 
-export async function editBookmark(bookmark: Bookmark, change: { title?: string; folder?: BookmarkFolder; keyword?: string }) {
+export interface BookmarkChange {
+  title?: string
+  url?: string
+  folder?: BookmarkFolder
+  /** Position in the new folder; the end when left out. */
+  index?: number
+  keyword?: string
+}
+
+export async function editBookmark(bookmark: Bookmark, change: BookmarkChange) {
   const { bookmarks: api, keywords } = places()
+  const url = change.url ?? bookmark.url
+  const keyword = change.keyword ?? bookmark.keyword
+  // A keyword belongs to a URL, not a bookmark, so a new URL takes the keyword along.
+  const rekey = keyword !== bookmark.keyword || url !== bookmark.url
+  if (rekey && bookmark.keyword) await keywords.remove(bookmark.keyword)
+  // Places rejects a property that is present but undefined.
   if (change.title !== undefined) await api.update({ guid: bookmark.guid, title: change.title })
+  if (change.url !== undefined) await api.update({ guid: bookmark.guid, url: change.url })
   if (change.folder) {
-    await api.update({ guid: bookmark.guid, parentGuid: change.folder.guid, index: api.DEFAULT_INDEX })
-    Services.prefs.setStringPref(LAST_FOLDER_PREF, change.folder.guid)
+    await api.update({ guid: bookmark.guid, parentGuid: change.folder.guid, index: change.index ?? api.DEFAULT_INDEX })
+    if (change.index === undefined) Services.prefs.setStringPref(LAST_FOLDER_PREF, change.folder.guid)
   }
-  if (change.keyword !== undefined && change.keyword !== bookmark.keyword) {
-    if (bookmark.keyword) await keywords.remove(bookmark.keyword)
-    if (change.keyword) await keywords.insert({ keyword: change.keyword, url: bookmark.url })
-  }
+  if (rekey && keyword) await keywords.insert({ keyword, url })
   await loadBookmarks()
 }
 
 export async function removeBookmark(bookmark: Bookmark) {
   await places().bookmarks.remove(bookmark.guid)
+  await loadBookmarks()
+}
+
+/** Puts a removed bookmark back where it was, with its keyword. */
+export async function restoreBookmark({ url, title, folder, keyword, index }: Bookmark) {
+  const { bookmarks: api, keywords } = places()
+  await api.insert({ parentGuid: folder.guid, url, title, index })
+  if (keyword) await keywords.insert({ keyword, url })
   await loadBookmarks()
 }
 

@@ -1,9 +1,11 @@
 // Keyboard-first bookmarking. Ctrl+B fills the bookmark in the palette, one field per step (name,
 // folder, optional keyword; Esc steps back), and opens the same fields for a page already bookmarked.
+// "Browse bookmarks" walks the folders; every bookmark row can be edited, moved or deleted.
 import {
   BookmarkAdd01Icon,
   BookmarkRemove01Icon,
   Folder01Icon,
+  Globe02Icon,
   KeyboardIcon,
   Link04Icon,
   PencilEdit01Icon,
@@ -19,6 +21,7 @@ import {
   lastFolder,
   normalizeKeyword,
   removeBookmark,
+  restoreBookmark,
   type Bookmark,
   type BookmarkFolder,
 } from "@/browser/bookmarks"
@@ -94,6 +97,34 @@ function newBookmark(ctx: CommandContext, url: string): ListView {
   }
 }
 
+/** Moves a bookmark to another folder; Undo puts it back in its old place. */
+export function moveView(ctx: CommandContext, bookmark: Bookmark): ListView {
+  return folderPicker(
+    "Move to folder",
+    async (folder) => {
+      await editBookmark(bookmark, { folder })
+      ctx.ui.toast(`Moved to ${folder.title}`, { label: "Undo", run: () => void editBookmark(bookmark, { folder: bookmark.folder, index: bookmark.index }) })
+    },
+    bookmark.folder,
+  )
+}
+
+export async function deleteBookmark(ctx: CommandContext, bookmark: Bookmark) {
+  await removeBookmark(bookmark)
+  ctx.ui.toast("Bookmark deleted", { label: "Undo", run: () => void restoreBookmark(bookmark) })
+}
+
+/** What was typed as a URL: kept when it parses, otherwise read as a site ("example.com/a"). */
+function typedUrl(value: string, fallback: string): string {
+  const text = value.trim()
+  if (!text) return fallback
+  try {
+    return new URL(text).href
+  } catch {
+    return `https://${text}`
+  }
+}
+
 function field(id: string, title: string, value: string, icon: PaletteItem["icon"], run: () => ListView): PaletteItem {
   return {
     id,
@@ -125,16 +156,21 @@ export function editView(ctx: CommandContext, bookmark: Bookmark): ListView {
           },
         },
       })),
-      field("bookmark-edit-folder", "Folder", bookmark.folder.title, { kind: "icon", icon: Folder01Icon }, () =>
-        folderPicker(
-          "Move to folder",
-          async (folder) => {
-            await editBookmark(bookmark, { folder })
-            ctx.ui.toast(`Moved to ${folder.title}`)
+      field("bookmark-edit-url", "URL", bookmark.url.replace(/^https?:\/\//, ""), { kind: "icon", icon: Globe02Icon }, () => ({
+        id: "bookmark-reurl",
+        title: "URL",
+        placeholder: "URL, with %s for a search",
+        items: [],
+        prompt: {
+          initial: bookmark.url,
+          label: (value) => `Change to “${typedUrl(value, bookmark.url)}”`,
+          submit: async (value) => {
+            await editBookmark(bookmark, { url: typedUrl(value, bookmark.url) })
+            ctx.ui.toast("URL changed")
           },
-          bookmark.folder,
-        ),
-      ),
+        },
+      })),
+      field("bookmark-edit-folder", "Folder", bookmark.folder.title, { kind: "icon", icon: Folder01Icon }, () => moveView(ctx, bookmark)),
       field("bookmark-edit-keyword", "Keyword", bookmark.keyword || "None", { kind: "icon", icon: Link04Icon }, () => ({
         id: "bookmark-rekey",
         title: "Keyword",
@@ -159,22 +195,11 @@ export function editView(ctx: CommandContext, bookmark: Bookmark): ListView {
         actions: [{ id: "assign", title: "Record shortcut", keys: "ctrl+.", keepOpen: true, run: () => ctx.ui.record(jumpId(jump), bookmark.title, jump) }],
       },
       {
-        id: "bookmark-edit-remove",
-        title: "Remove bookmark",
+        id: "bookmark-edit-delete",
+        title: "Delete bookmark",
         section: "Bookmark",
         icon: { kind: "icon", icon: BookmarkRemove01Icon, color: "var(--rose)" },
-        actions: [
-          {
-            id: "remove",
-            title: "Remove",
-            danger: true,
-            run: async () => {
-              await removeBookmark(bookmark)
-              const { url, title, folder, keyword } = bookmark
-              ctx.ui.toast("Bookmark removed", { label: "Undo", run: () => void addBookmark({ url, title, folder, keyword }) })
-            },
-          },
-        ],
+        actions: [{ id: "delete", title: "Delete", danger: true, run: () => deleteBookmark(ctx, bookmark) }],
       },
     ],
   }

@@ -36,6 +36,7 @@ import { editPinnedUrl, replacePinnedUrl, resetPinnedTab, toggleEssential, toggl
 import { transferSession, wipeTab } from "@/browser/session"
 import { canCopy, isPageFocused, pageHasSelection } from "@/browser/window"
 import { activeWorkspaceId, listWorkspaces, moveTabAndFollow, switchWorkspace } from "@/browser/workspaces"
+import { bookmarkFolderCommands } from "./bookmark-folders"
 import { bookmarkCommands } from "./bookmarks"
 import { googleCommands } from "./google"
 import { modCommands } from "./mods"
@@ -94,8 +95,8 @@ export function containerItems(ctx: CommandContext, primary: ContainerAction, se
     actions: [
       { id: "primary", title: primary.title, keepOpen: primary.keepOpen, run: () => primary.run(container.id) },
       ...(secondary ? [{ id: "secondary", title: secondary.title, keys: "ctrl+enter", run: () => secondary.run(container.id) }] : []),
-    ],
       ...more.map((action, i) => ({ id: `more-${i}`, title: action.title, run: () => action.run(container.id) })),
+    ],
   }))
 }
 
@@ -404,9 +405,9 @@ const CORE: Command[] = [
         placeholder: "Container",
         items: containerItems(
           ctx,
-          { title: "Copy session here", run: transfer("copy") },
           { title: "Reopen here", run: (id) => void reopenInContainer(ctx.win, ctx.tab, id) },
           { title: "Move with session", run: transfer("move") },
+          { title: "Copy session here", run: transfer("copy") },
         ).filter((item) => item.id !== `container-${ctx.tab.userContextId}`),
       }
     },
@@ -454,6 +455,6 @@ const CORE: Command[] = [
 // Each file in src/features/ exports `commands`; forks add features there instead of editing this list.
 const FEATURES = import.meta.glob<Command[]>("../features/*.ts", { eager: true, import: "commands" })
 
-export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...googleCommands, ...modCommands, ...sessionCommands, ...localhostCommands, ...Object.values(FEATURES).flat()]
+export const COMMANDS: Command[] = [...CORE, ...bookmarkCommands, ...bookmarkFolderCommands, ...googleCommands, ...modCommands, ...sessionCommands, ...localhostCommands, ...Object.values(FEATURES).flat()]
 
 export const COMMANDS_BY_ID = new Map(COMMANDS.map((command) => [command.id, command]))

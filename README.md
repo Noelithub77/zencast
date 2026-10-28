@@ -73,7 +73,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Typing a setting's name and switching it from the palette](docs/media/settings.gif)
 
-**Bookmarks from the keyboard.** `Ctrl+B` bookmarks the tab in the palette: name, folder, then an optional keyword, with `Esc` stepping back. On a page already bookmarked it opens the same fields to edit, plus its key and Remove. Every bookmark is searchable by title, folder or keyword.
+**Bookmarks from the keyboard.** `Ctrl+B` bookmarks the tab in the palette: name, folder, then an optional keyword, with `Esc` stepping back. On a page already bookmarked it opens the same fields to edit (name, URL, folder, keyword), plus its key and Delete. Every bookmark is searchable by title, folder or keyword, and any bookmark row edits with `Ctrl+E`, moves with `Ctrl+M` and deletes with `Ctrl+Shift+Backspace`; moves and deletes have Undo. "Browse bookmarks" walks the folders in Zen's order, and `Ctrl+Enter` on a folder opens its bookmarks as tabs.
 
 **Quick links.** A bookmark's keyword is its quick link: `gh zencast` searches GitHub when the bookmark's URL has `%s`, `gh` alone asks for the query, and a keyword without `%s` opens its page. They are Firefox's own bookmark keywords, so Zen's address bar knows them too. "Add starter quick links" adds `gh`, `yt`, `wiki`, `mdn`, `npm`, `maps`, `gpt`, `claude` and `cf`, keeping any keyword you already use.
 

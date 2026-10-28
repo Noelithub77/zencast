@@ -1,7 +1,7 @@
 // Bookmarks in the palette: every bookmark is searchable from the root list, and a typed keyword
 // ("gh zencast") becomes the top row, filling the quick link's %s with the rest of the query.
 import { allBookmarks, fillQuery, keywordBookmark, takesQuery, type Bookmark } from "@/browser/bookmarks"
-import { editView } from "@/commands/bookmarks"
+import { deleteBookmark, editView, moveView } from "@/commands/bookmarks"
 import type { CommandContext, ItemAction, ListView, PaletteItem } from "@/commands/types"
 import { jumpId, type Jump } from "@/shared/config"
 import { openActions, openTarget } from "./sources"
@@ -26,36 +26,41 @@ function queryPrompt(ctx: CommandContext, bookmark: Bookmark): ListView {
   }
 }
 
-function editAction(ctx: CommandContext, bookmark: Bookmark): ItemAction {
-  return { id: "edit", title: "Edit bookmark", keys: "ctrl+e", run: () => editView(ctx, bookmark) }
+function manageActions(ctx: CommandContext, bookmark: Bookmark): ItemAction[] {
+  return [
+    { id: "edit", title: "Edit bookmark", keys: "ctrl+e", run: () => editView(ctx, bookmark) },
+    { id: "move", title: "Move to folder", keys: "ctrl+m", run: () => moveView(ctx, bookmark) },
+    { id: "delete", title: "Delete bookmark", keys: "ctrl+shift+backspace", danger: true, run: () => deleteBookmark(ctx, bookmark) },
+  ]
 }
 
-export function bookmarkItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {
-  return allBookmarks().map((bookmark) => {
-    const search = takesQuery(bookmark.url)
-    const jump: Jump = { kind: "url", target: bookmark.url, title: bookmark.title }
-    return {
-      id: `bookmark:${bookmark.guid}`,
-      title: bookmark.title,
-      subtitle: shortUrl(bookmark.url),
-      section: "Bookmarks",
-      icon: { kind: "favicon", url: favicon(bookmark.url) },
-      accessory: bookmark.keyword || undefined,
-      accessoryColor: "var(--butter)",
-      keys: bindings.get(jumpId(jump))?.[0],
-      keywords: `bookmark ${bookmark.keyword} ${bookmark.folder.path}`,
-      // Below tabs and commands in the empty list; a typed match still ranks on its own.
-      boost: -0.5,
-      actions: search
-        ? [{ id: "search", title: "Search", run: () => queryPrompt(ctx, bookmark) }, editAction(ctx, bookmark)]
-        : [
-            ...openActions(ctx, () => bookmark.url),
-            editAction(ctx, bookmark),
-            { id: "assign", title: "Assign shortcut", keys: "ctrl+.", keepOpen: true, run: () => ctx.ui.record(jumpId(jump), bookmark.title, jump) },
-          ],
-    }
-  })
+export function bookmarkItem(ctx: CommandContext, bookmark: Bookmark, bindings: Map<string, string[]>): PaletteItem {
+  const search = takesQuery(bookmark.url)
+  const jump: Jump = { kind: "url", target: bookmark.url, title: bookmark.title }
+  return {
+    id: `bookmark:${bookmark.guid}`,
+    title: bookmark.title,
+    subtitle: shortUrl(bookmark.url),
+    section: "Bookmarks",
+    icon: { kind: "favicon", url: favicon(bookmark.url) },
+    accessory: bookmark.keyword || undefined,
+    accessoryColor: "var(--butter)",
+    keys: bindings.get(jumpId(jump))?.[0],
+    keywords: `bookmark ${bookmark.keyword} ${bookmark.folder.path}`,
+    // Below tabs and commands in the empty list; a typed match still ranks on its own.
+    boost: -0.5,
+    actions: search
+      ? [{ id: "search", title: "Search", run: () => queryPrompt(ctx, bookmark) }, ...manageActions(ctx, bookmark)]
+      : [
+          ...openActions(ctx, () => bookmark.url),
+          ...manageActions(ctx, bookmark),
+          { id: "assign", title: "Assign shortcut", keys: "ctrl+.", keepOpen: true, run: () => ctx.ui.record(jumpId(jump), bookmark.title, jump) },
+        ],
+  }
 }
+
+export const bookmarkItems = (ctx: CommandContext, bindings: Map<string, string[]>) =>
+  allBookmarks().map((bookmark) => bookmarkItem(ctx, bookmark, bindings))
 
 /**
  * The quick link a query starts with: "gh zencast" searches GitHub, "gh" alone asks for the query,

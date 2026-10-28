@@ -13,7 +13,7 @@ Owner's choices (2026-10-28):
 - `src/settings/sections/SessionsSection.tsx`: the same list in settings.
 - `src/browser/localhost.ts`: listening ports from `ss`, then `lsof`, then `netstat`, probed over HTTP for a page title.
 - `src/commands/localhost.ts`: the switcher.
-- Bookmarks: extend `src/commands/bookmarks.ts` and `src/palette/bookmarks.ts`.
+- Bookmarks: `src/commands/bookmark-folders.ts` browses the tree from `folderContents`; each row from `bookmarkItem` in `src/palette/bookmarks.ts` edits, moves and deletes, with Undo restoring the old position.
 
 ## Done when
 

@@ -440,9 +440,9 @@ declare global {
     readonly rootGuid: string
     readonly DEFAULT_INDEX: number
     readonly TYPE_FOLDER: number
-    insert(info: { parentGuid: string; url?: string; title?: string; type?: number }): Promise<{ guid: string }>
+    insert(info: { parentGuid: string; url?: string; title?: string; type?: number; index?: number }): Promise<{ guid: string }>
     /** Moving to another folder needs `index` too. */
-    update(info: { guid: string; title?: string; parentGuid?: string; index?: number }): Promise<unknown>
+    update(info: { guid: string; title?: string; url?: string; parentGuid?: string; index?: number }): Promise<unknown>
     remove(guid: string): Promise<unknown>
   }
 

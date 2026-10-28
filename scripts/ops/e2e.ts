@@ -193,7 +193,7 @@ const SCENARIOS: Scenario[] = [
         await sleep(300)
         clip = await navigator.clipboard.readText().catch((e) => "unreadable: " + e)
       } finally {
-        if (paletteOpen()) await dismiss()
+        await dismiss().catch(() => {})
         gBrowser.removeTab(tab)
       }
       return { ok: clip.startsWith("[Feature demo](data:text/html,"), detail: JSON.stringify(clip.slice(0, 40)) }`,
@@ -800,7 +800,7 @@ const SCENARIOS: Scenario[] = [
         press("ctrl+b", document.documentElement)
         await until(paletteOpen, 2000)
         const fields = await until(() => resultTitles().length >= 5 && resultTitles(), 2000).catch(() => resultTitles())
-        shadow().querySelector('[cmdk-item][data-value="bookmark-edit-remove"]').click()
+        shadow().querySelector('[cmdk-item][data-value="bookmark-edit-delete"]').click()
         await until(() => !paletteOpen(), 2000)
         const removed = await poll(async () => !(await PlacesUtils.bookmarks.fetch({ url })))
 
@@ -821,6 +821,112 @@ const SCENARIOS: Scenario[] = [
         const left = await PlacesUtils.bookmarks.fetch({ url })
         if (left) await PlacesUtils.bookmarks.remove(left.guid)
         await PlacesUtils.keywords.remove("cbt").catch(() => {})
+      }`,
+  },
+  {
+    name: "bookmarks are browsed by folder, moved, edited and deleted with undo",
+    body: String.raw`${READY}
+      ${PLACES}
+      const { bookmarks: api, keywords } = PlacesUtils
+      const shelf = await api.insert({ parentGuid: api.toolbarGuid, type: api.TYPE_FOLDER, title: "Zc shelf" })
+      const inner = await api.insert({ parentGuid: shelf.guid, type: api.TYPE_FOLDER, title: "Zc inner" })
+      const one = await api.insert({ parentGuid: shelf.guid, url: "https://example.com/shelf-one", title: "Shelf one" })
+      const two = await api.insert({ parentGuid: shelf.guid, url: "https://example.com/shelf-two", title: "Shelf two" })
+      await keywords.insert({ keyword: "sh1", url: "https://example.com/shelf-one" })
+      await sleep(300)
+      const undo = async () => (await until(() => document.getElementById("zencast-toast-action"), 2000)).doCommand()
+      const pick = async (query, view) => {
+        typeQuery(query)
+        await until(() => (resultTitles()[0] ?? "").toLowerCase().startsWith(query), 2000)
+        await sleep(80)
+        press("enter")
+        if (view) await until(() => inputPlaceholder() === view, 2000)
+      }
+      const closed = (step) => until(() => !paletteOpen(), 2000).catch(() => {
+        throw new Error("palette stayed open after " + step + ": " + inputPlaceholder() + " | " + resultTitles().slice(0, 3).join(" | "))
+      })
+      // Waits a frame after the row shows, so the palette has selected it before a key acts on it.
+      const select = async (query) => {
+        typeQuery(query)
+        await until(() => (resultTitles()[0] ?? "").toLowerCase().startsWith(query), 2000)
+        await sleep(80)
+      }
+      const before = gBrowser.tabs.length
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        await pick("browse bookmarks", "Folder")
+        await pick("bookmarks toolbar", "Search Bookmarks toolbar")
+        typeQuery("zc shelf")
+        const summary = await until(() => resultTitles().find((title) => title.startsWith("Zc shelf")), 2000).catch(() => "")
+        press("enter")
+        await until(() => inputPlaceholder() === "Search Zc shelf", 2000)
+        const order = await until(() => resultTitles().length === 3 && resultTitles(), 2000).catch(() => resultTitles())
+
+        await select("shelf one")
+        press("ctrl+m")
+        await until(() => inputPlaceholder() === "Folder", 2000)
+        typeQuery("zc inner")
+        await until(() => (resultTitles()[0] ?? "").startsWith("Zc inner"), 2000)
+        await sleep(80)
+        press("enter")
+        await closed("move")
+        const moved = await poll(async () => (await api.fetch(one.guid))?.parentGuid === inner.guid)
+        const movedTo = (await api.fetch(one.guid))?.parentGuid
+        await undo()
+        const back = await poll(async () => {
+          const now = await api.fetch(one.guid)
+          return now?.parentGuid === shelf.guid && now.index === one.index
+        })
+
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        await select("shelf one")
+        press("ctrl+e")
+        await until(() => resultTitles().some((title) => title.startsWith("URL")), 2000)
+        shadow().querySelector('[cmdk-item][data-value="bookmark-edit-url"]').click()
+        await until(() => inputPlaceholder().startsWith("URL"), 2000)
+        typeQuery("example.com/shelf-uno")
+        await sleep(50)
+        press("enter")
+        await closed("url")
+        const renamed = await poll(async () => (await api.fetch(one.guid))?.url.href === "https://example.com/shelf-uno")
+        const keyword = await poll(async () => (await keywords.fetch("sh1"))?.url.href === "https://example.com/shelf-uno")
+
+        await sleep(300)
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        await select("shelf two")
+        press("ctrl+shift+backspace")
+        await closed("delete")
+        const deleted = await poll(async () => !(await api.fetch(two.guid)))
+        await undo()
+        const restored = await poll(async () => {
+          const found = await api.fetch({ url: "https://example.com/shelf-two" })
+          return found?.parentGuid === shelf.guid && found.index === two.index
+        })
+
+        await sleep(300)
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        await pick("browse bookmarks", "Folder")
+        await pick("bookmarks toolbar", "Search Bookmarks toolbar")
+        await select("zc shelf")
+        press("ctrl+enter")
+        const opened = await until(() => gBrowser.tabs.length === before + 2, 3000).catch(() => false)
+
+        const ok = summary.includes("1 folder · 2 bookmarks") && ["Zc inner", "Shelf one", "Shelf two"].every((title, i) => order[i]?.startsWith(title)) && moved && back && renamed && keyword && deleted && restored && opened
+        return {
+          ok,
+          detail: "row: " + summary + "; order " + order.map((title) => title.slice(0, 9)).join(", ") + (moved ? "; moved" : "; not moved, went to " + movedTo) + (back ? ", undone in place" : ", not undone") +
+            (renamed ? "; URL changed" : "; URL unchanged") + (keyword ? " with its keyword" : ", keyword left behind") +
+            (deleted ? "; deleted" : "; not deleted") + (restored ? ", restored in place" : ", not restored") + (opened ? "; opened all" : "; open all opened " + (gBrowser.tabs.length - before)),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        while (gBrowser.tabs.length > before) gBrowser.removeTab(gBrowser.tabs.at(-1))
+        await api.remove(shelf.guid)
+        await keywords.remove("sh1").catch(() => {})
       }`,
   },
   {

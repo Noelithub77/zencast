@@ -59,7 +59,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ![Alt+2 tints the palette to a space, Ctrl+1 picks a container](docs/media/spaces.gif)
 
-**Hold to reveal.** Hold `Ctrl` or `Alt` and each visible result underlines a letter in its title and shows it at the row's end, both in the same pastel colour; the same key plus the letter runs it. A strip lists every other key that modifier takes in the palette, and numbers the containers (`Ctrl`) or spaces (`Alt`), so nothing has to be learned first.
+**Hold to reveal.** Hold `Ctrl` or `Alt` and each visible result underlines a letter in its title and shows it at the row's end, both in the same pastel colour; the same key plus the letter runs it. Tap `Alt` instead and the letters stay until another tap or `Esc`, and the bare letter runs the row. A strip lists every other key that modifier takes in the palette, and numbers the containers (`Ctrl`) or spaces (`Alt`), so nothing has to be learned first.
 
 ![Holding Ctrl marks a letter in every result](docs/media/hints.gif)
 
@@ -131,6 +131,7 @@ In the palette:
 | `Ctrl+J` | All actions for the result |
 | `Ctrl+K` | Close; whichever key opened the palette closes it |
 | Hold `Ctrl` or `Alt` | Letter hints on results and a list of that modifier's keys; numbers on containers or spaces |
+| Tap `Alt` | Keep the letter hints up; a bare letter runs the marked result |
 | `Alt+1…9`, `Ctrl+1…9` | Open results in that space or container |
 | `Ctrl+.` | Record a shortcut, or assign a key to a tab, folder or site |
 | `@`, `/`, `#`, `$`, `*` first | Search only tabs, commands, bookmarks, settings or mods |
@@ -138,7 +139,7 @@ In the palette:
 | `Tab`, `→` | Accept the inline completion; after an engine keyword, search that engine |
 | `Esc` | Back, then close |
 
-Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). `Enter` opens the completed address; delete the completion and a tab whose title or address starts with what you typed leads instead, and `Shift+Enter` searches the web for the typed text whichever result is selected; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones.
+Typing the start of a site completes it inline, even over a command or container with the same start (`allpyq` becomes `allpyq.in`). Your history comes first, most visited first (`amazon` becomes `amazon.in`), then open tabs and the DNS cache, and last a live DNS lookup of the name with common endings (`.com`, `.in`, `.io`, `.dev`, `.app`, `.org`, `.net`). `Enter` opens the completed address; delete the completion and a tab whose title or address starts with what you typed leads instead, and `Shift+Enter` searches the web for the typed text whichever result is selected; the footer names the key. Unloaded tabs are greyed out everywhere, and under `@` they get their own section below the loaded ones, with the current tab among the loaded. The empty palette leads with your last three loaded tabs, the one you just left first. Each tab shows where it lives, as space / folder / subfolder.
 
 ## Make it yours
 

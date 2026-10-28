@@ -3,6 +3,7 @@
 import { CleanIcon } from "@hugeicons/core-free-icons"
 
 import { cleanUpTabs, idleDays, idleTabs, IDLE_DAYS, undoCleanup } from "@/browser/cleanup"
+import { breadcrumb } from "@/browser/folders"
 import { selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { listWorkspaces } from "@/browser/workspaces"
 import type { Command, CommandContext, ListView, PaletteItem } from "./types"
@@ -24,7 +25,7 @@ function cleanupView(ctx: CommandContext): ListView | void {
       id: `cleanup:${tabKey(tab)}`,
       transient: true,
       title: tab.label,
-      subtitle: [url.replace(/^https?:\/\/(www\.)?/, ""), spaces.get(tab.getAttribute("zen-workspace-id") ?? "")].filter(Boolean).join(" · "),
+      subtitle: [url.replace(/^https?:\/\/(www\.)?/, ""), breadcrumb(tab, spaces)].filter(Boolean).join(" · "),
       section: `Not opened for ${IDLE_DAYS} days`,
       icon: { kind: "favicon", url: tab.getAttribute("image") || `page-icon:${url}` },
       accessory: `${idleDays(tab)} days`,

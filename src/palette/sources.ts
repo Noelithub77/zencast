@@ -20,7 +20,7 @@ import {
   writeValuePref,
   type ValuePref,
 } from "@/browser/settings-index"
-import { allFolders, folderPath, isFolder, openFolder } from "@/browser/folders"
+import { allFolders, breadcrumb, folderPath, openFolder } from "@/browser/folders"
 import { closeTab, duplicateTab, listTabs, selectTab, tabKey, tabUrl } from "@/browser/tabs"
 import { fillQuery } from "@/browser/bookmarks"
 import { ASSISTANTS, defaultEngine, searchUrl, typedUrl, type WebResult } from "@/browser/urlbar"
@@ -102,70 +102,77 @@ function commandItems(ctx: CommandContext, bindings: Map<string, string[]>): Pal
 
 const HOUR_MS = 3_600_000
 
+function tabItem(ctx: CommandContext, tab: XULTab, bindings: Map<string, string[]>, spaces: Map<string, string>, now: number): PaletteItem {
+  const url = tabUrl(tab)
+  const container = tab.userContextId
+  const loaded = !tab.hasAttribute("pending")
+  const recency = 0.3 / (1 + Math.max(0, now - tab.lastAccessed) / HOUR_MS)
+  const jump: Jump = { kind: "url", target: url, title: tab.label }
+  // Where the tab lives, from its space down through every folder, then its container.
+  const place = breadcrumb(tab, spaces)
+  return {
+    id: tabKey(tab),
+    transient: true,
+    title: tab.label,
+    subtitle: url.replace(/^https?:\/\/(www\.)?/, ""),
+    section: "Tabs",
+    icon: { kind: "favicon", url: tab.getAttribute("image") || `page-icon:${url}` },
+    accessory: [place, container && containerName(container)].filter(Boolean).join(" · ") || undefined,
+    accessoryColor: "var(--faint)",
+    keys: bindings.get(jumpId(jump))?.[0],
+    keywords: [
+      place,
+      tab.pinned && "pinned",
+      tab.hasAttribute("zen-essential") && "essential",
+      !loaded && "unloaded",
+      tab === ctx.tab && "current",
+    ]
+      .filter(Boolean)
+      .join(" "),
+    boost: (loaded ? 0.6 : 0) + recency,
+    dim: !loaded,
+    actions: [
+      { id: "switch", title: "Switch to tab", run: () => switchToTab(ctx, tab) },
+      { id: "close", title: "Close tab", keys: "ctrl+w", danger: true, keepOpen: true, run: () => closeTab(ctx.win, tab) },
+      assignAction(ctx, jump),
+      { id: "duplicate", title: "Duplicate", run: () => duplicateTab(ctx.win, tab) },
+    ],
+  }
+}
+
+const spaceNames = (ctx: CommandContext) => new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
+
 /**
- * Every tab in every space and folder, including pinned, essential and unloaded ones. Loaded tabs
- * rank above unloaded ones, and recently used tabs above both, without outranking commands.
+ * Every tab in every space and folder but the current one, including pinned, essential and unloaded
+ * ones. Loaded tabs rank above unloaded ones, and recently used tabs above both, without outranking commands.
  */
 function tabItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {
-  const spaces = new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
+  const spaces = spaceNames(ctx)
   const now = Date.now()
   return listTabs(ctx.win)
     .filter((tab) => tab !== ctx.tab)
-    .map((tab) => {
-      const url = tabUrl(tab)
-      const container = tab.userContextId
-      const space = spaces.get(tab.getAttribute("zen-workspace-id") ?? "") ?? ""
-      const folder = isFolder(tab.group) ? folderPath(tab.group) : ""
-      const loaded = !tab.hasAttribute("pending")
-      const recency = 0.3 / (1 + Math.max(0, now - tab.lastAccessed) / HOUR_MS)
-      const jump: Jump = { kind: "url", target: url, title: tab.label }
-      return {
-        id: tabKey(tab),
-        transient: true,
-        title: tab.label,
-        subtitle: url.replace(/^https?:\/\/(www\.)?/, ""),
-        section: "Tabs",
-        icon: { kind: "favicon", url: tab.getAttribute("image") || `page-icon:${url}` },
-        accessory: container ? containerName(container) : folder || space || undefined,
-        accessoryColor: container ? undefined : "var(--faint)",
-        keys: bindings.get(jumpId(jump))?.[0],
-        keywords: [
-          folder,
-          space,
-          tab.pinned && "pinned",
-          tab.hasAttribute("zen-essential") && "essential",
-          !loaded && "unloaded",
-        ]
-          .filter(Boolean)
-          .join(" "),
-        boost: (loaded ? 0.6 : 0) + recency,
-        dim: !loaded,
-        actions: [
-          { id: "switch", title: "Switch to tab", run: () => switchToTab(ctx, tab) },
-          { id: "close", title: "Close tab", keys: "ctrl+w", danger: true, keepOpen: true, run: () => closeTab(ctx.win, tab) },
-          assignAction(ctx, jump),
-          { id: "duplicate", title: "Duplicate", run: () => duplicateTab(ctx.win, tab) },
-        ],
-      }
-    })
+    .map((tab) => tabItem(ctx, tab, bindings, spaces, now))
 }
+
+/** The current tab, listed only when searching tabs, where it shows where it lives. */
+export const currentTabItem = (ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem =>
+  tabItem(ctx, ctx.tab, bindings, spaceNames(ctx), Date.now())
 
 /** Folders by name and path; opening one expands it and switches to its first tab. */
 function folderItems(ctx: CommandContext, bindings: Map<string, string[]>): PaletteItem[] {
   const spaces = new Map(listWorkspaces(ctx.win).map((ws) => [ws.uuid, ws.name]))
   return allFolders(ctx.win).map((folder) => {
-    const path = folderPath(folder)
     const jump: Jump = { kind: "folder", target: folder.id, title: folder.label }
     return {
       id: `folder:${folder.id}`,
       title: folder.label,
-      subtitle: path === folder.label ? undefined : path,
       section: "Folders",
       icon: { kind: "icon", icon: Folder01Icon },
-      accessory: spaces.get(folder.getAttribute("zen-workspace-id") ?? ""),
+      // The parent folders follow the space, as on tabs.
+      accessory: breadcrumb(folder, spaces) || undefined,
       accessoryColor: "var(--faint)",
       keys: bindings.get(jumpId(jump))?.[0],
-      keywords: `folder ${folder.tabs.length} tabs`,
+      keywords: `folder ${folderPath(folder)} ${folder.tabs.length} tabs`,
       transient: true,
       actions: [
         { id: "open", title: "Open folder", run: () => openFolder(ctx.win, folder) },

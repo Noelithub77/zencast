@@ -401,7 +401,7 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "unloaded tabs are greyed out, and searching tabs lists them in their own section, without folders",
+    name: "unloaded tabs are greyed out, and searching tabs lists them in their own section with the current tab and each tab's space and folders",
     body: String.raw`${READY}
       const principal = Services.scriptSecurityManager.getSystemPrincipal()
       const lazy = gBrowser.addTab("https://quokkafern.example/a", { triggeringPrincipal: principal, inBackground: true, createLazyBrowser: true, })
@@ -409,7 +409,8 @@ const SCENARIOS: Scenario[] = [
       const folder = gZenFolders.createFolder([shelved], { label: "Quokkafern shelf" })
       const live = newTab("data:text/html,<title>Quokkafern live</title>x")
       await until(() => live.label === "Quokkafern live")
-      const current = newTab()
+      const current = newTab("data:text/html,<title>Quokkafern here</title>x")
+      await until(() => current.label === "Quokkafern here")
       const headings = () => [...shadow().querySelectorAll("[cmdk-group-heading]:not([hidden])")].map((h) => h.textContent)
       const row = (text) => [...shadow().querySelectorAll("[cmdk-item]")].find((item) => item.textContent.includes(text))
       try {
@@ -418,13 +419,16 @@ const SCENARIOS: Scenario[] = [
         typeQuery("@quokkafern")
         const order = await until(() => headings().includes("Unloaded") && headings(), 2000).catch(() => headings())
         const scoped = row("quokkafern.example")?.className.includes("grayscale") && !row("Quokkafern live")?.className.includes("grayscale")
+        const here = !!row("Quokkafern here")
+        const crumbs = row("example.com/shelf")?.textContent ?? ""
+        const placed = /Space \/ Quokkafern shelf/.test(crumbs)
         press("backspace")
         await sleep(50)
         typeQuery("quokkafern")
         const greyed = await until(() => row("quokkafern.example")?.className.includes("grayscale"), 2000).catch(() => false)
         return {
-          ok: order.join() === "Tabs,Unloaded" && !!scoped && greyed,
-          detail: "tabs scope: " + order.join(", ") + (scoped ? ", only the unloaded row greyed" : ", greying wrong") + (greyed ? "; greyed in search too" : "; not greyed in search"),
+          ok: order.join() === "Tabs,Unloaded" && !!scoped && greyed && here && placed,
+          detail: "tabs scope: " + order.join(", ") + (scoped ? ", only the unloaded row greyed" : ", greying wrong") + (here ? ", current tab listed" : ", no current tab") + "; folder row: " + crumbs + (greyed ? "; greyed in search too" : "; not greyed in search"),
         }
       } finally {
         await dismiss().catch(() => {})
@@ -501,6 +505,73 @@ const SCENARIOS: Scenario[] = [
       return {
         ok: shown.length > 3 && unique && marked && colors > 3 && listed && altShown.length > 3,
         detail: shown.join(" ") + "; " + colors + " colours" + (marked ? "; marked in titles" : "; titles not marked") + "; legend: " + legend + "; alt: " + altShown.join(" ") + "; cleared on release",
+      }`,
+  },
+  {
+    name: "the empty palette leads with the last loaded tabs, the one just left first",
+    body: String.raw`${READY}
+      const start = gBrowser.selectedTab
+      const older = newTab("data:text/html,<title>Recent wombat</title>x")
+      const newer = newTab("data:text/html,<title>Recent numbat</title>x")
+      await until(() => older.label === "Recent wombat" && newer.label === "Recent numbat")
+      try {
+        for (const tab of [older, newer, start]) {
+          gBrowser.selectedTab = tab
+          await sleep(30)
+        }
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        const heading = shadow().querySelector("[cmdk-group-heading]")?.textContent
+        const titles = resultTitles().slice(0, 2)
+        return {
+          ok: heading === "Recent tabs" && !!titles[0]?.startsWith("Recent numbat") && !!titles[1]?.startsWith("Recent wombat"),
+          detail: "first section " + heading + ": " + titles.join(", "),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        for (const tab of [older, newer]) gBrowser.removeTab(tab)
+      }`,
+  },
+  {
+    name: "a tap of alt latches the hints, a bare letter runs a marked row, and esc or another tap clears them",
+    body: String.raw`${READY}
+      const start = gBrowser.selectedTab
+      const target = newTab("data:text/html,<title>Quokkalatch</title>x")
+      await until(() => target.label === "Quokkalatch")
+      gBrowser.selectedTab = start
+      const hints = () => [...shadow().querySelectorAll("[cmdk-item] [data-hint]")]
+      const alt = { key: "Alt", code: "AltLeft", altKey: true, bubbles: true, composed: true }
+      const tap = () => {
+        document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
+        document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
+      }
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        tap()
+        const latched = await until(() => hints().length > 3, 2000).catch(() => false)
+        // Still up well past the hold delay, with nothing held.
+        await sleep(300)
+        const stayed = hints().length > 3
+        tap()
+        const untapped = await until(() => hints().length === 0, 2000).catch(() => false)
+        tap()
+        await until(() => hints().length > 3, 2000)
+        press("escape")
+        const escaped = await until(() => hints().length === 0, 2000).catch(() => false) && paletteOpen()
+        typeQuery("quokkalatch")
+        const row = await until(() => [...shadow().querySelectorAll("[cmdk-item]")].find((item) => item.textContent.includes("Quokkalatch") && item.textContent.includes("data:")), 2000)
+        tap()
+        const letter = (await until(() => row.querySelector("[data-hint]")?.textContent.toLowerCase(), 2000).catch(() => "")) ?? ""
+        if (letter) press(letter)
+        const ran = await until(() => gBrowser.selectedTab === target, 2000).catch(() => false)
+        return {
+          ok: !!latched && stayed && !!untapped && !!escaped && ran,
+          detail: (latched && stayed ? "a tap latched the hints" : "no latch") + (untapped ? "; another tap cleared them" : "; still up after a tap") + (escaped ? "; esc cleared them" : "; esc did not clear") + (ran ? "; " + letter + " switched to the marked tab" : "; letter " + letter + " ran nothing"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        gBrowser.removeTab(target)
       }`,
   },
   {

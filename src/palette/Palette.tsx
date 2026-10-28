@@ -11,7 +11,7 @@ import { listWorkspaces, workspaceColor } from "@/browser/workspaces"
 import type { CommandContext, ItemAction, PaletteItem } from "@/commands/types"
 import { Command, CommandEmpty, CommandItem, CommandList } from "@/components/ui/command"
 import { Kbd } from "@/components/ui/kbd"
-import { bindingIndex, paletteKeys } from "@/keys/bindings"
+import { bindingIndex, effectiveBindings, paletteKeys } from "@/keys/bindings"
 import { CHORD_WAIT_MS, recordKey } from "@/keys/record"
 import { cn } from "@/lib/utils"
 import { readConfig, readUsage } from "@/shared/config"
@@ -26,7 +26,7 @@ import { buildIndex, isStrongMatch, search } from "./search"
 import { quickLink } from "./bookmarks"
 import { modItems } from "@/commands/mods"
 import { scopeFor, SCOPES, type Scope } from "./scopes"
-import { defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
+import { currentTabItem, defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
 const WEB_DEBOUNCE_MS = 40
@@ -53,6 +53,7 @@ interface Entry {
 
 // Rows that fit in the list without scrolling; the rest render in a deferred, interruptible pass.
 const FIRST_SCREEN = 14
+const RECENT_TABS = 3
 
 /**
  * The first screen of fresh results over the previous results' off-screen rows. Keeping the row
@@ -396,9 +397,11 @@ export function Palette() {
     if (view) return buildIndex(view.items)
     if (scope?.id === "mods") return buildIndex(mods)
     if (scope) {
-      // The tabs scope lists tabs only; folders stay in the root search.
+      // The tabs scope lists tabs only, the current one too; folders stay in the root search.
       const scoped = (item: PaletteItem) => item.scope === scope.id && (scope.id !== "tabs" || item.section === "Tabs")
-      return buildIndex((context ? rootWithSettings(context, root).items : root).filter(scoped))
+      const items = (context ? rootWithSettings(context, root).items : root).filter(scoped)
+      const current = scope.id === "tabs" && context ? [currentTabItem(context, effectiveBindings(readConfig()))] : []
+      return buildIndex([...current, ...items])
     }
     if (!wantsSettings || !context) return buildIndex(root)
     return rootWithSettings(context, root)
@@ -450,6 +453,16 @@ export function Palette() {
       return { groups: groups.filter((group) => group.items.length), suffix: "" }
     }
     const found = search(index, q, readUsage(), config.maxResults).map((r) => r.item)
+    if (!q && !view && !scope && context) {
+      // The empty palette leads with the last few loaded tabs, most recent first; a tab's boost grows with recency.
+      const recent = root
+        .filter((item) => item.scope === "tabs" && item.section === "Tabs" && !item.dim)
+        .toSorted((a, b) => (b.boost ?? 0) - (a.boost ?? 0))
+        .slice(0, RECENT_TABS)
+      const shownIds = new Set(recent.map((item) => item.id))
+      const groups = [{ section: "Recent tabs", items: recent }, ...groupBySection(found.filter((item) => !shownIds.has(item.id)))]
+      return { groups: groups.filter((group) => group.items.length), suffix: "" }
+    }
     if (view || scope || !context || !q) return { groups: groupBySection(found), suffix: "" }
 
     const out: Group[] = []
@@ -476,7 +489,7 @@ export function Palette() {
     if (url || strong) webList.unshift(...searchItems)
     if (webList.length) out.push({ section: "Web", items: webList })
     return { groups: out, suffix }
-  }), [index, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults])
+  }), [index, root, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults])
 
   const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])
@@ -499,9 +512,20 @@ export function Palette() {
   }, [open, context, viewKey, view])
 
   // Hints label only the rows in view when Ctrl goes down; the options panel numbers its actions instead.
+  // A tap of Alt latches them, as if Alt stayed held, until another tap, Esc or a marked result runs.
   const [held, setHeld] = useState<Modifier | null>(null)
   const [hints, setHints] = useState<Map<string, Hint> | null>(null)
-  useModifierHold(open && context ? context.win : null, (modifier) => {
+  const latched = useRef(false)
+  const unlatch = () => {
+    latched.current = false
+    setHeld(null)
+    setHints(null)
+  }
+  useModifierHold(open && context ? context.win : null, (pressed, cause) => {
+    if (cause === "tap") latched.current = !latched.current
+    else if (cause === "reset") latched.current = false
+    // Letting go of a hold while latched goes back to the latched Alt hints.
+    const modifier = (cause === "tap" ? null : pressed) ?? (latched.current ? "alt" : null)
     setHeld(modifier)
     const list = listRef.current
     if (!modifier || panel || recording || view?.prompt || !list) return setHints(null)
@@ -545,7 +569,7 @@ export function Palette() {
   // except text editing. Unmodified keys go on to the input and cmdk's list navigation.
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.isComposing) return
-    const combo = comboFromEvent(event)
+    let combo = comboFromEvent(event)
     if (!combo) return
     const consume = () => {
       event.preventDefault()
@@ -587,6 +611,16 @@ export function Palette() {
       return
     }
 
+    // Latched hints take bare letters and digits as Alt ones, and Enter when the result has an Alt+Enter action.
+    if (latched.current) {
+      if (combo === "escape") {
+        consume()
+        unlatch()
+        return
+      }
+      const altEnter = combo === "enter" && active?.actions.some((action) => action.keys === "alt+enter")
+      if (/^[a-z0-9]$/.test(combo) || altEnter) combo = `alt+${combo}`
+    }
     const typedEngine = combo === "tab" && !view && !scope && !engine ? engineFor(query) : undefined
     if (typedEngine) {
       consume()
@@ -654,6 +688,7 @@ export function Palette() {
     const hinted = letter && hints ? rows.find((item) => hints.get(item.id)?.letter === letter) : undefined
     if (hinted) {
       consume()
+      unlatch()
       run(hinted, hinted.actions[0])
       return
     }

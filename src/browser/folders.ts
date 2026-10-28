@@ -109,6 +109,17 @@ export function folderPath(folder: ZenFolder): string {
   return parts.join(" / ")
 }
 
+/**
+ * Where a tab or folder lives, as "space / folder / subfolder": its space, then every folder above it.
+ * A pinned tab in a folder carries no space of its own, so it comes from the nearest folder that does.
+ */
+export function breadcrumb(element: XULTab | ZenFolder, spaces: Map<string, string>): string {
+  const parent = isFolder(element.group) ? element.group : null
+  let spaceId = element.getAttribute("zen-workspace-id")
+  for (let current = parent; !spaceId && current; current = current.group) spaceId = current.getAttribute("zen-workspace-id")
+  return [spaces.get(spaceId ?? ""), parent && folderPath(parent)].filter(Boolean).join(" / ")
+}
+
 function folderDepth(folder: ZenFolder): number {
   let depth = 0
   for (let current: ZenFolder | null = folder; current; current = current.group) depth++

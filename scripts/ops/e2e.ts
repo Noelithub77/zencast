@@ -322,26 +322,24 @@ const SCENARIOS: Scenario[] = [
       return { ok: !!picker && copied, detail: (picker ? "no selection: picker" : "no selection: nothing") + "; with selection: " + (opened ? "picker" : "clipboard " + JSON.stringify(clip.slice(0, 30))) }`,
   },
   {
-    // The example in src/features/ proves the feature-module glob reaches the palette.
-    name: "a feature module's command copies the tab as a Markdown link",
+    name: "ctrl+space c moves the tab to a container and reopens its page there",
     body: String.raw`${READY}
-      const tab = newTab("data:text/html,<title>Feature [demo]</title>x")
-      await until(() => tab.label === "Feature [demo]")
-      let clip = ""
-      try {
-        press("ctrl+k", document.documentElement)
-        await until(paletteOpen)
-        typeQuery("copy as markdown")
-        const row = await until(() => shadow().querySelector('[cmdk-item][data-value="tab.copyMarkdownLink"]'), 3000)
-        row.click()
-        await until(() => !paletteOpen(), 2000)
-        await sleep(300)
-        clip = await navigator.clipboard.readText().catch((e) => "unreadable: " + e)
-      } finally {
-        await dismiss().catch(() => {})
-        gBrowser.removeTab(tab)
-      }
-      return { ok: clip.startsWith("[Feature demo](data:text/html,"), detail: JSON.stringify(clip.slice(0, 40)) }`,
+      const url = "http://localhost:${LOCAL_PORT}/"
+      const tab = newTab(url)
+      await until(() => tab.linkedBrowser?.currentURI?.spec === url)
+      gBrowser.selectedTab = tab
+      gBrowser.selectedBrowser.focus()
+      await sleep(200)
+      press("ctrl+space", document.documentElement)
+      press("c", document.documentElement)
+      const picker = await until(paletteOpen, 2000).catch(() => false)
+      await sleep(150)
+      press("enter")
+      const moved = await until(() => gBrowser.tabs.find((t) => t.linkedBrowser?.currentURI.spec === url && t.userContextId !== 0), 3000).catch(() => null)
+      await dismiss()
+      const replaced = !tab.isConnected
+      if (moved) gBrowser.removeTab(moved)
+      return { ok: !!picker && !!moved && replaced, detail: "picker " + !!picker + "; moved to a container " + !!moved + "; original closed " + replaced }`,
   },
   {
     name: "alt+p pins and unpins",

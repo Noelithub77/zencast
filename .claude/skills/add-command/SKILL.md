@@ -7,7 +7,7 @@ description: Add or change a Zencast command, its default keys, its palette resu
 
 Every action in Zencast, bound to a key or not, is a `Command`; its shape and the meaning of each field are in `src/commands/types.ts`. The palette lists commands, the key engine binds their `defaultKeys`, and the settings page lets users rebind them, so one catalog entry reaches all three.
 
-A new feature goes in its own file in `src/features/`, which exports `commands: Command[]`; `catalog.ts` collects every file there, so nothing else needs editing. `src/features/copy-link.ts` is the smallest example. A `.css` file beside it restyles Zen itself; the `restyle` skill covers looks. Change Zencast's own core commands in `catalog.ts`.
+A new feature goes in its own file in `src/features/`, which exports `commands: Command[]`; `catalog.ts` collects every file there, so nothing else needs editing. A `.css` file beside it restyles Zen itself; the `restyle` skill covers looks. Change Zencast's own core commands in `catalog.ts`.
 
 ## Steps
 

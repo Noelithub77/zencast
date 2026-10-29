@@ -126,12 +126,13 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | Alt+Shift+P | Change the pin to the current URL |
 | Ctrl+Shift+N | New folder in the space, or a subfolder when the tab is already in a folder |
 | Ctrl+C | Open in a container, only when nothing is selected for copying (Alt+C was taken) |
-| Alt+Shift+T | Tab in a throwaway container |
 | Alt+Shift+C | Move the tab to another container: Enter reopens it there, Ctrl+Enter takes its signed-in session (cookies and all), copying the session is in Ctrl+J. Alt+M is free since 2026-10-28 |
-| Alt+Shift+W | Full tab wipe: site data and history |
-| Ctrl+Space, then a key | Chords: F moves to a folder, S to a space, E toggles essentials. W is only wipe (Alt+Shift+W) since 2026-10-28 |
+| Alt+Shift+W | Reset tab data: site data and history (renamed from Wipe tab on 2026-10-29) |
+| Ctrl+Space, then a key | Chords: F moves to a folder, S to a space, C to a container (opens the tab's page there), E toggles essentials. W is only reset (Alt+Shift+W) since 2026-10-28 |
 | Ctrl+. | Give any command, tab, bookmark or site its own key |
 | Ctrl+B | Bookmark the tab (name, folder, optional keyword), or edit its bookmark |
+
+Removed on 2026-10-29: Alt+Shift+T (a throwaway container) and the Copy as Markdown link example in `src/features/`. The owner found both useless.
 
 The keybinding system should show all native Zen bindings and be more customizable than Zen's. Moving a tab also switches to its space, so the move is visible.
 

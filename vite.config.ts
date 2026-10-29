@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
@@ -30,7 +30,7 @@ function documentCss(): Plugin {
         hoisted.push(rule)
         return ""
       })
-      const looks = readdirSync(FEATURES)
+      const looks = (existsSync(FEATURES) ? readdirSync(FEATURES) : [])
         .filter((file) => file.endsWith(".css"))
         .sort()
         .map((file) => {

@@ -182,20 +182,6 @@ async function record(zen: Zen, steps: Step[]): Promise<Array<{ png: Buffer; sec
   })
 }
 
-// Copies the tab as a Markdown link through the example feature module in src/features/.
-const FEATURE_CLIP: Step[] = [
-  { body: RESET, hold: 400 },
-  { body: OPEN, hold: 450 },
-  ...typing("markdown", 150),
-  {
-    body: String.raw`const first = [...shadow().querySelectorAll("[cmdk-item]")][0]?.getAttribute("data-value")
-    if (first !== "tab.copyMarkdownLink") throw new Error("Expected the Markdown command first, got " + first)
-    await sleep(60)`,
-    hold: 700,
-  },
-  { body: key("enter", 150), hold: 2200 },
-]
-
 /** Assembles timed PNG frames into a looping GIF with a per-clip palette, or an H.264 clip for films. */
 async function encode(frames: Array<{ png: Buffer; seconds: number }>, output: string) {
   const work = await mkdtemp(join(tmpdir(), "zencast-clip-"))
@@ -250,7 +236,6 @@ export async function captureMedia(zen: Zen, dir: string, video = false): Promis
     ["spaces", SPACES_CLIP],
     ["hints", HINTS],
     ["settings", SETTINGS_CLIP],
-    ...(video ? [["feature", FEATURE_CLIP] satisfies [string, Step[]]] : []),
   ]
   for (const [clip, steps] of clips) {
     const frames = await record(zen, steps)

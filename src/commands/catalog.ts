@@ -10,7 +10,6 @@ import {
   FolderLibraryIcon,
   FolderOpenIcon,
   FolderTransferIcon,
-  GhostIcon,
   KeyboardIcon,
   Layers01Icon,
   Link01Icon,
@@ -24,7 +23,7 @@ import {
 } from "@hugeicons/core-free-icons"
 
 import { archiveFolder, countTabs, readArchive, restoreFolder } from "@/browser/archive"
-import { listContainers, openInContainer, openTemporaryContainer, reopenInContainer } from "@/browser/containers"
+import { listContainers, openInContainer, reopenInContainer } from "@/browser/containers"
 import {
   allFolders,
   createFolderWithTab,
@@ -97,7 +96,7 @@ export function containerItems(ctx: CommandContext, primary: ContainerAction, se
     title: container.name,
     section: "Containers",
     icon: { kind: "dot", color: container.color },
-    accessory: container.id === ctx.tab.userContextId ? "Current" : container.temporary ? "Temporary" : undefined,
+    accessory: container.id === ctx.tab.userContextId ? "Current" : undefined,
     actions: [
       { id: "primary", title: primary.title, keepOpen: primary.keepOpen, run: () => primary.run(container.id) },
       ...(secondary ? [{ id: "secondary", title: secondary.title, keys: "ctrl+enter", run: () => secondary.run(container.id) }] : []),
@@ -392,22 +391,13 @@ const CORE: Command[] = [
     },
   },
   {
-    id: "container.temporary",
-    title: "New temporary container tab",
-    section: "Containers",
-    icon: GhostIcon,
-    keywords: "throwaway disposable incognito",
-    defaultKeys: ["alt+shift+t"],
-    run: ({ win }) => void openTemporaryContainer(win),
-  },
-  {
     // One key for this tab: reopen it in another container, or take its signed-in session along.
     id: "container.reopen",
     title: "Move tab to container",
     section: "Containers",
     icon: Exchange01Icon,
     keywords: "reopen session cookies login auth copy transfer",
-    defaultKeys: ["alt+shift+c"],
+    defaultKeys: ["alt+shift+c", "ctrl+space c"],
     when: isWebPage,
     run: (ctx): ListView => {
       const transfer = (mode: "copy" | "move") => async (id: number) => {
@@ -431,7 +421,7 @@ const CORE: Command[] = [
   // Privacy
   {
     id: "tab.wipe",
-    title: "Wipe tab",
+    title: "Reset tab data",
     section: "Privacy",
     icon: EraserIcon,
     keywords: "reset clear cookies storage cache history logout",
@@ -439,11 +429,11 @@ const CORE: Command[] = [
     when: isWebPage,
     run: (ctx): ListView => ({
       id: "confirm-wipe",
-      title: "Wipe tab",
+      title: "Reset tab data",
       items: [
         {
           id: "wipe-confirm",
-          title: "Wipe site data and history",
+          title: "Reset site data and history",
           subtitle:
             ctx.tab.userContextId === 0
               ? "Signs you out of this site in every tab without a container"
@@ -453,11 +443,11 @@ const CORE: Command[] = [
           actions: [
             {
               id: "wipe",
-              title: "Wipe",
+              title: "Reset",
               danger: true,
               run: async () => {
                 const site = await wipeTab(ctx.tab)
-                ctx.ui.toast(`Wiped ${site}`)
+                ctx.ui.toast(`Reset ${site}`)
               },
             },
           ],

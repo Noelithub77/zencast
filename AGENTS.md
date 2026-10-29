@@ -1,6 +1,6 @@
 # Zencast
 
-A keyboard-first command palette for Zen browser, shipped as a Sine mod. It runs in the chrome window with full privileges: commands, tabs, settings, containers, folders, session move, tab wipe and a custom keybinding engine. It doubles as a template: people fork it and have their agent reshape Zen, or any Firefox, from here.
+A keyboard-first command palette for Zen browser, shipped as a Sine mod. It runs in the chrome window with full privileges: commands, tabs, settings, containers, folders, session move, tab reset and a custom keybinding engine. It doubles as a template: people fork it and have their agent reshape Zen, or any Firefox, from here.
 
 Read `PREFERENCE.md` before changing the project's direction, wording, design or keys: it records the owner's intent and every preference they've stated. Background research and decisions live in `plan/zencast/feasibility.md`. How users install and update it (Sine, the release branch, the store) lives in `docs/distribution.md`; the `release` skill covers cutting a version. The `add-command` skill covers new commands and keys; `zen-internals` covers finding and wrapping browser internals.
 

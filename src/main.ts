@@ -1,8 +1,6 @@
 // Mod entry: Sine imports this module once per browser window.
 import { watchBookmarks } from "@/browser/bookmarks"
 import { watchEngines } from "@/browser/engines"
-import { sweepTemporaryContainers } from "@/browser/containers"
-import { isTab } from "@/browser/folders"
 import { watchGoogleSignIns } from "@/browser/google"
 import { watchNewTabButtons } from "@/browser/new-tab-buttons"
 import { watchSessions } from "@/browser/sessions"
@@ -63,14 +61,6 @@ function start(win: Window): () => void {
   disposers.push(watchNewTabButtons(win, () => paletteOnCtrlT(readConfig()), () => openPalette()))
 
   disposers.push(addSineSettingsButton(win, () => openSettings(win)))
-
-  const onTabClose = (event: Event) => {
-    if (event.target instanceof Element && isTab(event.target)) sweepTemporaryContainers(event.target)
-  }
-  win.gBrowser.tabContainer.addEventListener("TabClose", onTabClose)
-  disposers.push(() => win.gBrowser.tabContainer.removeEventListener("TabClose", onTabClose))
-  // Containers left over from a crash or a closed window; wait until restored tabs exist.
-  void win.SessionStore.promiseAllWindowsRestored.then(() => sweepTemporaryContainers())
 
   win.Zencast = {
     open: () => openPalette(),

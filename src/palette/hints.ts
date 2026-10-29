@@ -60,10 +60,16 @@ const MODIFIER_KEYS: Record<string, Modifier> = { Control: "ctrl", Alt: "alt" }
  * Reports a modifier once it has been held alone briefly, and null on release. Keys pressed while
  * it is held (Ctrl+1, Alt+2) keep it held, so a strip stays up while choosing from it. Alt pressed
  * and let go with no other key is reported after the release as a "tap" when quick, else as "lone";
- * losing focus or closing reports a "reset".
+ * losing focus or closing reports a "reset". While Alt hints show, held or latched, the next press of
+ * Alt reports "lone" as it goes down, so they clear even when the last release never arrived.
  */
-export function useModifierHold(win: Window | null, onHold: (held: Modifier | null, cause?: "tap" | "lone" | "reset") => void) {
+export function useModifierHold(
+  win: Window | null,
+  onHold: (held: Modifier | null, cause?: "tap" | "lone" | "reset") => void,
+  isLatched: () => boolean,
+) {
   const notify = useEffectEvent(onHold)
+  const latched = useEffectEvent(isLatched)
   useEffect(() => {
     if (!win) return
     let timer = 0
@@ -71,6 +77,8 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
     let held: Modifier | null = null
     // When Alt went down alone, until another key is pressed with it.
     let aloneSince = 0
+    // This press of Alt cleared the hints, so its release does nothing more.
+    let clearing = false
     const release = () => {
       win.clearTimeout(timer)
       if (held) notify(null)
@@ -78,8 +86,18 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
     }
     const down = (event: KeyboardEvent) => {
       const modifier = MODIFIER_KEYS[event.key]
-      // A held key repeats after the keyboard's delay (250ms on Hyprland), sometimes unflagged; a
-      // repeat must not cancel the hold that is still counting down.
+      if (modifier === "alt" && !event.repeat) {
+        // An input method can keep Alt's release, which would leave a hold showing for good and every
+        // later press looking like its repeat.
+        clearing = held === "alt" || latched()
+        if (clearing) {
+          aloneSince = 0
+          release()
+          notify(null, "lone")
+          return
+        }
+      }
+      // A repeat must not cancel the hold that is still counting down.
       if (modifier && modifier === (held ?? pending)) return
       win.clearTimeout(timer)
       pending = null
@@ -99,6 +117,10 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
     }
     const up = (event: KeyboardEvent) => {
       if (!MODIFIER_KEYS[event.key]) return
+      if (clearing && event.key === "Alt") {
+        clearing = false
+        return
+      }
       const alone = event.key === "Alt" && aloneSince > 0
       const quick = event.timeStamp - aloneSince < TAP_MS
       aloneSince = 0
@@ -107,6 +129,7 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
     }
     const blur = () => {
       aloneSince = 0
+      clearing = false
       release()
       notify(null, "reset")
     }

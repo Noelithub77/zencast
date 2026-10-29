@@ -555,8 +555,8 @@ export function Palette() {
     setHints(null)
   }
   useModifierHold(open && context ? context.win : null, (pressed, cause) => {
-    // A quick Alt toggles the latch; while latched, any lone Alt clears it, however long it was held.
-    if (cause === "tap") latched.current = !latched.current
+    // A quick Alt latches; while latched, the next press of Alt clears it as it goes down.
+    if (cause === "tap") latched.current = true
     else if (cause === "reset" || cause === "lone") latched.current = false
     // Letting go of a hold while latched goes back to the latched Alt hints.
     const modifier = (cause ? null : pressed) ?? (latched.current ? "alt" : null)
@@ -580,7 +580,7 @@ export function Palette() {
       const hint = assigned[i]
       return hint ? [[item.id, hint]] : []
     })))
-  })
+  }, () => latched.current)
   const strip = useStrip(panel || recording ? null : held, context?.win ?? null, space?.id, openIn?.id)
   const legendEntries = held && !panel && !recording ? legend(held, active, !!hints?.size, paletteKeys(readConfig())) : null
 

@@ -699,7 +699,7 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "a tap of alt latches the hints, a bare letter runs a marked row, and esc, another tap or a long alt clears them",
+    name: "a tap of alt latches the hints, a bare letter runs a marked row, and esc, another tap, a long alt or a press after a lost release clears them",
     body: String.raw`${READY}
       const start = gBrowser.selectedTab
       const target = newTab("data:text/html,<title>Quokkalatch</title>x")
@@ -728,6 +728,14 @@ const SCENARIOS: Scenario[] = [
         await sleep(450)
         document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
         const longCleared = await until(() => hints().length === 0, 2000).catch(() => false)
+        // A release that never arrives, as when an input method keeps it: the next press still clears them.
+        document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
+        await until(() => hints().length > 0, 2000)
+        document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
+        const unstuck = await until(() => hints().length === 0, 2000).catch(() => false)
+        await sleep(300)
+        const stayedOff = hints().length === 0
+        document.documentElement.dispatchEvent(new KeyboardEvent("keyup", { ...alt, altKey: false }))
         tap()
         await until(() => hints().length > 0, 2000)
         press("escape")
@@ -739,8 +747,8 @@ const SCENARIOS: Scenario[] = [
         if (letter) press(letter)
         const ran = await until(() => gBrowser.selectedTab === target, 2000).catch(() => false)
         return {
-          ok: !!latched && stayed && !!untapped && !!longCleared && !!escaped && ran,
-          detail: (latched && stayed ? "a tap latched the hints" : "no latch") + (untapped ? "; another tap cleared them" : "; still up after a tap") + (longCleared ? "; a long alt cleared them" : "; still up after a long alt") + (escaped ? "; esc cleared them" : "; esc did not clear") + (ran ? "; " + letter + " switched to the marked tab" : "; letter " + letter + " ran nothing"),
+          ok: !!latched && stayed && !!untapped && !!longCleared && !!unstuck && stayedOff && !!escaped && ran,
+          detail: (latched && stayed ? "a tap latched the hints" : "no latch") + (untapped ? "; another tap cleared them" : "; still up after a tap") + (longCleared ? "; a long alt cleared them" : "; still up after a long alt") + (unstuck && stayedOff ? "; a press after a lost release cleared them" : "; stuck after a lost release") + (escaped ? "; esc cleared them" : "; esc did not clear") + (ran ? "; " + letter + " switched to the marked tab" : "; letter " + letter + " ran nothing"),
         }
       } finally {
         await dismiss().catch(() => {})

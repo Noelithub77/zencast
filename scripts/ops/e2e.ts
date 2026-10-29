@@ -89,6 +89,54 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "typing always lands in the palette input, from a focused page and after focus leaves to nothing or the page",
+    body: String.raw`${READY}
+      const page = newTab("data:text/html,<title>Typer</title><input autofocus oninput='document.title=\"got:\"+this.value'>")
+      await until(() => page.label === "Typer")
+      gBrowser.selectedTab = page
+      gBrowser.selectedBrowser.focus()
+      await sleep(200)
+      // Real key events, routed by focus like a keyboard's, unlike dispatched ones.
+      const tip = Cc["@mozilla.org/text-input-processor;1"].createInstance(Ci.nsITextInputProcessor)
+      tip.beginInputTransactionForTests(window)
+      const type = async (text) => {
+        for (const key of text) {
+          const code = "Key" + key.toUpperCase()
+          tip.keydown(new KeyboardEvent("", { key, code }))
+          tip.keyup(new KeyboardEvent("", { key, code }))
+          await sleep(20)
+        }
+      }
+      const input = () => shadow().querySelector("[cmdk-input]")
+      const typed = () => input()?.value.slice(0, input().selectionStart) ?? ""
+      try {
+        tip.keydown(new KeyboardEvent("", { key: "Control", code: "ControlLeft" }))
+        tip.keydown(new KeyboardEvent("", { key: "k", code: "KeyK" }))
+        tip.keyup(new KeyboardEvent("", { key: "k", code: "KeyK" }))
+        tip.keyup(new KeyboardEvent("", { key: "Control", code: "ControlLeft" }))
+        await sleep(20)
+        await type("xq")
+        const fromPage = await until(() => typed() === "xq", 2000).catch(() => false)
+        // A click on the list's padding leaves focus nowhere; the next key still types.
+        input().blur()
+        await sleep(50)
+        await type("w")
+        const fromNothing = await until(() => typed() === "xqw", 2000).catch(() => false)
+        gBrowser.selectedBrowser.focus()
+        await sleep(50)
+        await type("v")
+        const fromBrowser = await until(() => typed() === "xqwv", 2000).catch(() => false)
+        const pageClean = page.label === "Typer"
+        return {
+          ok: !!fromPage && !!fromNothing && !!fromBrowser && pageClean,
+          detail: "typed " + typed() + (pageClean ? "; page got nothing" : "; page got " + page.label),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        gBrowser.removeTab(page)
+      }`,
+  },
+  {
     name: "fuzzy search tolerates a typo",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)

@@ -765,12 +765,15 @@ export function Palette() {
   }, [open, context])
 
   // Zen moves focus on its own, such as to the address bar after a tab closes. The palette is modal,
-  // so focus goes back to where it was inside the palette (its input or the actions panel).
+  // so focus goes back to where it was inside the palette (its input or the actions panel), and
+  // typing always lands there.
   useEffect(() => {
     if (!open || !context) return
-    const doc = context.win.document
+    const win = context.win
+    const doc = win.document
     const host = doc.getElementById(HOST_ID)
     let inside: HTMLElement | null = null
+    const refocus = () => (inside?.isConnected ? inside : inputRef.current)?.focus()
     const onFocus = (event: FocusEvent) => {
       if (!getState().open) return
       const active = host?.shadowRoot?.activeElement
@@ -778,10 +781,22 @@ export function Palette() {
         if (active instanceof HTMLElement) inside = active
         return
       }
-      ;(inside?.isConnected ? inside : inputRef.current)?.focus()
+      refocus()
+    }
+    // Focus can also go to nothing, such as after a click on the list's padding, which fires no focusin.
+    // Leaving the window does too; focus then stays put until the window is back.
+    const onBlur = (event: FocusEvent) => {
+      if (event.target !== host || event.relatedTarget) return
+      win.setTimeout(() => {
+        if (getState().open && doc.hasFocus() && !host?.shadowRoot?.activeElement) refocus()
+      })
     }
     doc.addEventListener("focusin", onFocus, true)
-    return () => doc.removeEventListener("focusin", onFocus, true)
+    doc.addEventListener("focusout", onBlur, true)
+    return () => {
+      doc.removeEventListener("focusin", onFocus, true)
+      doc.removeEventListener("focusout", onBlur, true)
+    }
   }, [open, context])
 
   const targets = [space?.name, openIn?.name].filter(Boolean).join(" · ")

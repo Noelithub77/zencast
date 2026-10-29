@@ -67,17 +67,22 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
   useEffect(() => {
     if (!win) return
     let timer = 0
+    let pending: Modifier | null = null
     let held: Modifier | null = null
     // When Alt went down alone, until another key is pressed with it.
     let aloneSince = 0
     const release = () => {
       win.clearTimeout(timer)
       if (held) notify(null)
-      held = null
+      pending = held = null
     }
     const down = (event: KeyboardEvent) => {
-      win.clearTimeout(timer)
       const modifier = MODIFIER_KEYS[event.key]
+      // A held key repeats after the keyboard's delay (250ms on Hyprland), sometimes unflagged; a
+      // repeat must not cancel the hold that is still counting down.
+      if (modifier && modifier === (held ?? pending)) return
+      win.clearTimeout(timer)
+      pending = null
       if (!modifier || event.repeat || held) {
         if (!event.repeat) aloneSince = 0
         return
@@ -85,7 +90,9 @@ export function useModifierHold(win: Window | null, onHold: (held: Modifier | nu
       const others = [event.ctrlKey && modifier !== "ctrl", event.altKey && modifier !== "alt", event.shiftKey, event.metaKey]
       aloneSince = modifier === "alt" && !others.some(Boolean) ? event.timeStamp : 0
       if (others.some(Boolean)) return
+      pending = modifier
       timer = win.setTimeout(() => {
+        pending = null
         held = modifier
         notify(modifier)
       }, HOLD_MS)

@@ -72,6 +72,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
   - 2026-10-28: bigger, many pastel colours (one per row). Ctrl shows a coloured key badge at the row's right end; Alt shows just the big coloured letter, no background, in place of the icon on the left.
   - 2026-10-28: holding a modifier also lists every key it takes in the palette, so a user needs to learn nothing.
   - 2026-10-28: Ctrl and Alt look the same: the letter underlined in the title and a matching letter badge at the row's end, in the same pastel colour. Alt no longer replaces the icon.
+  - 2026-10-29: lowercase letters (capitals looked bad), and softer: the pastel toned toward grey on a faint tint of itself, semibold instead of extra-bold, since the bright ones were hard to read. Holding Alt must work with real key repeat, which starts before the hold delay ends.
 - **The open key closes (2026-10-28).** Whatever opened the palette (Ctrl+K, Ctrl+T when on) closes it again. The actions panel moved from Ctrl+K to Ctrl+J; the owner first picked Tab, then changed to Ctrl+J.
 - **Key sheet (2026-10-28).** Ctrl+/ anywhere shows every Zencast key at once, grouped by section; numbered families show as one row ("Switch to space 1…9"). Any other key, Esc or a click hides it. It first opened on holding Ctrl+Shift; the owner dropped the hold the same day.
 - **Mod overlap (2026-10-28).** A report of enabled Sine mods that claim Zencast's keys or do the palette's job, with a way to turn each off. A Zen command Zencast also has shows once, as Zencast's.
@@ -157,7 +158,7 @@ Use Zen's native toast, the one that says "URL copied" on Ctrl+Shift+C, for mess
   - an animated SVG, also used as the favicon;
   - the owner chose the pressed keycap from ten options and liked that it had a clever reference.
 - Sentence case everywhere; never all caps.
-- Nunito everywhere in Zencast, key caps included (2026-10-28). Hint letters show bare, large and heavy, so they read at a glance.
+- Nunito everywhere in Zencast, key caps included (2026-10-28). Hint letters show lowercase on a faint tint, semibold and softened (2026-10-29; bare, large and heavy was too bright).
 
 ## Engineering
 

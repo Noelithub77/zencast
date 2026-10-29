@@ -77,6 +77,9 @@ interface RowProps {
   onRun: (item: PaletteItem, action: ItemAction | undefined) => void
 }
 
+// Hint letters take the pastel softened toward grey, so they read without glaring.
+const hintTone = (color: string) => `color-mix(in srgb, ${color} 70%, var(--muted-foreground))`
+
 // Memoized so rows whose item is unchanged skip rendering, including cmdk's per-item registration.
 // Optional parts stay mounted and empty, so reusing a row for another item only patches text.
 const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
@@ -97,7 +100,7 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
           {hint ? (
             <>
               {item.title.slice(0, hint.index)}
-              <span className="font-bold underline decoration-2 underline-offset-4" style={{ color: hint.color }}>
+              <span className="font-semibold underline decoration-2 underline-offset-4" style={{ color: hintTone(hint.color) }}>
                 {item.title[hint.index]}
               </span>
               {item.title.slice(hint.index + 1)}
@@ -111,10 +114,10 @@ const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
           {hint ? (
             <kbd
               data-hint=""
-              className="flex h-8 min-w-8 items-center justify-center text-[19px] leading-none font-extrabold animate-in fade-in-0 zoom-in-90 duration-150"
-              style={{ color: hint.color }}
+              className="flex h-7 min-w-7 items-center justify-center rounded-lg px-1.5 text-[15px] leading-none font-semibold animate-in fade-in-0 zoom-in-90 duration-150"
+              style={{ color: hintTone(hint.color), backgroundColor: `color-mix(in srgb, ${hint.color} 14%, transparent)` }}
             >
-              {hint.letter.toUpperCase()}
+              {hint.letter}
             </kbd>
           ) : (
             <>
@@ -219,7 +222,7 @@ function legend(held: Modifier, active: PaletteItem | undefined, hinted: boolean
   const entry = (keys: string, label: string) => ({ key: displaySequence(keys)[0]?.at(-1) ?? keys, label })
   const out = (active?.actions ?? []).flatMap((action) => (action.keys?.startsWith(prefix) ? [entry(action.keys, action.title)] : []))
   if (held === "ctrl" && (active?.actions.length ?? 0) > 1) out.push(entry("ctrl+j", "Actions"))
-  if (hinted) out.push({ key: "A–Z", label: "Run the marked result" })
+  if (hinted) out.push({ key: "a–z", label: "Run the marked result" })
   out.push({ key: "1–9", label: held === "alt" ? "Open in space" : "Open in container" })
   out.push(...closeKeys.filter((keys) => keys.startsWith(prefix)).map((keys) => entry(keys, "Close")))
   return out

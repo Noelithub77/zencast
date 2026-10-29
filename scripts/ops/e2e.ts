@@ -570,13 +570,13 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "holding ctrl or alt labels visible rows with letters and lists the keys",
+    name: "holding ctrl or alt labels visible rows with lowercase letters and lists the keys, even while the key repeats",
     body: String.raw`${READY}
       press("ctrl+k", document.documentElement)
       await until(paletteOpen)
       const init = { key: "Control", code: "ControlLeft", ctrlKey: true, bubbles: true, composed: true }
       document.documentElement.dispatchEvent(new KeyboardEvent("keydown", init))
-      const hints = () => [...shadow().querySelectorAll("[cmdk-item] [data-hint]")].map((kbd) => kbd.textContent.toLowerCase())
+      const hints = () => [...shadow().querySelectorAll("[cmdk-item] [data-hint]")].map((kbd) => kbd.textContent)
       const shown = await until(() => hints().length && hints(), 2000)
       // Each row marks its letter inside the title, in the badge's colour.
       const marked = [...shadow().querySelectorAll("[cmdk-item]")].filter((item) => item.querySelector("[data-hint]"))
@@ -592,7 +592,13 @@ const SCENARIOS: Scenario[] = [
       // Alt labels the same rows, and Alt+letter runs one.
       const alt = { key: "Alt", code: "AltLeft", altKey: true, bubbles: true, composed: true }
       document.documentElement.dispatchEvent(new KeyboardEvent("keydown", alt))
-      const altShown = await until(() => hints().length && hints(), 2000).catch(() => [])
+      // A real held key keeps repeating from before the hold delay ends; the hints must show meanwhile.
+      let altShown = []
+      for (let i = 0; i < 40 && !altShown.length; i++) {
+        await sleep(25)
+        document.documentElement.dispatchEvent(new KeyboardEvent("keydown", { ...alt, repeat: true }))
+        altShown = hints()
+      }
       const altLegend = shadow().querySelector("[data-legend]")?.textContent ?? ""
       // Held past a tap, so letting go clears the hints instead of latching them.
       await sleep(400)
@@ -602,7 +608,7 @@ const SCENARIOS: Scenario[] = [
       const unique = new Set(shown).size === shown.length && !shown.some((l) => "acjvxzkqw".includes(l))
       const listed = legend.includes("Close") && legend.includes("Open in container") && altLegend.includes("Open in space")
       return {
-        ok: shown.length > 3 && unique && marked && colors > 3 && listed && altShown.length > 3,
+        ok: shown.length > 3 && unique && marked && colors > 3 && listed && altShown.length > 3 && shown.every((l) => l === l.toLowerCase()),
         detail: shown.join(" ") + "; " + colors + " colours" + (marked ? "; marked in titles" : "; titles not marked") + "; legend: " + legend + "; alt: " + altShown.join(" ") + "; cleared on release",
       }`,
   },

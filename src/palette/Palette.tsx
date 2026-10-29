@@ -57,6 +57,9 @@ interface Entry {
 const FIRST_SCREEN = 14
 const RECENT_TABS = 7
 
+// Tab commands share the "Tabs" section; folders and spaces share the tabs scope.
+const isTabRow = (item: PaletteItem) => item.scope === "tabs" && item.section === "Tabs"
+
 /**
  * The first screen of fresh results over the previous results' off-screen rows. Keeping the row
  * count steady lets React patch rows in place instead of removing and re-adding them per keystroke.
@@ -410,7 +413,7 @@ export function Palette() {
     if (scope?.id === "mods") return buildIndex(mods)
     if (scope) {
       // The tabs scope lists tabs only; folders stay in the root search.
-      const scoped = (item: PaletteItem) => item.scope === scope.id && (scope.id !== "tabs" || item.section === "Tabs")
+      const scoped = (item: PaletteItem) => (scope.id === "tabs" ? isTabRow(item) : item.scope === scope.id)
       return buildIndex((context ? rootWithSettings(context, root).items : root).filter(scoped))
     }
     if (!wantsSettings || !context) return buildIndex(root)
@@ -463,20 +466,19 @@ export function Palette() {
     }
     const found = all.slice(0, config.maxResults)
     if (!q && !view && !scope && context) {
-      // The empty palette shows only what matters now: the last few loaded tabs, most recent first (a
-      // tab's boost grows with recency), then the current tab with where it lives. The rest waits below.
+      // The empty palette leads with what matters now: the last few loaded tabs, most recent first (a
+      // tab's boost grows with recency), then the current tab with where it lives. No other tab is listed.
       const here = tabKey(context.tab)
-      const tabs = root.filter((item) => item.scope === "tabs" && item.section === "Tabs")
+      const tabs = root.filter(isTabRow)
       const recent = tabs
         .filter((item) => !item.dim && item.id !== here)
         .toSorted((a, b) => (b.boost ?? 0) - (a.boost ?? 0))
         .slice(0, RECENT_TABS)
       const current = tabs.filter((item) => item.id === here)
-      const shownIds = new Set([...recent, ...current].map((item) => item.id))
       const groups: Group[] = [
         { section: "Recent tabs", items: recent },
         { section: "Current tab", items: current },
-        ...groupBySection(found.filter((item) => !shownIds.has(item.id))),
+        ...groupBySection(found.filter((item) => !isTabRow(item))),
       ]
       return { groups: groups.filter((group) => group.items.length), suffix: "" }
     }

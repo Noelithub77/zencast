@@ -607,11 +607,12 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "the empty palette leads with the last seven loaded tabs and the current tab, and the rest follows right after",
+    name: "the empty palette leads with the last seven loaded tabs and the current tab, lists no other tab, and the rest follows right after",
     body: String.raw`${READY}
       const start = newTab("data:text/html,<title>Current koala</title>x")
       const fillers = []
-      for (let i = 0; i < 6; i++) fillers.push(newTab("data:text/html,<title>Recent filler " + i + "</title>x"))
+      // Eight fillers, so the oldest falls out of the recent seven and must not be listed anywhere.
+      for (let i = 0; i < 8; i++) fillers.push(newTab("data:text/html,<title>Recent filler " + i + "</title>x"))
       const older = newTab("data:text/html,<title>Recent wombat</title>x")
       const newer = newTab("data:text/html,<title>Recent numbat</title>x")
       await until(() => start.label === "Current koala" && older.label === "Recent wombat" && newer.label === "Recent numbat" && fillers.every((tab, i) => tab.label === "Recent filler " + i))
@@ -632,11 +633,12 @@ const SCENARIOS: Scenario[] = [
         }
         const [recent, current, next] = sections
         const currentRow = [...shadow().querySelectorAll("[cmdk-item]")].find((el) => el.textContent.startsWith("Current koala"))
+        const unlisted = !sections.some((section) => section.rows.some((row) => row.startsWith("Recent filler 0")))
         const after = !!next && !!currentRow && next.el.getBoundingClientRect().top - currentRow.getBoundingClientRect().bottom < 60
         return {
           ok: recent?.heading === "Recent tabs" && recent.rows.length === 7 && !!recent.rows[0]?.startsWith("Recent numbat") && !!recent.rows[1]?.startsWith("Recent wombat")
-            && current?.heading === "Current tab" && current.rows.length === 1 && current.rows[0].startsWith("Current koala") && after,
-          detail: sections.slice(0, 3).map((section) => section.heading + " (" + section.rows.length + ")").join(", ") + "; first recent " + recent?.rows[0]?.slice(0, 20) + "; next section " + (after ? "right after" : "pushed away"),
+            && current?.heading === "Current tab" && current.rows.length === 1 && current.rows[0].startsWith("Current koala") && unlisted && after,
+          detail: sections.slice(0, 3).map((section) => section.heading + " (" + section.rows.length + ")").join(", ") + "; first recent " + recent?.rows[0]?.slice(0, 20) + (unlisted ? "; older tabs unlisted" : "; an older tab is listed") + "; next section " + (after ? "right after" : "pushed away"),
         }
       } finally {
         await dismiss().catch(() => {})

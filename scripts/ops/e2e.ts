@@ -607,7 +607,7 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "the empty palette shows the last seven loaded tabs and the current tab, and the rest below the fold",
+    name: "the empty palette leads with the last seven loaded tabs and the current tab, and the rest follows right after",
     body: String.raw`${READY}
       const start = newTab("data:text/html,<title>Current koala</title>x")
       const fillers = []
@@ -631,12 +631,12 @@ const SCENARIOS: Scenario[] = [
           } else sections.at(-1)?.rows.push(el.textContent)
         }
         const [recent, current, next] = sections
-        const list = shadow().querySelector("[cmdk-list]")
-        const below = !!next && next.el.getBoundingClientRect().top >= list.getBoundingClientRect().bottom - 12
+        const currentRow = [...shadow().querySelectorAll("[cmdk-item]")].find((el) => el.textContent.startsWith("Current koala"))
+        const after = !!next && !!currentRow && next.el.getBoundingClientRect().top - currentRow.getBoundingClientRect().bottom < 60
         return {
           ok: recent?.heading === "Recent tabs" && recent.rows.length === 7 && !!recent.rows[0]?.startsWith("Recent numbat") && !!recent.rows[1]?.startsWith("Recent wombat")
-            && current?.heading === "Current tab" && current.rows.length === 1 && current.rows[0].startsWith("Current koala") && below,
-          detail: sections.slice(0, 3).map((section) => section.heading + " (" + section.rows.length + ")").join(", ") + "; first recent " + recent?.rows[0]?.slice(0, 20) + "; next section " + (below ? "below the fold" : "in view"),
+            && current?.heading === "Current tab" && current.rows.length === 1 && current.rows[0].startsWith("Current koala") && after,
+          detail: sections.slice(0, 3).map((section) => section.heading + " (" + section.rows.length + ")").join(", ") + "; first recent " + recent?.rows[0]?.slice(0, 20) + "; next section " + (after ? "right after" : "pushed away"),
         }
       } finally {
         await dismiss().catch(() => {})

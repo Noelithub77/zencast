@@ -36,8 +36,6 @@ const WEB_DEBOUNCE_MS = 40
 interface Group {
   section: string
   items: PaletteItem[]
-  /** Fills the first screen; the groups after it start below the fold. */
-  lead?: boolean
 }
 
 function groupBySection(items: PaletteItem[]): Group[] {
@@ -53,8 +51,6 @@ function groupBySection(items: PaletteItem[]): Group[] {
 interface Entry {
   item: PaletteItem
   section: string
-  /** The first row after the lead groups, pushed just below the visible list. */
-  fold?: boolean
 }
 
 // Rows that fit in the list without scrolling; the rest render in a deferred, interruptible pass.
@@ -75,21 +71,15 @@ interface RowProps {
   heading: string | undefined
   /** Letter shown while Ctrl or Alt is held, underlined in the title and at the row's end. */
   hint: Hint | undefined
-  fold: boolean
   onRun: (item: PaletteItem, action: ItemAction | undefined) => void
 }
 
 // Memoized so rows whose item is unchanged skip rendering, including cmdk's per-item registration.
 // Optional parts stay mounted and empty, so reusing a row for another item only patches text.
-const Row = memo(function Row({ item, heading, hint, fold, onRun }: RowProps) {
+const Row = memo(function Row({ item, heading, hint, onRun }: RowProps) {
   return (
     <>
-      <div
-        cmdk-group-heading=""
-        hidden={!heading}
-        data-fold={fold ? "" : undefined}
-        className={cn("px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint", fold && "mt-(--fold)")}
-      >
+      <div cmdk-group-heading="" hidden={!heading} className="px-4 pt-4 pb-1.5 text-[13px] font-medium text-faint">
         {heading}
       </div>
       <CommandItem
@@ -484,8 +474,8 @@ export function Palette() {
       const current = tabs.filter((item) => item.id === here)
       const shownIds = new Set([...recent, ...current].map((item) => item.id))
       const groups: Group[] = [
-        { section: "Recent tabs", items: recent, lead: true },
-        { section: "Current tab", items: current, lead: true },
+        { section: "Recent tabs", items: recent },
+        { section: "Current tab", items: current },
         ...groupBySection(found.filter((item) => !shownIds.has(item.id))),
       ]
       return { groups: groups.filter((group) => group.items.length), suffix: "" }
@@ -525,33 +515,12 @@ export function Palette() {
     return { groups: out, suffix }
   }), [index, root, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults])
 
-  const entries = useMemo(() => {
-    const fold = groups.findIndex((group, i) => !group.lead && groups[i - 1]?.lead)
-    return groups.flatMap((group, g) => group.items.map((item, i): Entry => ({ item, section: group.section, fold: g === fold && i === 0 })))
-  }, [groups])
+  const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])
   // While the full list is still rendering in the background, show the first screen of the new results.
   const deferred = useDeferredValue(entries)
   const shown = deferred === entries ? entries : firstScreen(entries, deferred)
   const active = rows.find((item) => item.id === selected) ?? rows[0] ?? null
-
-  // Puts the first row after the lead groups just below the visible list, so the empty palette shows
-  // only them until scrolled. Measured, since the list's height follows the window's.
-  useLayoutEffect(() => {
-    const list = listRef.current
-    const fold = list?.querySelector<HTMLElement>("[data-fold]")
-    if (!open || !list || !fold) return
-    const place = () => {
-      const margin = parseFloat(getComputedStyle(fold).marginTop) || 0
-      const lead = fold.getBoundingClientRect().top - margin - list.getBoundingClientRect().top + list.scrollTop
-      const padding = parseFloat(getComputedStyle(list).paddingBottom) || 0
-      list.style.setProperty("--fold", `${Math.max(0, list.clientHeight - lead - padding)}px`)
-    }
-    place()
-    const observer = new ResizeObserver(place)
-    observer.observe(list)
-    return () => observer.disconnect()
-  }, [open, shown])
 
   useEffect(() => {
     if (open && !view) saveDraft({ query, scope, engine })
@@ -910,7 +879,6 @@ export function Palette() {
                 item={entry.item}
                 heading={entry.section === shown[index - 1]?.section ? undefined : entry.section}
                 hint={hints?.get(entry.item.id)}
-                fold={!!entry.fold}
                 onRun={run}
               />
             ))}

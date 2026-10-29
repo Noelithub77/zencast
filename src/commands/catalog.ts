@@ -158,7 +158,7 @@ const CORE: Command[] = [
     section: "Palette",
     icon: CommandIcon,
     hidden: true,
-    defaultKeys: ["ctrl+k"],
+    defaultKeys: ["ctrl+k", "ctrl+t"],
     run: () => {},
   },
   {

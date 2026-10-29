@@ -63,7 +63,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 ### Palette
 
 - A full Raycast-style palette that can do everything in Zen, on Ctrl+K.
-- Ctrl+T as an option. It is off by default and replaces Zen's new-tab with the palette only when the toggle is on. An earlier request had both keys always open the palette; the later "by default don't override Ctrl+T" replaced it.
+- Ctrl+T opens the palette by default, replacing Zen's new tab. The owner reversed the earlier "off by default" on 2026-10-29, asking for Zencast to override Zen's Ctrl+T menu. The General setting "Open with Ctrl+T" turns it back to Zen's new tab.
 - Ctrl+, opens Zen's own settings; Ctrl+Shift+, opens Zencast's settings page. This replaced an earlier request where Ctrl+, opened Zencast's settings and Ctrl+Shift+, the extensions page; extensions stay in the palette and on Firefox's Ctrl+Shift+A.
 - Search every Zen setting, and show each one's keybinding. Change settings from the palette itself.
 - Fuzzy-search every tab: active, unloaded and pinned, in all folders, plus folder names. Active tabs rank above unloaded ones.
@@ -132,7 +132,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | Ctrl+. | Give any command, tab, bookmark or site its own key |
 | Ctrl+B | Bookmark the tab (name, folder, optional keyword), or edit its bookmark |
 
-Removed on 2026-10-29: Alt+Shift+T (a throwaway container) and the Copy as Markdown link example in `src/features/`. The owner found both useless.
+Removed on 2026-10-29: Alt+Shift+T (a throwaway container), the Copy as Markdown link example in `src/features/`, and Zen's Ctrl+Alt+Shift+C (copy URL as Markdown) from the palette. The owner found them useless. Zen's key for that copy still works, so the palette no longer lists it.
 
 The keybinding system should show all native Zen bindings and be more customizable than Zen's. Moving a tab also switches to its space, so the move is visible.
 

@@ -59,9 +59,12 @@ export function nativeCommands(win: Window): NativeCommand[] {
   return out
 }
 
+// Zen actions the palette leaves out. Their keys still work in Zen.
+const HIDDEN = new Set(["native:cmd_zenCopyCurrentURLMarkdown"])
+
 export function nativeItems(win: Window): PaletteItem[] {
   return nativeCommands(win)
-    .filter((command) => command.available)
+    .filter((command) => command.available && !HIDDEN.has(command.id))
     .map((command) => ({
       id: command.id,
       title: command.title,

@@ -52,7 +52,7 @@ const SCENARIOS: Scenario[] = [
       return { ok: focused, detail: focused ? "input focused on open" : "input not focused" }`,
   },
   {
-    name: "ctrl+t stays Zen's new tab unless the palette is set to take it",
+    name: "ctrl+t opens the palette by default, and turning it off gives Zen's new tab back",
     body: String.raw`${READY}
       const CONFIG = "zencast.config"
       const setPaletteKeys = (keys) => Services.prefs.setStringPref(CONFIG, JSON.stringify({ version: 1, bindings: { "zencast.palette": keys } }))
@@ -70,8 +70,8 @@ const SCENARIOS: Scenario[] = [
         return native
       }
       try {
-        const byDefault = await nativeNewTab()
-        setPaletteKeys(["ctrl+k", "ctrl+t"])
+        Services.prefs.clearUserPref(CONFIG)
+        await sleep(100)
         const tabs = gBrowser.tabs.length
         gBrowser.selectedBrowser.focus()
         pressTrusted("ctrl+t")
@@ -79,10 +79,11 @@ const SCENARIOS: Scenario[] = [
         await dismiss()
         const palette = opened && gBrowser.tabs.length === tabs
         setPaletteKeys(["ctrl+k"])
+        await sleep(100)
         const afterOff = await nativeNewTab()
         return {
-          ok: byDefault && palette && afterOff,
-          detail: "default: " + (byDefault ? "zen" : "blocked") + "; turned on: " + (palette ? "palette" : "not palette") + "; turned off: " + (afterOff ? "zen" : "blocked"),
+          ok: palette && afterOff,
+          detail: "default: " + (palette ? "palette" : "not palette") + "; turned off: " + (afterOff ? "zen" : "blocked"),
         }
       } finally {
         Services.prefs.clearUserPref(CONFIG)

@@ -168,24 +168,6 @@ declare global {
   }
 
 
-  interface ZenKeyShortcut {
-    getID(): string
-    getAction(): string
-    getGroup(): string
-    getKeyNameOrCode(): string
-    isEmpty(): boolean
-    isDisabled(): boolean
-    isInternal(): boolean
-    isUserEditable(): boolean
-    toDisplayString(): string
-    toJSONForm(): { l10nId: string; key: string | null; keycode: string | null; modifiers: Partial<Record<"control" | "alt" | "shift" | "meta" | "accel", boolean>> }
-  }
-
-  interface ZenKeyboardShortcutsManager {
-    readonly _currentShortcutList?: ZenKeyShortcut[]
-    getModifiableShortcuts(): Promise<ZenKeyShortcut[]>
-  }
-
   interface ZenToastOptions {
     l10nArgs?: Record<string, string>
     timeout?: number
@@ -571,7 +553,6 @@ declare global {
     gZenWorkspaces: ZenWorkspaces
     gZenFolders: ZenFolders
     gZenPinnedTabManager: ZenPinnedTabManager
-    gZenKeyboardShortcutsManager: ZenKeyboardShortcutsManager
     gZenUIManager: ZenUIManager
     openPreferences(pane?: string): void
     /** Runs a XUL edit command such as "cmd_copy" on the focused element. */

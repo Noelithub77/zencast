@@ -245,6 +245,7 @@ export async function launchZen(options: { sourceProfile: string; dist: string; 
       env: {
         ...process.env,
         MOZ_HEADLESS: "1",
+        MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: "1",
         MOZ_HEADLESS_WIDTH: String(options.width ?? 1400),
         MOZ_HEADLESS_HEIGHT: String(options.height ?? 900),
       },

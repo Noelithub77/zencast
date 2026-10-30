@@ -18,7 +18,12 @@ interface Scenario {
   body: string
 }
 
-const READY = String.raw`await until(() => window.Zencast && document.getElementById("zencast-host"), 20000)`
+// A fresh profile on newer Zen has no containers; the scenarios expect the classic four.
+const READY = String.raw`await until(() => window.Zencast && document.getElementById("zencast-host"), 20000)
+      const identities = ChromeUtils.importESModule("moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs").ContextualIdentityService
+      if (!identities.getPublicIdentities().length) {
+        for (const [name, icon, color] of [["Personal", "fingerprint", "blue"], ["Work", "briefcase", "orange"], ["Banking", "dollar", "green"], ["Shopping", "cart", "pink"]]) identities.create(name, icon, color)
+      }`
 
 // Places for the bookmark scenarios; poll() gives up quietly where until() throws.
 const PLACES = String.raw`const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs")
@@ -90,6 +95,32 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "the sidebar new-tab button follows Ctrl+T",
+    body: String.raw`${READY}
+      const CONFIG = "zencast.config"
+      const button = document.getElementById("vertical-tabs-newtab-button")
+      try {
+        Services.prefs.setStringPref(CONFIG, JSON.stringify({ version: 1, bindings: { "zencast.palette": ["ctrl+k", "ctrl+t"] } }))
+        await sleep(100)
+        button.click()
+        const opened = await until(paletteOpen, 2000).catch(() => false)
+        await dismiss()
+        Services.prefs.setStringPref(CONFIG, JSON.stringify({ version: 1, bindings: { "zencast.palette": ["ctrl+k"] } }))
+        await sleep(100)
+        gBrowser.selectedBrowser.focus()
+        await sleep(100)
+        const before = gBrowser.tabs.length
+        button.click()
+        await sleep(300)
+        const native = !paletteOpen() && (gBrowser.tabs.length > before || gURLBar.focused)
+        gURLBar.view.close()
+        gURLBar.handleRevert()
+        return { ok: opened && native, detail: "on: " + (opened ? "palette" : "no palette") + "; off: " + (native ? "zen" : "blocked") }
+      } finally {
+        Services.prefs.clearUserPref(CONFIG)
+      }`,
+  },
+  {
     name: "typing always lands in the palette input, from a focused page and after focus leaves to nothing or the page",
     body: String.raw`${READY}
       const page = newTab("data:text/html,<title>Typer</title><input autofocus oninput='document.title=\"got:\"+this.value'>")
@@ -135,6 +166,23 @@ const SCENARIOS: Scenario[] = [
       } finally {
         await dismiss().catch(() => {})
         gBrowser.removeTab(page)
+      }`,
+  },
+  {
+    name: "the Zen internals Zencast wraps are still there, and native shortcuts are read",
+    body: String.raw`${READY}
+      const wanted = {
+        gZenWorkspaces: ["getWorkspaces", "activeWorkspace", "moveTabToWorkspace", "changeWorkspaceWithID", "switchTabIfNeeded", "allStoredTabs"],
+        gZenFolders: ["createFolder", "expandAllFolders", "collapseAllFolders", "changeFolderToSpace"],
+        gZenUIManager: ["showToast"],
+        gZenPinnedTabManager: ["resetPinnedTab", "replacePinnedUrlWithCurrent", "removeEssentials", "editPinnedUrl", "addToEssentials"],
+      }
+      const missing = Object.entries(wanted).flatMap(([name, members]) => members.filter((m) => !(window[name] && m in window[name])).map((m) => name + "." + m))
+      const keys = [...document.querySelectorAll("key[command]")].filter((key) => key.getAttribute("key") && key.id)
+      const error = (Services.console.getMessageArray() ?? []).map((m) => m.message).find((m) => m.includes("[zencast]"))
+      return {
+        ok: missing.length === 0 && keys.length > 20 && !error,
+        detail: missing.length ? "missing " + missing.join(", ") : keys.length + " shortcut keys" + (error ? "; " + error.slice(0, 120) : ""),
       }`,
   },
   {

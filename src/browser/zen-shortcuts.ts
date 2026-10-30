@@ -38,36 +38,34 @@ const KEYCODE_NAMES: Record<string, string> = {
   VK_PAGE_DOWN: "pagedown",
 }
 
-function comboOf(shortcut: ZenKeyShortcut): string {
-  if (shortcut.isEmpty() || shortcut.isDisabled()) return ""
-  const json = shortcut.toJSONForm()
-  const keycode = json.keycode ?? ""
-  const key = json.key || KEYCODE_NAMES[keycode] || keycode.replace(/^VK_/, "").toLowerCase()
-  if (!key) return ""
-  const mods = json.modifiers
+function comboOf(key: Element): string {
+  if (key.getAttribute("disabled") === "true") return ""
+  const keycode = key.getAttribute("keycode") ?? ""
+  const name = key.getAttribute("key") || KEYCODE_NAMES[keycode] || keycode.replace(/^VK_/, "").toLowerCase()
+  if (!name) return ""
+  const mods = (key.getAttribute("modifiers") ?? "").split(/[\s,]+/)
   const parts = [
-    mods.control && "ctrl",
-    mods.accel && "ctrl",
-    mods.alt && "alt",
-    mods.shift && "shift",
-    mods.meta && "meta",
+    // Accel is Ctrl everywhere Zencast runs except macOS, where the key engine maps it too.
+    (mods.includes("control") || mods.includes("accel")) && "ctrl",
+    mods.includes("alt") && "alt",
+    mods.includes("shift") && "shift",
+    mods.includes("meta") && "meta",
   ].filter((part): part is string => !!part)
-  return normalizeCombo([...parts, key].join("+"))
+  return normalizeCombo([...parts, name].join("+"))
 }
 
-/** All of Zen's and Firefox's registered shortcuts in this window, with normalized combos. */
+/** All of Zen's and Firefox's shortcuts in this window, read from their <key> elements, with normalized combos. */
 export function nativeShortcuts(win: Window): NativeShortcut[] {
-  const list = win.gZenKeyboardShortcutsManager._currentShortcutList ?? []
   const out: NativeShortcut[] = []
-  for (const shortcut of list) {
-    if (shortcut.isInternal()) continue
-    const json = shortcut.toJSONForm()
+  for (const key of win.document.querySelectorAll("key")) {
+    if (!key.id || key.hasAttribute("internal")) continue
+    const action = key.getAttribute("command") ?? ""
     out.push({
-      id: shortcut.getID(),
-      action: shortcut.getAction(),
-      group: shortcut.getGroup(),
-      title: humanize(json.l10nId, shortcut.getAction() || shortcut.getID()),
-      combo: comboOf(shortcut),
+      id: key.id,
+      action,
+      group: key.parentElement?.id ?? "",
+      title: humanize(key.getAttribute("data-l10n-id") ?? "", action || key.id),
+      combo: comboOf(key),
     })
   }
   return out

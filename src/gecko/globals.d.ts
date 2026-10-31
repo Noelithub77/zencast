@@ -574,6 +574,9 @@ declare global {
       setTabState(tab: XULTab, state: string): void
       getCustomWindowValue(win: Window, key: string): string
       setCustomWindowValue(win: Window, key: string, value: string): void
+      /** Tabs closed in every window, each with the state that reopens it. */
+      getClosedTabData(): Array<{ state: unknown; title: string; closedAt: number; closedId: number }>
+      undoCloseById(id: number, includePrivate?: boolean, target?: Window): XULTab | undefined
     }
     /** Hooks installed by the mod for the settings page and benchmarks. */
     Zencast?: ZencastApi

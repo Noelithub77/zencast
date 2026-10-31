@@ -54,9 +54,12 @@ const stateSchema = z.object({
   index: z.number().int().optional(),
 })
 
-/** The history entry a tab shows, from its SessionStore state. */
-export function currentEntry(state: string): { url: string; title?: string } | undefined {
-  const parsed = stateSchema.safeParse(JSON.parse(state))
+/** The history entry a tab shows, from its SessionStore state as JSON. */
+export const currentEntry = (state: string) => entryOf(JSON.parse(state))
+
+/** The history entry a tab shows, from its parsed SessionStore state. */
+export function entryOf(state: unknown): { url: string; title?: string } | undefined {
+  const parsed = stateSchema.safeParse(state)
   if (!parsed.success) return undefined
   const { entries, index } = parsed.data
   return entries[(index ?? entries.length) - 1]

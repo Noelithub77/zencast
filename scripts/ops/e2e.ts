@@ -631,6 +631,44 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "! lists closed tabs, then history grouped by day, searches all of it, and reopens a closed tab",
+    body: String.raw`${READY}
+      const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs")
+      const DAY = 86_400_000
+      const pages = [["today", 0], ["yesterday", 1], ["three", 3], ["older", 10]]
+      await PlacesUtils.history.insertMany(pages.map(([name, days]) => ({
+        url: "https://zenwombat.example/" + name,
+        title: "Zenwombat " + name,
+        visits: [{ date: new Date(Date.now() - days * DAY - 60_000) }],
+      })))
+      const gone = newTab("data:text/html,<title>Zenwombat closed</title>x")
+      await until(() => gone.label === "Zenwombat closed")
+      gBrowser.removeTab(gone)
+      const headings = () => [...shadow().querySelectorAll("[cmdk-group-heading]:not([hidden])")].map((h) => h.textContent)
+      const row = (text) => [...shadow().querySelectorAll("[cmdk-item]")].find((item) => item.textContent.includes(text))
+      try {
+        press("ctrl+k", document.documentElement)
+        await until(paletteOpen)
+        typeQuery("!zenwombat")
+        const want = ["Recently closed", "Today", "Yesterday", "3 days ago", "Last week"]
+        const order = await until(() => headings().join() === want.join() && headings(), 3000).catch(() => headings())
+        typeQuery("zenwombat yesterday")
+        const narrowed = await until(() => resultTitles().length === 1 && resultTitles()[0].includes("Zenwombat yesterday"), 3000).catch(() => false)
+        typeQuery("zenwombat")
+        await until(() => !!row("Zenwombat closed"), 3000)
+        row("Zenwombat closed").click()
+        const reopened = await until(() => gBrowser.tabs.find((tab) => tab.label === "Zenwombat closed"), 3000).catch(() => null)
+        if (reopened) gBrowser.removeTab(reopened)
+        return {
+          ok: order.join() === want.join() && !!narrowed && !!reopened,
+          detail: "sections: " + order.join(", ") + (narrowed ? "; a word narrowed it to one visit" : "; search: " + resultTitles().join(" | ")) + (reopened ? "; the closed tab came back" : "; the closed tab stayed closed"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        await PlacesUtils.history.remove(pages.map(([name]) => "https://zenwombat.example/" + name))
+      }`,
+  },
+  {
     name: "a page's own shortcut wins over a zencast key, an unused one comes back to zencast, and ctrl+t always opens the palette",
     body: String.raw`${READY}
       // The page claims Ctrl+K and Ctrl+T; Firefox never gives it Ctrl+T.
@@ -1764,6 +1802,13 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
   await shot("palette-actions")
   await zen.run(String.raw`press("escape"); typeQuery(""); await sleep(100); typeQuery("/"); await sleep(300)`)
   await shot("palette-scope")
+  await zen.run(String.raw`press("backspace"); await sleep(100)`)
+  // History by day, with ordinary sites visited over the past weeks.
+  await zen.run(String.raw`const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs")
+    const visits = [["https://github.com/", "GitHub", 0.05], ["https://www.google.com/search?q=zen+browser", "zen browser - Google Search", 0.2], ["https://www.youtube.com/", "YouTube", 1.1], ["https://en.wikipedia.org/wiki/Firefox", "Firefox - Wikipedia", 3], ["https://developer.mozilla.org/", "MDN Web Docs", 9]]
+    await PlacesUtils.history.insertMany(visits.map(([url, title, days]) => ({ url, title, visits: [{ date: new Date(Date.now() - days * 86_400_000) }] })))
+    typeQuery(""); await sleep(100); typeQuery("!"); await sleep(400)`)
+  await shot("palette-history")
   await zen.run(String.raw`press("backspace"); await sleep(100)`)
   // An engine's search mode, mid hook-in and settled.
   await zen.run(String.raw`if (!paletteOpen()) press("ctrl+k", document.documentElement)

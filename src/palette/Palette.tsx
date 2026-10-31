@@ -28,6 +28,7 @@ import { buildIndex, isStrongMatch, search } from "./search"
 import { quickLink } from "./bookmarks"
 import { modItems } from "@/commands/mods"
 import { scopeFor, SCOPES, type Scope } from "./scopes"
+import { useHistory } from "./history"
 import { assistantItem, defaultEngineName, openActions, queryItems, rootWithSettings, settingsSearchItem, webItems } from "./sources"
 import { getState, HOST_ID, setState, usePalette } from "./store"
 
@@ -410,10 +411,13 @@ export function Palette() {
   const q = query.trim()
   const wantsSettings = !view && !scope && !engine && q.length >= 2
   const mods = useMods(context, scope?.id === "mods", root)
+  const history = useHistory(context, scope?.id === "history", q)
 
   const index = useMemo(() => {
     if (view) return buildIndex(view.items)
     if (scope?.id === "mods") return buildIndex(mods)
+    // History is searched in Places, so its rows arrive already matched.
+    if (scope?.id === "history") return buildIndex([])
     if (scope) {
       // The tabs scope lists tabs only; folders stay in the root search.
       const scoped = (item: PaletteItem) => (scope.id === "tabs" ? isTabRow(item) : item.scope === scope.id)
@@ -460,6 +464,8 @@ export function Palette() {
       }
       return { groups: [{ section: engine.name, items: [first, ...webItems(context, web, q, (text) => engineSearchUrl(engine, text))] }], suffix: "" }
     }
+    // Newest first in sections by day, whatever was typed.
+    if (scope?.id === "history") return { groups: groupBySection(history), suffix: "" }
     // Ranked once without a limit: the result limit applies to everything but tabs.
     const all = search(index, q, readUsage(), Infinity).map((r) => r.item)
     // Searching only tabs lists every tab in every space, past the limit: loaded ones first, then unloaded ones in their own section.
@@ -518,7 +524,7 @@ export function Palette() {
     if (url || strong) webList.unshift(...searchItems)
     if (webList.length) out.push({ section: "Web", items: webList })
     return { groups: out, suffix }
-  }), [index, root, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults])
+  }), [index, root, q, query, view, scope, engine, context, wantsSettings, web, domains, guess, fill, config.maxResults, history])
 
   const entries = useMemo(() => groups.flatMap((group) => group.items.map((item) => ({ item, section: group.section }))), [groups])
   const rows = useMemo(() => entries.map((entry) => entry.item), [entries])

@@ -1,6 +1,6 @@
 // Typing one of these first narrows the root search to one kind of result: "@" tabs, "/" commands,
-// "#" bookmarks, "$" settings, "*" mods.
-import { Bookmark01Icon, BrowserIcon, CommandIcon, PuzzleIcon, Settings01Icon } from "@hugeicons/core-free-icons"
+// "#" bookmarks, "$" settings, "*" mods, "!" history.
+import { Bookmark01Icon, BrowserIcon, CommandIcon, HistoryIcon, PuzzleIcon, Settings01Icon } from "@hugeicons/core-free-icons"
 
 import type { Icon, PaletteItem, ScopeId } from "@/commands/types"
 
@@ -18,6 +18,7 @@ export const SCOPES: Scope[] = [
   { id: "bookmarks", prefix: "#", name: "Bookmarks", icon: Bookmark01Icon, color: "var(--butter)" },
   { id: "settings", prefix: "$", name: "Settings", icon: Settings01Icon, color: "var(--mint)" },
   { id: "mods", prefix: "*", name: "Mods", icon: PuzzleIcon, color: "var(--sage)" },
+  { id: "history", prefix: "!", name: "History", icon: HistoryIcon, color: "#ffb3d1" },
 ]
 
 export const scopeFor = (prefix: string) => SCOPES.find((scope) => scope.prefix === prefix)

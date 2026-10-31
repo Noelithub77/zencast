@@ -6,7 +6,7 @@ export interface Engine {
   /** Keywords and aliases from Zen's search settings, lower case: "y", "@youtube". */
   aliases: string[]
   icon: string
-  /** The icon's main colour, so the engine's chip matches its brand. */
+  /** The icon's main colour as a pastel, so the engine's chip matches its brand without shouting. */
   color: string
 }
 
@@ -18,7 +18,17 @@ const service = () => ChromeUtils.importESModule("moz-src:///toolkit/components/
 
 let engines: Engine[] = []
 
-/** The average of the icon's saturated pixels; greys and transparent edges don't count. */
+/** One saturation and lightness for every brand, so a loud red tints as gently as a muted blue. */
+function pastel(red: number, green: number, blue: number): string {
+  const max = Math.max(red, green, blue)
+  const min = Math.min(red, green, blue)
+  const delta = max - min
+  if (!delta) return FALLBACK_COLOR
+  const hue = max === red ? ((green - blue) / delta + 6) % 6 : max === green ? (blue - red) / delta + 2 : (red - green) / delta + 4
+  return `hsl(${Math.round(hue * 60)} 70% 74%)`
+}
+
+/** The average of the icon's saturated pixels as a pastel; greys and transparent edges don't count. */
 async function iconColor(doc: Document, url: string): Promise<string> {
   if (!url) return FALLBACK_COLOR
   const image = new Image()
@@ -42,7 +52,7 @@ async function iconColor(doc: Document, url: string): Promise<string> {
     b += blue * saturation
     weight += saturation
   }
-  return weight ? `rgb(${Math.round(r / weight)} ${Math.round(g / weight)} ${Math.round(b / weight)})` : FALLBACK_COLOR
+  return weight ? pastel(r / weight, g / weight, b / weight) : FALLBACK_COLOR
 }
 
 async function loadEngines(doc: Document) {

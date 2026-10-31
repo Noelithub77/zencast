@@ -65,7 +65,7 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 **Key sheet.** `Ctrl+/`, anywhere in Zen, shows every Zencast key at once, grouped like the palette. Any other key, `Esc` or a click hides it. Zencast's keys work with the palette open too: `Ctrl+B` bookmarks, `Ctrl+Shift+,` opens settings.
 
-**Search engines.** Type an engine's keyword from Zen's search settings and press `Tab` (`y` then `Tab` for YouTube) to search only that engine, with its suggestions, in a chip coloured from its icon. `Backspace` on an empty query leaves it. Keywords and engines come straight from Zen's settings.
+**Search engines.** Type an engine's keyword from Zen's search settings and press `Tab` (`y` then `Tab` for YouTube) to search only that engine, with its suggestions, in a chip coloured from its icon. A keyword shows a dashed "Search YouTube `Tab`" hint right after what you typed, so the key is never a secret. `Backspace` on an empty query leaves it. Keywords and engines come straight from Zen's settings.
 
 **Sessions.** Every run of Zen is saved as a session, named by when it started ("Today 09:12", "Yesterday 22:40"), with each window kept apart, largest first. Pinned tabs and essentials are left out, since Zen keeps them anyway, and an unsynced window kept for one site shows as that site ("ChatGPT", "WhatsApp"). `Alt+S` lists them; pick one tab or a whole window back into this window. Sessions older than a week are removed. Settings has a Sessions page too.
 

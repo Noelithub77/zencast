@@ -805,7 +805,7 @@ export function Palette() {
     (engine ? `Search ${engine.name}` : scope ? `Search ${scope.name.toLowerCase()}` : targets ? `Open in ${targets}` : `Search or type a URL · ${SCOPE_HINT}`)
   const primary = active?.actions[0]
   const accent = space?.color ?? openIn?.color ?? engine?.color
-  // The footer offers what Tab or Shift+Enter would do with the typed text.
+  // The input row offers the engine Tab would search, and the footer what Shift+Enter would.
   const tabEngine = !view && !scope && !engine ? engineFor(query) : undefined
   const webSearch = !view && !scope && !engine && q && active?.id !== "web-search" ? defaultEngineName() || "the web" : ""
 
@@ -868,6 +868,7 @@ export function Palette() {
             ) : (
               <HugeiconsIcon icon={Search01Icon} strokeWidth={2} className="size-6 shrink-0 text-faint" />
             )}
+            <div className="relative h-full min-w-0 flex-1">
             <CommandPrimitive.Input
               ref={inputRef}
               value={query + suffix}
@@ -884,8 +885,30 @@ export function Palette() {
                 setSelected("")
               }}
               placeholder={placeholder}
-              className="h-full min-w-0 flex-1 bg-transparent text-xl outline-hidden placeholder:text-faint"
+              className="h-full w-full bg-transparent text-xl outline-hidden placeholder:text-faint"
             />
+            {/* Right after the typed text, where Tab would put the engine's chip; an invisible copy of the
+                text places it. */}
+            {tabEngine && (
+              <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center overflow-hidden">
+                <span className="invisible text-xl whitespace-pre">{query + suffix}</span>
+                <span
+                  data-tab-hint=""
+                  key={tabEngine.name}
+                  className="ml-3 flex shrink-0 items-center gap-2 rounded-full border border-dashed py-1 pr-1 pl-2 text-sm animate-in fade-in-0 slide-in-from-left-2 duration-200"
+                  style={{
+                    borderColor: `color-mix(in srgb, ${tabEngine.color} 45%, transparent)`,
+                    backgroundColor: `color-mix(in srgb, ${tabEngine.color} 7%, transparent)`,
+                    color: `color-mix(in srgb, ${tabEngine.color} 65%, var(--muted-foreground))`,
+                  }}
+                >
+                  <img src={tabEngine.icon} alt="" className="size-4 rounded-sm" />
+                  Search {tabEngine.name}
+                  <Kbd>Tab</Kbd>
+                </span>
+              </div>
+            )}
+            </div>
             <TargetChip target={space} kind="space" onClear={() => setState({ space: null })} />
             <TargetChip target={openIn} kind="container" onClear={() => setState({ openIn: null })} />
           </div>
@@ -953,17 +976,12 @@ export function Palette() {
             ) : (
               <div key="footer" className="flex min-w-0 flex-1 items-center gap-3 animate-in fade-in-0 duration-150">
                 <span className="min-w-0 truncate text-faint">{view?.title}</span>
-                {tabEngine ? (
-                  <span data-footer-hint="" className="flex shrink-0 items-center gap-1.5">
-                    Search {tabEngine.name}
-                    <Kbd>Tab</Kbd>
-                  </span>
-                ) : webSearch ? (
+                {webSearch && (
                   <span data-footer-hint="" className="flex shrink-0 items-center gap-1.5">
                     Search {webSearch}
                     <Keys sequence="shift+enter" />
                   </span>
-                ) : null}
+                )}
                 {primary && (
                   <span className={`ml-auto flex items-center gap-1.5 ${primary.danger ? "text-rose" : "text-foreground"}`}>
                     {primary.title}

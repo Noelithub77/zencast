@@ -543,18 +543,19 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
-    name: "a search engine's keyword and tab search only that engine, in its icon's colour",
+    name: "a search engine's keyword shows a tab hint in the input row, and tab searches only that engine, in a pastel of its icon's colour",
     body: String.raw`${READY}
       const { SearchService } = ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs")
       const engine = SearchService.getEngineByName("DuckDuckGo")
       const before = engine.alias
       engine.alias = "dk"
       const footer = () => shadow().querySelector("[data-footer-hint]")?.textContent ?? ""
+      const tabHint = () => shadow().querySelector("[data-tab-hint]")?.textContent ?? ""
       const inputPlaceholder = () => shadow().querySelector("[cmdk-input]")?.placeholder ?? ""
       const chip = () => shadow().querySelector("[data-engine]")
       const enter = async () => {
         typeQuery("dk")
-        await until(() => footer().includes("DuckDuckGo"), 4000)
+        await until(() => tabHint().includes("DuckDuckGo"), 4000)
         press("tab")
         await until(chip, 2000)
       }
@@ -566,6 +567,7 @@ const SCENARIOS: Scenario[] = [
         const shiftHint = await until(() => footer().startsWith("Search") && footer(), 2000).catch(() => footer())
         await enter()
         const color = chip().style.backgroundColor
+        const pastel = Math.min(...(/rgb\((\d+), (\d+), (\d+)/.exec(color) ?? []).slice(1).map(Number)) >= 110
         const placeholder = inputPlaceholder()
         typeQuery("zebra")
         const first = await until(() => resultTitles()[0]?.includes("Search DuckDuckGo") && resultTitles()[0], 2000).catch(() => resultTitles()[0] ?? "")
@@ -583,7 +585,7 @@ const SCENARIOS: Scenario[] = [
         press("backspace")
         const left = await until(() => !chip(), 2000).catch(() => false)
         return {
-          ok: shiftHint.startsWith("Search") && color.includes("rgb(") && placeholder === "Search DuckDuckGo" && first.includes("zebra") && !!url && left,
+          ok: shiftHint.startsWith("Search") && pastel && !tabHint() && placeholder === "Search DuckDuckGo" && first.includes("zebra") && !!url && left,
           detail: "typing: " + shiftHint + "; chip " + color + ", " + placeholder + "; first row " + first + "; opened " + (url || "nothing") + (left ? "; backspace left the engine" : "; still in the engine"),
         }
       } finally {
@@ -980,7 +982,7 @@ const SCENARIOS: Scenario[] = [
       const mango = newTab("data:text/html,<title>Mango notes</title>x")
       gBrowser.selectedTab = home
       await sleep(100)
-      const chips = () => [...shadow().querySelectorAll("[cmdk-input] ~ span:not([aria-hidden=true])")].map((chip) => chip.textContent)
+      const chips = () => [...shadow().querySelectorAll("div:has(> [cmdk-input]) ~ span:not([aria-hidden=true])")].map((chip) => chip.textContent)
       press("ctrl+k", document.documentElement)
       await until(paletteOpen)
       press("alt+2")
@@ -1736,8 +1738,10 @@ export async function captureScreens(zen: Zen, dir: string): Promise<string[]> {
     const { SearchService } = ChromeUtils.importESModule("moz-src:///toolkit/components/search/SearchService.sys.mjs")
     SearchService.getEngineByName("DuckDuckGo").alias = "dk"
     typeQuery("dk")
-    await until(() => shadow().querySelector("[data-footer-hint]")?.textContent.includes("DuckDuckGo"), 4000)
-    press("tab")
+    await until(() => shadow().querySelector("[data-tab-hint]")?.textContent.includes("DuckDuckGo"), 4000)
+    await sleep(250)`)
+  await shot("palette-engine-hint")
+  await zen.run(String.raw`press("tab")
     typeQuery("zebra")
     await sleep(90)`)
   await shot("palette-engine-in")

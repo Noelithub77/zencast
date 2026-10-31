@@ -64,6 +64,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 
 - A full Raycast-style palette that can do everything in Zen, on Ctrl+K.
 - Ctrl+T opens the palette by default, replacing Zen's new tab. The owner reversed the earlier "off by default" on 2026-10-29, asking for Zencast to override Zen's Ctrl+T menu. The General setting "Open with Ctrl+T" turns it back to Zen's new tab.
+- **Sites keep their own keys (2026-10-31).** Only Ctrl+T overrides what a page does. Every other Zencast key goes to the page first and runs only when the page leaves it unused, so Ctrl+K on GitHub or Slack is theirs. Keys Firefox never gives pages (Ctrl+T, Ctrl+W, Ctrl+N, Ctrl+Q, Ctrl+Shift+W, Ctrl+Shift+P, F11) still reach Zencast first, as do pages whose shortcuts the user blocked.
 - Ctrl+, opens Zen's own settings; Ctrl+Shift+, opens Zencast's settings page. This replaced an earlier request where Ctrl+, opened Zencast's settings and Ctrl+Shift+, the extensions page; extensions stay in the palette and on Firefox's Ctrl+Shift+A.
 - Search every Zen setting, and show each one's keybinding. Change settings from the palette itself.
 - Fuzzy-search every tab: active, unloaded and pinned, in all folders, plus folder names. Active tabs rank above unloaded ones.

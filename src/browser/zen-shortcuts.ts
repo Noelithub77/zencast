@@ -54,6 +54,22 @@ function comboOf(key: Element): string {
   return normalizeCombo([...parts, name].join("+"))
 }
 
+// nsIPermissionManager.DENY_ACTION, which is also the "block" value of permissions.default.shortcuts.
+const BLOCK = 2
+
+/**
+ * Whether the focused web page sees this key before the browser and may use it itself. Firefox keeps
+ * its reserved keys (Ctrl+T, Ctrl+W, Ctrl+N and Ctrl+Q among them) from every page, and every key
+ * from pages whose shortcuts the user blocked.
+ */
+export function pageSeesKeyFirst(win: Window, event: KeyboardEvent, combo: string): boolean {
+  const browser = win.gBrowser.selectedBrowser
+  if (event.target !== browser || browser.getAttribute("remote") !== "true") return false
+  if (Services.prefs.getIntPref("permissions.default.shortcuts", 0) === BLOCK) return false
+  if (Services.perms.testPermissionFromPrincipal(browser.contentPrincipal, "shortcuts") === BLOCK) return false
+  return ![...win.document.querySelectorAll('key[reserved="true"]')].some((key) => comboOf(key) === combo)
+}
+
 /** All of Zen's and Firefox's shortcuts in this window, read from their <key> elements, with normalized combos. */
 export function nativeShortcuts(win: Window): NativeShortcut[] {
   const out: NativeShortcut[] = []

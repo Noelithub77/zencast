@@ -45,6 +45,7 @@ declare global {
 
   interface XULBrowser extends Element {
     readonly currentURI: nsIURI
+    readonly contentPrincipal: nsIPrincipal
     readonly contentDocument: Document | null
     readonly browsingContext: { readonly sessionHistory: SessionHistory | null } | null
     reload(): void
@@ -266,6 +267,9 @@ declare global {
 
   interface GeckoServices {
     prefs: PrefBranch
+    perms: {
+      testPermissionFromPrincipal(principal: nsIPrincipal, type: string): number
+    }
     obs: {
       addObserver(observer: CookieObserver, topic: "cookie-changed"): void
       addObserver(observer: RequestObserver, topic: "http-on-modify-request"): void
@@ -585,6 +589,9 @@ declare global {
 
   interface Event {
     stopCrossProcessForwarding?(): void
+    /** Lets the web page see the key first; it comes back to chrome as a reply unless the page reserves it. */
+    requestReplyFromRemoteContent(): void
+    readonly isReplyEventFromRemoteContent: boolean
   }
 
   interface XULCommandElement extends Element {

@@ -14,6 +14,8 @@ interface EngineOptions {
   context: () => CommandContext
   /** True while the palette is open or the settings page is recording a shortcut. */
   paused: () => boolean
+  /** True when the focused web page sees this key first and may use it as its own shortcut. */
+  pageFirst: (event: KeyboardEvent, combo: string) => boolean
   dispatch: (command: Command, event: KeyboardEvent) => void
   onChord: (hint: ChordHint | null) => void
 }
@@ -27,7 +29,8 @@ function consume(event: KeyboardEvent) {
 
 /**
  * Window-level keybinding engine. It listens in the capture phase so it runs before Zen's <key>
- * elements and before the event is forwarded to web content.
+ * elements. A web page's own shortcuts win: a bound key goes to the page first and runs here only
+ * when it comes back unused, except keys Firefox never gives pages, such as Ctrl+T, which run at once.
  */
 export function startKeyEngine(win: Window, options: EngineOptions): () => void {
   let pending: string | null = null
@@ -52,20 +55,24 @@ export function startKeyEngine(win: Window, options: EngineOptions): () => void 
     const sequence = pending === null ? combo : `${pending} ${combo}`
     const index = options.index()
     const candidates = index.exact.get(sequence)
-    if (candidates) {
-      const context = options.context()
-      const command = candidates.find(
-        (candidate) => (!candidate.when || candidate.when(context)) && (!candidate.keysWhen || candidate.keysWhen(context)),
-      )
-      if (command) {
-        consume(event)
-        clearPending()
-        options.dispatch(command, event)
-        return
-      }
+    const context = candidates && options.context()
+    const command = context && candidates.find(
+      (candidate) => (!candidate.when || candidate.when(context)) && (!candidate.keysWhen || candidate.keysWhen(context)),
+    )
+    const continuations = index.prefixes.get(sequence)
+    // The page gets the key first; Gecko sends it back as a reply, marked default-prevented if the page used it.
+    if ((command || continuations) && pending === null && !event.isReplyEventFromRemoteContent && options.pageFirst(event, combo)) {
+      event.requestReplyFromRemoteContent()
+      return
     }
 
-    const continuations = index.prefixes.get(sequence)
+    if (command) {
+      consume(event)
+      clearPending()
+      options.dispatch(command, event)
+      return
+    }
+
     if (continuations) {
       consume(event)
       pending = sequence

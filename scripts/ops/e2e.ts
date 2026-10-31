@@ -631,6 +631,41 @@ const SCENARIOS: Scenario[] = [
       }`,
   },
   {
+    name: "a page's own shortcut wins over a zencast key, an unused one comes back to zencast, and ctrl+t always opens the palette",
+    body: String.raw`${READY}
+      // The page claims Ctrl+K and Ctrl+T; Firefox never gives it Ctrl+T.
+      const claims = newTab("data:text/html,<title>claims</title><script>addEventListener('keydown', (e) => { if (e.ctrlKey && (e.key === 'k' || e.key === 't')) { e.preventDefault(); document.title = 'took ' + e.key } })</script>x")
+      const plain = newTab("data:text/html,<title>plain</title>x")
+      const focusPage = async (tab) => {
+        gBrowser.selectedTab = tab
+        await sleep(200)
+        gBrowser.selectedBrowser.focus()
+        await sleep(200)
+      }
+      try {
+        await until(() => claims.label === "claims" && plain.label === "plain", 5000)
+        await focusPage(claims)
+        pressTrusted("ctrl+k")
+        const tookK = await until(() => claims.label === "took k", 3000).catch(() => false)
+        await sleep(300)
+        const stayedShut = !paletteOpen()
+        pressTrusted("ctrl+t")
+        const ctrlT = await until(paletteOpen, 3000).catch(() => false) && claims.label === "took k"
+        await dismiss()
+        await focusPage(plain)
+        pressTrusted("ctrl+k")
+        const unused = await until(paletteOpen, 3000).catch(() => false)
+        return {
+          ok: !!tookK && stayedShut && ctrlT && !!unused,
+          detail: (tookK && stayedShut ? "the page took ctrl+k" : "ctrl+k " + (tookK ? "reached the page but also opened the palette" : "never reached the page")) + (ctrlT ? "; ctrl+t opened the palette over it" : "; ctrl+t did not open the palette") + (unused ? "; an unused ctrl+k opened the palette" : "; an unused ctrl+k did nothing"),
+        }
+      } finally {
+        await dismiss().catch(() => {})
+        gBrowser.removeTab(claims)
+        gBrowser.removeTab(plain)
+      }`,
+  },
+  {
     name: "zencast keys work over the palette, and ctrl+. stays away from the emoji picker",
     body: String.raw`${READY}
       const url = "https://example.com/zencast-over-palette"

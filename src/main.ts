@@ -7,6 +7,7 @@ import { watchSessions } from "@/browser/sessions"
 import { watchSiteContainers } from "@/browser/site-containers"
 import { addSineSettingsButton } from "@/browser/sine-card"
 import { registerToasts } from "@/browser/toast"
+import { pageSeesKeyFirst } from "@/browser/zen-shortcuts"
 import { openSettings } from "@/commands/catalog"
 import { offerGoogleContainers } from "@/commands/google"
 import { buildIndex, paletteOnCtrlT } from "@/keys/bindings"
@@ -40,6 +41,7 @@ function start(win: Window): () => void {
       index: () => index,
       context: commandContext,
       paused: () => recording || getState().open,
+      pageFirst: (event, combo) => pageSeesKeyFirst(win, event, combo),
       // The engine stops a bound key before the key sheet sees it, so running another command hides it here.
       dispatch: (command) => {
         if (command.id !== "zencast.keys") setState({ keySheet: false })

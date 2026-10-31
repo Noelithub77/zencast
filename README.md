@@ -104,6 +104,8 @@ Start Zen and press `Ctrl+K`. Updates arrive through Sine whenever Zen restarts.
 
 ## Keys
 
+A site's own shortcuts win: on GitHub, `Ctrl+K` is GitHub's search. A key the page leaves unused comes back to Zencast, and `Ctrl+T`, which pages never get, always opens the palette.
+
 | Key | Action |
 | --- | --- |
 | `Ctrl+K` | Open the palette |

@@ -126,10 +126,11 @@ const deepActive = () => {
   return el
 }
 const CODES = { ",": "Comma", ".": "Period", "/": "Slash", tab: "Tab", enter: "Enter", escape: "Escape", up: "ArrowUp", down: "ArrowDown", backspace: "Backspace", space: "Space" }
+const codeOf = (key) => (/^\d$/.test(key) ? "Digit" + key : /^[a-z]$/.test(key) ? "Key" + key.toUpperCase() : CODES[key])
 const press = (combo, target) => {
   const parts = combo.split("+")
   const key = parts.pop()
-  const code = /^\d$/.test(key) ? "Digit" + key : /^[a-z]$/.test(key) ? "Key" + key.toUpperCase() : CODES[key]
+  const code = codeOf(key)
   const init = {
     key: key.length === 1 ? key : code,
     code,
@@ -156,7 +157,7 @@ const pressTrusted = (combo) => {
   const key = parts.pop()
   const MODS = { ctrl: ["Control", "ControlLeft", 17], alt: ["Alt", "AltLeft", 18], shift: ["Shift", "ShiftLeft", 16] }
   const mods = parts.map((m) => new KeyboardEvent("", { key: MODS[m][0], code: MODS[m][1], keyCode: MODS[m][2] }))
-  const main = new KeyboardEvent("", { key, code: "Key" + key.toUpperCase(), keyCode: key.toUpperCase().charCodeAt(0) })
+  const main = new KeyboardEvent("", { key, code: codeOf(key), keyCode: key.toUpperCase().charCodeAt(0) })
   for (const mod of mods) tip.keydown(mod)
   tip.keydown(main)
   tip.keyup(main)

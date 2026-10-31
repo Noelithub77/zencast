@@ -121,7 +121,7 @@ Zencast is a project, not a product. Describe it as a project everywhere.
 | --- | --- |
 | Ctrl+K | Find anything: tabs, spaces, history, commands, settings |
 | Ctrl+/ | Every Zencast key |
-| Alt+1…9 | Switch to that space, only while it exists (moved from Ctrl+1…9 on 2026-10-28) |
+| Alt+1…9 | Switch to that space, only while it exists (moved from Ctrl+1…9 on 2026-10-28). It wins over Firefox's Alt+N, which selects the Nth tab and so opens an essential (2026-10-31) |
 | Alt+Shift+1…9 | Send the tab to that space and follow it (moved from Ctrl+Shift+1…9 on 2026-10-28) |
 | Alt+P | Pin or unpin the tab |
 | Alt+Shift+P | Change the pin to the current URL |

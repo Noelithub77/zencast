@@ -453,6 +453,39 @@ const SCENARIOS: Scenario[] = [
       return { ok: Boolean(switched) && passed, detail: (switched ? "switched to " + spaces[1].name : "did not switch") + "; alt+" + missing + (passed ? " passed through" : " was taken") }`,
   },
   {
+    name: "alt+2 over a focused page switches the space and Firefox's alt+2 select-tab key stays quiet",
+    body: String.raw`${READY}
+      if (gZenWorkspaces.getWorkspaces().length < 2) await gZenWorkspaces.createAndSaveWorkspace("Second", undefined, true)
+      const spaces = gZenWorkspaces.getWorkspaces()
+      await gZenWorkspaces.changeWorkspaceWithID(spaces[0].uuid)
+      const page = newTab("data:text/html,<title>altpage</title>x")
+      // Firefox's Alt+1…8 select a tab by position, which in Zen opens an essential.
+      let selected = 0
+      const original = gBrowser.selectTabAtIndex
+      gBrowser.selectTabAtIndex = function (...args) {
+        selected++
+        return original.apply(this, args)
+      }
+      try {
+        await until(() => page.label === "altpage", 5000)
+        gBrowser.selectedTab = page
+        await sleep(200)
+        gBrowser.selectedBrowser.focus()
+        await sleep(200)
+        pressTrusted("alt+2")
+        const switched = await until(() => gZenWorkspaces.activeWorkspace === spaces[1].uuid, 3000).catch(() => false)
+        await sleep(300)
+        return {
+          ok: !!switched && selected === 0,
+          detail: (switched ? "switched to " + spaces[1].name : "did not switch") + (selected ? "; Firefox also selected a tab by position" : "; no tab selected by position"),
+        }
+      } finally {
+        gBrowser.selectTabAtIndex = original
+        await gZenWorkspaces.changeWorkspaceWithID(spaces[0].uuid)
+        gBrowser.removeTab(page)
+      }`,
+  },
+  {
     name: "ctrl+, opens Zen's settings",
     body: String.raw`${READY}
       press("ctrl+,", document.documentElement)

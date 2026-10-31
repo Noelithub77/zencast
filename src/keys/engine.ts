@@ -35,6 +35,9 @@ function consume(event: KeyboardEvent) {
 export function startKeyEngine(win: Window, options: EngineOptions): () => void {
   let pending: string | null = null
   let timer: ReturnType<typeof setTimeout> | null = null
+  // Firefox's <key> shortcuts run on keypress, which the page sends back separately from keydown, so a
+  // key taken here after the page let it go would also run Firefox's (Alt+1 would open an essential).
+  let swallowPress = false
 
   const clearPending = () => {
     if (timer) clearTimeout(timer)
@@ -45,7 +48,14 @@ export function startKeyEngine(win: Window, options: EngineOptions): () => void 
     }
   }
 
+  const take = (event: KeyboardEvent) => {
+    // Read first: consuming the reply clears its flag.
+    swallowPress = event.isReplyEventFromRemoteContent
+    consume(event)
+  }
+
   const onKeyDown = (event: KeyboardEvent) => {
+    if (!event.isReplyEventFromRemoteContent) swallowPress = false
     if (event.defaultPrevented || event.isComposing || options.paused()) return
     const combo = comboFromEvent(event)
     if (!combo) return
@@ -67,14 +77,14 @@ export function startKeyEngine(win: Window, options: EngineOptions): () => void 
     }
 
     if (command) {
-      consume(event)
+      take(event)
       clearPending()
       options.dispatch(command, event)
       return
     }
 
     if (continuations) {
-      consume(event)
+      take(event)
       pending = sequence
       if (timer) clearTimeout(timer)
       timer = setTimeout(clearPending, CHORD_TIMEOUT_MS)
@@ -89,9 +99,17 @@ export function startKeyEngine(win: Window, options: EngineOptions): () => void 
     }
   }
 
+  const onKeyPress = (event: KeyboardEvent) => {
+    if (!swallowPress) return
+    swallowPress = false
+    consume(event)
+  }
+
   win.addEventListener("keydown", onKeyDown, { capture: true })
+  win.addEventListener("keypress", onKeyPress, { capture: true })
   return () => {
     clearPending()
     win.removeEventListener("keydown", onKeyDown, { capture: true })
+    win.removeEventListener("keypress", onKeyPress, { capture: true })
   }
 }

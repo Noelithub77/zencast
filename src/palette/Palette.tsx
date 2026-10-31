@@ -152,21 +152,21 @@ declare module "react" {
   }
 }
 
-const WASH_AT = { left: "0% 0%", right: "100% 0%", top: "12% 0%" }
+const WASH_AT = { left: "0% 0%", right: "100% 0%", top: "10% 0%" }
 
-/** A soft wash of the target's colour from one top corner, or across the header for an engine, behind the palette's content. */
-function TargetWash({ target, corner }: { target: Pick<Target, "color"> | null; corner: keyof typeof WASH_AT }) {
+/** A soft wash of the target's colour from one top corner, or a dark glow under the header for an engine, behind the palette's content. */
+function TargetWash({ target, corner }: { target: (Pick<Target, "color"> & { glow?: string }) | null; corner: keyof typeof WASH_AT }) {
   const shown = useLast(target)
   return (
     <div
       aria-hidden
       className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit] transition-[opacity,color] duration-300 ease-out"
       style={{
-        color: shown?.color,
+        color: shown?.glow ?? shown?.color,
         opacity: target ? 1 : 0,
         backgroundImage:
           corner === "top"
-            ? `radial-gradient(140% 60% at ${WASH_AT.top}, color-mix(in srgb, currentColor 20%, transparent), transparent 70%), linear-gradient(color-mix(in srgb, currentColor 5%, transparent), color-mix(in srgb, currentColor 5%, transparent))`
+            ? `radial-gradient(85% 30% at ${WASH_AT.top}, color-mix(in srgb, currentColor 50%, transparent), transparent), radial-gradient(60% 18% at 70% 0%, color-mix(in srgb, currentColor 22%, transparent), transparent)`
             : `radial-gradient(110% 85% at ${WASH_AT[corner]}, color-mix(in srgb, currentColor 17%, transparent), transparent 62%)`,
       }}
     />
@@ -804,7 +804,7 @@ export function Palette() {
     view?.placeholder ??
     (engine ? `Search ${engine.name}` : scope ? `Search ${scope.name.toLowerCase()}` : targets ? `Open in ${targets}` : `Search or type a URL · ${SCOPE_HINT}`)
   const primary = active?.actions[0]
-  const accent = space?.color ?? openIn?.color ?? engine?.color
+  const accent = space?.color ?? openIn?.color ?? engine?.glow
   // The input row offers the engine Tab would search, and the footer what Shift+Enter would.
   const tabEngine = !view && !scope && !engine ? engineFor(query) : undefined
   const webSearch = !view && !scope && !engine && q && active?.id !== "web-search" ? defaultEngineName() || "the web" : ""
@@ -835,7 +835,7 @@ export function Palette() {
           <TargetWash target={openIn} corner="right" />
           <div
             className="flex h-18 shrink-0 items-center gap-4 border-b px-6 transition-[border-color] duration-300 ease-out"
-            style={{ borderColor: engine ? `color-mix(in srgb, ${engine.color} 30%, var(--border))` : undefined }}
+            style={{ borderColor: engine ? `color-mix(in srgb, ${engine.glow} 35%, var(--border))` : undefined }}
           >
             {view ? (
               <button
